@@ -10,8 +10,8 @@ Prove that a Nymrel-owned runtime boundary can route and execute a read-only req
 
 1. `RouteRequest` carries phase, risk, capability requirements, data boundary, cost/latency ceilings, and an optional incumbent. It carries no prompt.
 2. `RoutePlan` records eligible scores, every exclusion reason, a stable tie-break, and a human-readable explanation.
-3. `ProviderAdapter` supplies a model profile, health probe, and event stream. Phase 0 ships only a fake adapter.
-4. `AgentRuntime` blocks non-read work before provider execution, then emits body-free events and a receipt.
+3. `ProviderAdapter` defines a future-facing profile, health-probe, and event-stream seam. Phase 0 ships only `FakeProvider`.
+4. `AgentRuntime` accepts only exact `FakeProvider` instances, blocks non-read work before provider execution, then emits body-free events and a receipt.
 5. `RunReceipt` stores hashes and bounded metadata—not task or output bodies.
 
 ## Explicit non-goals

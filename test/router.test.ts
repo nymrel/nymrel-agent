@@ -36,11 +36,11 @@ function profile(modelId: string, overrides: Partial<ModelProfile> = {}): ModelP
 }
 
 test("routing is deterministic and breaks equal scores by model id", () => {
-  const plan = route(baseRequest, [profile("z.model"), profile("a.model")]);
-  assert.equal(plan.selectedModelId, "a.model");
+  const plan = route(baseRequest, [profile("z.model"), profile("Z.model")]);
+  assert.equal(plan.selectedModelId, "Z.model");
   assert.deepEqual(
     plan.eligible.map((candidate) => candidate.modelId),
-    ["a.model", "z.model"],
+    ["Z.model", "z.model"],
   );
 });
 
@@ -77,4 +77,17 @@ test("an incumbent receives a visible stickiness bonus", () => {
   ]);
   assert.equal(plan.selectedModelId, "z.model");
   assert.equal(plan.eligible[0]?.components.stickinessBonus, 250);
+});
+
+test("invalid profiles fail closed with a stable reason", () => {
+  const plan = route(baseRequest, [profile("invalid", { qualityScore: 101 })]);
+  assert.equal(plan.selectedModelId, null);
+  assert.deepEqual(plan.rejected[0]?.reasonCodes, ["profile_invalid"]);
+});
+
+test("every duplicate model id is rejected", () => {
+  const plan = route(baseRequest, [profile("duplicate"), profile("duplicate")]);
+  assert.equal(plan.selectedModelId, null);
+  assert.equal(plan.rejected.length, 2);
+  assert.ok(plan.rejected.every((entry) => entry.reasonCodes.includes("duplicate_model_id")));
 });

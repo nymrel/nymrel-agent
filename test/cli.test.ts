@@ -34,5 +34,5 @@ test("read-only CLI smoke returns a truthful completion receipt", () => {
   assert.equal(result.status, 0, result.stderr);
   const payload = JSON.parse(result.stdout) as { receipt: { status: string; reasonCodes: string[] } };
   assert.equal(payload.receipt.status, "completed");
-  assert.ok(payload.receipt.reasonCodes.includes("fake_provider_only"));
+  assert.ok(payload.receipt.reasonCodes.includes("fake_provider_verified"));
 });

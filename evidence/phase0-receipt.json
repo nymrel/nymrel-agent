@@ -12,10 +12,10 @@
     "adoptionAuthorized": false
   },
   "validation": {
-    "status": "pass",
-    "validatedAtUtc": "2026-08-25T07:26:44.7170022Z",
+    "status": "pending_source_attestation",
+    "validatedAtUtc": null,
     "tests": {
-      "passed": 16,
+      "passed": 21,
       "failed": 0
     },
     "checks": {
@@ -23,8 +23,7 @@
       "build": "pass",
       "phase0Boundary": "pass",
       "fakeProviderSmoke": "pass",
-      "diffCheck": "pass",
-      "dependencyAuditVulnerabilities": 0
+      "diffCheck": "pending"
     },
     "packageLockSha256": "b0b53e158df34e3c7b4d00577428fbc0ca463f99f29c89949a36d4a433594d89",
     "commands": [
@@ -35,6 +34,12 @@
       "npm run smoke",
       "git diff --check"
     ]
+  },
+  "sourceBinding": {
+    "status": "pending",
+    "sourceCommitSha": null,
+    "sourceTreeSha": null,
+    "policy": "receipt_only_child_of_source_commit"
   },
   "sunset": {
     "currentRecommendation": "archive_unless_independent_review_selects_absorb_or_promote",

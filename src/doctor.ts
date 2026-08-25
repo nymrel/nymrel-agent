@@ -4,13 +4,16 @@ import {
   type ProviderAdapter,
   type ProviderHealth,
 } from "./contracts.js";
+import { compareCodeUnits } from "./ordering.js";
 
 export async function doctorProviders(
   adapters: readonly ProviderAdapter[],
   checkedAt: string,
 ): Promise<DoctorReport> {
   const checks: ProviderHealth[] = [];
-  for (const adapter of [...adapters].sort((a, b) => a.profile.modelId.localeCompare(b.profile.modelId))) {
+  for (const adapter of [...adapters].sort((a, b) =>
+    compareCodeUnits(a.profile.modelId, b.profile.modelId),
+  )) {
     try {
       checks.push(await adapter.probe(checkedAt));
     } catch {

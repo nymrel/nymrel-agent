@@ -16,6 +16,7 @@ export interface FakeProviderBehavior {
 }
 
 export class FakeProvider implements ProviderAdapter {
+  public readonly executionKind = "synthetic" as const;
   public probeCount = 0;
   public runCount = 0;
 

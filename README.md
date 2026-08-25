@@ -30,7 +30,7 @@ The CLI file is not exposed through a package `bin` entry. `package.json` is pri
 
 ## Safety boundary
 
-Phase 0 can execute only requests whose profile and risk are both read-only. Workspace writes and external effects are rejected before an adapter can run. The only adapter included is deterministic and fake; no network-capable module is imported by `src/`.
+Phase 0 can execute only requests whose profile and risk are both read-only. Workspace writes and external effects are rejected before an adapter can run. `AgentRuntime` accepts only exact instances of the deterministic `FakeProvider`; live adapters, structural lookalikes, and subclasses are rejected. No network-capable module is imported by `src/`.
 
 This is not process, filesystem, or network isolation. A future write-capable runtime would require a separately reviewed operating-system sandbox and policy boundary.
 

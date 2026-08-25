@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import {
   type DoctorReport,
   type ModelProfile,
-  type ProviderAdapter,
   type RunEvent,
   type RunRequest,
   type RunResult,
@@ -11,7 +10,9 @@ import {
   type RouteRequest,
 } from "./contracts.js";
 import { doctorProviders } from "./doctor.js";
-import { createRunReceipt, sha256Text } from "./receipt.js";
+import { FakeProvider } from "./fake-provider.js";
+import { compareCodeUnits } from "./ordering.js";
+import { createRunReceipt } from "./receipt.js";
 import { route } from "./router.js";
 
 export interface RuntimeOptions {
@@ -23,15 +24,22 @@ type WithoutEventEnvelope<T> = T extends unknown ? Omit<T, "sequence" | "at"> : 
 type PendingRunEvent = WithoutEventEnvelope<RunEvent>;
 
 export class AgentRuntime {
-  private readonly adaptersByModel = new Map<string, ProviderAdapter>();
+  private readonly adaptersByModel = new Map<string, FakeProvider>();
   private readonly clock: () => string;
   private readonly idFactory: () => string;
 
   public constructor(
-    adapters: readonly ProviderAdapter[],
+    adapters: readonly FakeProvider[],
     options: RuntimeOptions = {},
   ) {
     for (const adapter of adapters) {
+      if (
+        !(adapter instanceof FakeProvider) ||
+        Object.getPrototypeOf(adapter) !== FakeProvider.prototype ||
+        adapter.executionKind !== "synthetic"
+      ) {
+        throw new Error("Phase 0 accepts exact FakeProvider instances only");
+      }
       if (this.adaptersByModel.has(adapter.profile.modelId)) {
         throw new Error(`Duplicate adapter model id: ${adapter.profile.modelId}`);
       }
@@ -41,9 +49,9 @@ export class AgentRuntime {
     this.idFactory = options.idFactory ?? randomUUID;
   }
 
-  private adapters(): ProviderAdapter[] {
+  private adapters(): FakeProvider[] {
     return [...this.adaptersByModel.values()].sort((a, b) =>
-      a.profile.modelId.localeCompare(b.profile.modelId),
+      compareCodeUnits(a.profile.modelId, b.profile.modelId),
     );
   }
 
@@ -61,12 +69,20 @@ export class AgentRuntime {
     const profiles: ModelProfile[] = [];
     for (const adapter of this.adapters()) {
       let health = adapter.profile.health;
+      let healthCode = adapter.profile.healthCode;
       try {
-        health = (await adapter.probe(checkedAt)).state;
+        const probe = await adapter.probe(checkedAt);
+        health = probe.state;
+        healthCode = probe.code;
       } catch {
         health = "unavailable";
+        healthCode = "probe_failed";
       }
-      profiles.push({ ...adapter.profile, health });
+      profiles.push({
+        ...adapter.profile,
+        health,
+        ...(healthCode === undefined ? {} : { healthCode }),
+      });
     }
     return route(request, profiles);
   }
@@ -87,7 +103,7 @@ export class AgentRuntime {
 
     if (policyReasons.length > 0) {
       const plan = route(request.route, this.staticProfiles());
-      const reasons = [...new Set(policyReasons)].sort();
+      const reasons = [...new Set(policyReasons)].sort(compareCodeUnits);
       addEvent({ type: "run.blocked", reasonCodes: reasons });
       const endedAt = this.clock();
       return {
@@ -110,7 +126,7 @@ export class AgentRuntime {
 
     const plan = await this.plan(request.route);
     if (plan.selectedModelId === null) {
-      const reasons = [...new Set(plan.decisionCodes)].sort();
+      const reasons = [...new Set(plan.decisionCodes)].sort(compareCodeUnits);
       addEvent({ type: "run.blocked", reasonCodes: reasons });
       const endedAt = this.clock();
       return {
@@ -140,7 +156,7 @@ export class AgentRuntime {
     let inputTokens = 0;
     let outputTokens = 0;
     let status: RunStatus = "completed";
-    const reasonCodes: string[] = ["fake_provider_only", "read_only_policy_allowed"];
+    const reasonCodes: string[] = ["fake_provider_verified", "read_only_policy_allowed"];
 
     try {
       for await (const providerEvent of adapter.run({
@@ -155,7 +171,6 @@ export class AgentRuntime {
             type: "provider.chunk",
             modelId,
             byteLength: Buffer.byteLength(providerEvent.text, "utf8"),
-            chunkSha256: sha256Text(providerEvent.text),
           });
         } else {
           inputTokens = providerEvent.inputTokens;

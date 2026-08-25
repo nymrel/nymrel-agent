@@ -7,6 +7,7 @@ import {
   type RouteScoreComponents,
   type ScoredRouteCandidate,
 } from "./contracts.js";
+import { compareCodeUnits } from "./ordering.js";
 
 const PROFILE_INVALID = "profile_invalid";
 
@@ -33,6 +34,7 @@ function rejectionReasons(request: RouteRequest, profile: ModelProfile): string[
   const reasons: string[] = [];
   if (!validProfile(profile)) reasons.push(PROFILE_INVALID);
   if (profile.health === "unavailable") reasons.push("health_unavailable");
+  if (profile.healthCode === "probe_failed") reasons.push("probe_failed");
   if (!profile.dataBoundaries.includes(request.constraints.dataBoundary)) {
     reasons.push("data_boundary_unsupported");
   }
@@ -61,7 +63,7 @@ function rejectionReasons(request: RouteRequest, profile: ModelProfile): string[
   ) {
     reasons.push("latency_budget_exceeded");
   }
-  return [...new Set(reasons)].sort();
+  return [...new Set(reasons)].sort(compareCodeUnits);
 }
 
 function scoreCandidate(request: RouteRequest, profile: ModelProfile): ScoredRouteCandidate {
@@ -85,28 +87,33 @@ export function route(request: RouteRequest, profiles: readonly ModelProfile[]):
       eligible: [],
       rejected: profiles
         .map((profile) => ({ modelId: profile.modelId, reasonCodes: ["phase0_non_read_rejected"] }))
-        .sort((a, b) => a.modelId.localeCompare(b.modelId)),
+        .sort((a, b) => compareCodeUnits(a.modelId, b.modelId)),
       decisionCodes: ["policy_blocked", "phase0_non_read_rejected"],
       explanation: "Phase 0 routes read-only work only; the request was rejected before model selection.",
     };
   }
 
-  const ids = new Set<string>();
+  const idCounts = new Map<string, number>();
+  for (const profile of profiles) {
+    idCounts.set(profile.modelId, (idCounts.get(profile.modelId) ?? 0) + 1);
+  }
   const eligible: ScoredRouteCandidate[] = [];
   const rejected: RejectedRouteCandidate[] = [];
 
-  for (const profile of [...profiles].sort((a, b) => a.modelId.localeCompare(b.modelId))) {
+  for (const profile of [...profiles].sort((a, b) => compareCodeUnits(a.modelId, b.modelId))) {
     const reasons = rejectionReasons(request, profile);
-    if (ids.has(profile.modelId)) reasons.push("duplicate_model_id");
-    ids.add(profile.modelId);
+    if ((idCounts.get(profile.modelId) ?? 0) > 1) reasons.push("duplicate_model_id");
     if (reasons.length > 0) {
-      rejected.push({ modelId: profile.modelId, reasonCodes: [...new Set(reasons)].sort() });
+      rejected.push({
+        modelId: profile.modelId,
+        reasonCodes: [...new Set(reasons)].sort(compareCodeUnits),
+      });
     } else {
       eligible.push(scoreCandidate(request, profile));
     }
   }
 
-  eligible.sort((a, b) => b.score - a.score || a.modelId.localeCompare(b.modelId));
+  eligible.sort((a, b) => b.score - a.score || compareCodeUnits(a.modelId, b.modelId));
   const selectedModelId = eligible[0]?.modelId ?? null;
   const decisionCodes = selectedModelId
     ? ["eligible_candidates_ranked", "deterministic_tie_break", "model_selected"]

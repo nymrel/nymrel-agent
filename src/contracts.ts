@@ -17,6 +17,7 @@ export interface ModelProfile {
   readonly modelId: string;
   readonly providerId: string;
   readonly health: HealthState;
+  readonly healthCode?: string;
   readonly qualityScore: number;
   readonly reliabilityBasisPoints: number;
   readonly estimatedCostMicroUsd: number;
@@ -106,6 +107,7 @@ export type ProviderRunEvent =
 
 export interface ProviderAdapter {
   readonly profile: ModelProfile;
+  readonly executionKind: "synthetic" | "live";
   probe(checkedAt: string): Promise<ProviderHealth>;
   run(input: ProviderRunInput): AsyncIterable<ProviderRunEvent>;
 }
@@ -130,7 +132,6 @@ export type RunEvent =
       readonly type: "provider.chunk";
       readonly modelId: string;
       readonly byteLength: number;
-      readonly chunkSha256: string;
     }
   | {
       readonly sequence: number;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { ModelProfile, RouteRequest } from "../src/contracts.js";
+import type { ModelProfile, ProviderAdapter, RouteRequest } from "../src/contracts.js";
 import { FakeProvider } from "../src/fake-provider.js";
 import { AgentRuntime } from "../src/runtime.js";
 
@@ -61,6 +61,9 @@ test("read-only execution completes through the fake provider", async () => {
   assert.doesNotMatch(receiptJson, /synthetic output/);
   assert.match(result.receipt.inputSha256, /^[a-f0-9]{64}$/);
   assert.match(result.receipt.outputSha256 ?? "", /^[a-f0-9]{64}$/);
+  const chunkEvents = result.events.filter((event) => event.type === "provider.chunk");
+  assert.ok(chunkEvents.length > 0);
+  assert.ok(chunkEvents.every((event) => !("chunkSha256" in event)));
 });
 
 test("non-read execution is blocked before the provider runs", async () => {
@@ -106,4 +109,44 @@ test("doctor converts a thrown probe into a stable unavailable result", async ()
   const report = await runtime(provider).doctor();
   assert.equal(report.overall, "not_ready");
   assert.equal(report.checks[0]?.code, "probe_failed");
+});
+
+test("routing preserves the probe-failure diagnostic", async () => {
+  const provider = new FakeProvider(profile, { failProbe: true });
+  const plan = await runtime(provider).plan(readRoute);
+  assert.equal(plan.selectedModelId, null);
+  assert.deepEqual(plan.rejected[0]?.reasonCodes, ["health_unavailable", "probe_failed"]);
+});
+
+test("runtime construction rejects a live adapter", () => {
+  const liveAdapter: ProviderAdapter = {
+    executionKind: "live",
+    profile,
+    async probe(checkedAt) {
+      return {
+        modelId: profile.modelId,
+        providerId: profile.providerId,
+        state: "healthy",
+        code: "live_ready",
+        checkedAt,
+      };
+    },
+    async *run() {
+      yield { type: "delta", text: "must not run" };
+    },
+  };
+  const forgedSynthetic = { ...liveAdapter, executionKind: "synthetic" as const };
+  class FakeProviderSubclass extends FakeProvider {}
+  assert.throws(
+    () => new AgentRuntime([liveAdapter as unknown as FakeProvider]),
+    /exact FakeProvider instances only/,
+  );
+  assert.throws(
+    () => new AgentRuntime([forgedSynthetic as unknown as FakeProvider]),
+    /exact FakeProvider instances only/,
+  );
+  assert.throws(
+    () => new AgentRuntime([new FakeProviderSubclass(profile)]),
+    /exact FakeProvider instances only/,
+  );
 });

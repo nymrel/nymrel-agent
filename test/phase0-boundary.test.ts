@@ -10,13 +10,42 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
+function validIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
+}
+
 test("package is private, non-publishable, and has zero runtime dependencies", () => {
   const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as Record<string, unknown>;
   assert.equal(packageJson.private, true);
   assert.equal(packageJson.publishConfig, undefined);
-  assert.equal(packageJson.prepublishOnly, undefined);
   assert.equal(packageJson.bin, undefined);
+  assert.equal(packageJson.files, undefined);
   assert.deepEqual(packageJson.dependencies ?? {}, {});
+  const scripts = (packageJson.scripts ?? {}) as Record<string, unknown>;
+  for (const hook of [
+    "prepublish",
+    "prepublishOnly",
+    "prepare",
+    "publish",
+    "postpublish",
+    "prepack",
+    "postpack",
+    "preinstall",
+    "install",
+    "postinstall",
+  ]) {
+    assert.equal(Object.hasOwn(scripts, hook), false, hook);
+  }
+  for (const key of [
+    "optionalDependencies",
+    "peerDependencies",
+    "bundledDependencies",
+    "bundleDependencies",
+  ]) {
+    assert.equal(packageJson[key], undefined, key);
+  }
 });
 
 test("runtime source imports no network or process execution modules", () => {
@@ -43,4 +72,15 @@ test("candidate source contains no private control-plane identifiers", () => {
     .join("\n")
     .toLowerCase();
   for (const marker of forbidden) assert.equal(combined.includes(marker), false, marker);
+});
+
+test("sunset deadline has not expired while the candidate remains pending", () => {
+  const receipt = JSON.parse(readFileSync("evidence/phase0-receipt.json", "utf8")) as {
+    status: string;
+    sunset: { decisionDue: string };
+  };
+  assert.equal(validIsoDate(receipt.sunset.decisionDue), true);
+  if (receipt.status === "candidate_review_required") {
+    assert.ok(new Date().toISOString().slice(0, 10) <= receipt.sunset.decisionDue);
+  }
 });
