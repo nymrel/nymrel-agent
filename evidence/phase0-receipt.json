@@ -12,8 +12,8 @@
     "adoptionAuthorized": false
   },
   "validation": {
-    "status": "pending_source_attestation",
-    "validatedAtUtc": null,
+    "status": "pass",
+    "validatedAtUtc": "2026-08-25T07:57:33.357Z",
     "tests": {
       "passed": 21,
       "failed": 0
@@ -23,7 +23,7 @@
       "build": "pass",
       "phase0Boundary": "pass",
       "fakeProviderSmoke": "pass",
-      "diffCheck": "pending"
+      "diffCheck": "pass"
     },
     "packageLockSha256": "b0b53e158df34e3c7b4d00577428fbc0ca463f99f29c89949a36d4a433594d89",
     "commands": [
@@ -36,9 +36,9 @@
     ]
   },
   "sourceBinding": {
-    "status": "pending",
-    "sourceCommitSha": null,
-    "sourceTreeSha": null,
+    "status": "bound",
+    "sourceCommitSha": "7eac45fefb0d5cae42b825c5e99a124636dcc011",
+    "sourceTreeSha": "b3df2224e7cedf0ebbaaea2546739a30c782d74f",
     "policy": "receipt_only_child_of_source_commit"
   },
   "sunset": {
