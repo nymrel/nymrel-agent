@@ -1,0 +1,21 @@
+{
+  "name": "nymrel-agent-phase0",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Internal phase-0 candidate for a provider-neutral, read-only Nymrel agent runtime.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test \"dist/test/*.test.js\"",
+    "verify:phase0": "node scripts/verify-phase0.mjs",
+    "smoke": "npm run build --silent && node dist/src/cli.js run --task \"Summarize the phase-zero boundary\""
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "26.3.0",
+    "typescript": "7.0.2"
+  }
+}

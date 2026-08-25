@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "nymrel.agent.phase0.receipt/v1",
+  "generatedOn": "2026-08-25",
+  "status": "candidate_review_required",
+  "scope": "read_only_fake_provider",
+  "claims": {
+    "realProviderCalls": 0,
+    "credentialsUsed": 0,
+    "gitRemotes": 0,
+    "runtimeDependencies": 0,
+    "publicationAuthorized": false,
+    "adoptionAuthorized": false
+  },
+  "validation": {
+    "status": "pass",
+    "validatedAtUtc": "2026-08-25T07:26:44.7170022Z",
+    "tests": {
+      "passed": 16,
+      "failed": 0
+    },
+    "checks": {
+      "typecheck": "pass",
+      "build": "pass",
+      "phase0Boundary": "pass",
+      "fakeProviderSmoke": "pass",
+      "diffCheck": "pass",
+      "dependencyAuditVulnerabilities": 0
+    },
+    "packageLockSha256": "b0b53e158df34e3c7b4d00577428fbc0ca463f99f29c89949a36d4a433594d89",
+    "commands": [
+      "npm test",
+      "npm run typecheck",
+      "npm run build",
+      "npm run verify:phase0",
+      "npm run smoke",
+      "git diff --check"
+    ]
+  },
+  "sunset": {
+    "currentRecommendation": "archive_unless_independent_review_selects_absorb_or_promote",
+    "decisionDue": "2026-09-08",
+    "allowedOutcomes": ["absorb", "promote", "archive"],
+    "defaultOutcome": "archive"
+  }
+}
