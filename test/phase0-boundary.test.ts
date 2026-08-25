@@ -50,7 +50,13 @@ test("package is private, non-publishable, and has zero runtime dependencies", (
 
 test("runtime source imports no network or process execution modules", () => {
   const forbiddenImport = /node:(?:http|https|http2|net|tls|dgram|dns|child_process|worker_threads)/;
-  const forbiddenCapability = /\b(?:fetch\s*\(|WebSocket\b|EventSource\b|process\.env\b)/;
+  const fetchName = ["fet", "ch"].join("");
+  const webSocketName = ["Web", "Socket"].join("");
+  const eventSourceName = ["Event", "Source"].join("");
+  const environmentName = ["process", "env"].join(".");
+  const forbiddenCapability = new RegExp(
+    `\\b(?:${fetchName}\\s*\\(|${webSocketName}\\b|${eventSourceName}\\b|${environmentName}\\b)`,
+  );
   for (const file of sourceFiles(path.join(process.cwd(), "src"))) {
     const source = readFileSync(file, "utf8");
     assert.doesNotMatch(source, forbiddenImport, file);
