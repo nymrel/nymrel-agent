@@ -142,6 +142,17 @@ const ciWorkflow = read(".github/workflows/ci.yml");
 assert.doesNotMatch(ciWorkflow, /uses:\s+\S+@v\d+/i, "CI actions must use immutable commit SHAs");
 assert.ok(ciWorkflow.includes("persist-credentials: false"), "CI checkout must not persist its token");
 
+const launchPacket = read("docs/PRODUCTION_LAUNCH_PACKET.md");
+for (const requiredLaunchHold of [
+  "Auto-assign Custom Production Domains",
+  "offline fallback remains `Current`",
+  "enabled deployment to remain `Staged`",
+  "npx vercel promote <enabled-deployment-url>",
+  "Do not use `--yes`, `Force Promote`",
+]) {
+  assert.ok(launchPacket.includes(requiredLaunchHold), `production launch packet is missing staged-promotion hold: ${requiredLaunchHold}`);
+}
+
 function files(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     if ([".git", ".wrangler", "dist", "node_modules"].includes(entry.name)) return [];

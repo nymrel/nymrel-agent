@@ -82,13 +82,24 @@ Independent gate:
 
 ## Pre-promotion gate
 
+This sequence uses Vercel's documented [staged production deployment](https://vercel.com/docs/deployments/promoting-a-deployment#staging-and-promoting-a-production-deployment) flow so the enabled build cannot take the production alias before inspection.
+
 1. Create the public GitHub repository without an initial commit, connect the existing Vercel project to that exact repository, and enable Vercel system environment variables.
 2. Configure `ROUTING_API_ENABLED=false` for production before the first connected push, then push the accepted commit to `main`. Local-directory deployments are not eligible release sources.
 3. Inspect the resulting fallback deployment and require its provider-reported `gitSource` SHA, runtime `VERCEL_GIT_COMMIT_SHA`, `/healthz` source commit, and accepted commit to be identical. Absence or disagreement fails closed.
 4. Verify the fallback homepage and docs return 200, `/healthz` returns 200 with the accepted SHA, `/readyz` returns 503, and `POST /v1/route` returns the stable JSON `service_disabled` error.
 5. Record the fallback deployment ID and confirm the alias reassignment command before enabling routing.
 6. Stage, inspect, and publish the Vercel WAF rule `nymrel-agent-route-v1` at 120 requests per 60 seconds. Stop if Vercel presents a new pricing, billing, or legal-acceptance gate.
-7. Change the production routing flag to `true` and redeploy the exact Git-backed fallback source. Require the new enabled deployment's provider `gitSource` SHA and runtime source commit to remain identical to the accepted commit before promotion.
+7. Disable **Production > Branch Tracking > Auto-assign Custom Production Domains** and verify that the offline fallback remains `Current` at `nymrel-agent.vercel.app`. Do not change the routing flag until that hold is proven.
+8. Change the production routing flag to `true` and redeploy the exact Git-backed fallback source as a production deployment. Require the new enabled deployment to remain `Staged`, require the stable alias to continue serving the fallback, and inspect the staged deployment directly.
+9. Before promotion, require the staged deployment's provider `gitSource` SHA, runtime source commit, `/healthz` source commit, and accepted commit to be identical. Require `/readyz` and the canonical route fixture to pass against the staged URL, and inspect its error logs.
+10. Promote only that verified staged deployment with an explicit confirmation:
+
+```powershell
+npx vercel promote <enabled-deployment-url>
+```
+
+Do not use `--yes`, `Force Promote`, or any path that bypasses the staged checks. Confirm the promoted deployment is `Current` before running the production-alias matrix.
 
 ## Post-deploy route matrix
 
