@@ -128,11 +128,11 @@ Negative checks cover malformed `Content-Length`, invalid JSON, unknown prompt f
 
 Source and install checks:
 
-- The public Vercel release manifest binds the versioned source archive and package artifact to SHA-256 digests and the release source commit. The authenticated GitHub tag and release target that same source, but no public GitHub availability or source-immutability badge is claimed while the account gate remains.
-- The deployed `/healthz` and `/readyz` expose that SHA.
-- Vercel inspection identifies the exact organization, project, deployment, source mode, and source SHA. `provider_git` requires the connected repository and provider `gitSource`; `verified_cli_bundle` requires the public remote commit plus an exact allowlist and SHA-1 proof for every uploaded source file.
+- `releaseSourceCommit` identifies the immutable v0.1.0 package and source release. The public Vercel release manifest binds those artifacts to that commit plus exact SHA-256 digests. The authenticated GitHub tag and release target the same source, but no public GitHub availability or source-immutability badge is claimed while the account gate remains.
+- `deploymentSourceCommit` identifies the accepted hosting commit. Provider metadata, the uploaded-source inventory, `/healthz`, and `/readyz` must expose that deployment commit—not `releaseSourceCommit`—because the host adds only the versioned distribution assets and customer-facing download path.
+- Vercel inspection identifies the exact organization, project, deployment, source mode, and `deploymentSourceCommit`. `provider_git` requires the connected repository and provider `gitSource`; `verified_cli_bundle` requires authenticated remote `main`, local `HEAD`, provider metadata, runtime probes, and the accepted hosting commit to agree, plus an exact allowlist and SHA-1 proof for every uploaded source file.
 - An unauthenticated download and install from the Vercel-hosted package passes the public quickstart; the Vercel-hosted source archive expands to the recorded release source.
-- The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass on Windows and Linux CI.
+- The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass on Windows plus an independent remote Linux verification build. GitHub Actions remains separately blocked at the account layer and is not claimed as CI proof.
 
 ## Rollback
 
@@ -141,7 +141,7 @@ Before promotion, record:
 - enabled deployment ID and URL;
 - offline-fallback deployment ID and URL;
 - stable alias `nymrel-agent.vercel.app`;
-- accepted source SHA;
+- `releaseSourceCommit` and `deploymentSourceCommit`;
 - WAF configuration version.
 
 On a functional or security regression:
@@ -158,7 +158,7 @@ Cloudflare rollback, if that adapter is later deployed, must record the prior im
 
 The final production receipt records:
 
-- exact source commit and tree;
+- exact release-source commit/tree and deployment-source commit/tree;
 - package tarball name and SHA-256;
 - test, typecheck, audit, dry-run, packed-install, and committed-tree hygiene results;
 - independent-review findings and replacement acceptance;

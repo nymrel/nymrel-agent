@@ -186,6 +186,8 @@ for (const requiredLaunchHold of [
   "enabled deployment to remain `Staged`",
   "npx vercel promote <enabled-deployment-url>",
   "Do not use `--yes`, `Force Promote`",
+  "releaseSourceCommit",
+  "deploymentSourceCommit",
 ]) {
   assert.ok(launchPacket.includes(requiredLaunchHold), `production launch packet is missing staged-promotion hold: ${requiredLaunchHold}`);
 }
