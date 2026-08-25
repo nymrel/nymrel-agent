@@ -9,6 +9,7 @@ import {
   type ScoredRouteCandidate,
 } from "./contracts.js";
 import { compareCodeUnits } from "./ordering.js";
+import { parsePublicRoutePayload } from "./validation.js";
 
 const PROFILE_INVALID = "profile_invalid";
 const HEALTH_STATES = new Set(["healthy", "degraded", "unavailable"]);
@@ -87,7 +88,7 @@ function scoreCandidate(request: RouteRequest, profile: ModelProfile, range: Can
   return { modelId: profile.modelId, providerId: profile.providerId, score: Object.values(components).reduce((sum, value) => sum + value, 0), components };
 }
 
-export function route(request: RouteRequest, profiles: readonly ModelProfile[]): RoutePlan {
+function routeValidated(request: RouteRequest, profiles: readonly ModelProfile[]): RoutePlan {
   if (!Object.hasOwn(OBJECTIVE_WEIGHTS, request.objective)) throw new Error("Unsupported routing objective");
   const idCounts = new Map<string, number>();
   for (const profile of profiles) idCounts.set(profile.modelId, (idCounts.get(profile.modelId) ?? 0) + 1);
@@ -128,4 +129,15 @@ export function route(request: RouteRequest, profiles: readonly ModelProfile[]):
       ? `Selected ${selected.modelId} from ${eligible.length} eligible model(s) for the ${request.objective} objective; ${rejected.length} model(s) were rejected by explicit constraints.`
       : "No model satisfied the explicit health, risk, capability, data-boundary, cost, and latency constraints.",
   };
+}
+
+/**
+ * Public package boundary. TypeScript annotations disappear at runtime, so
+ * every JavaScript caller is parsed before the scoring code can dereference a
+ * request or profile. Invalid shapes fail with the same stable NymrelError
+ * used by the HTTP, CLI, and MCP surfaces instead of a TypeError.
+ */
+export function route(requestValue: unknown, profilesValue: unknown): RoutePlan {
+  const payload = parsePublicRoutePayload({ request: requestValue, models: profilesValue });
+  return routeValidated(payload.request, payload.models);
 }

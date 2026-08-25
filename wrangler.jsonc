@@ -27,6 +27,8 @@
     }
   ],
   "vars": {
-    "APP_ENV": "production"
+    "APP_ENV": "production",
+    "RATE_LIMIT_SCOPE": "edge_location",
+    "ROUTING_API_ENABLED": "true"
   }
 }

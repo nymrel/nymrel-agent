@@ -8,7 +8,7 @@ Run the complete local gate:
 npm ci
 npm run verify
 npm pack --dry-run
-git diff --check
+git show --check --oneline HEAD
 ```
 
 Changes to the public contract require a versioning decision, updated OpenAPI and examples, compatibility tests, and a changelog entry. New provider adapters must use customer-local credentials, sanitize provider errors, avoid body-bearing receipts, and include recorded-fixture or mock conformance tests before any live canary.

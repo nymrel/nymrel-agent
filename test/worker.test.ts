@@ -50,6 +50,56 @@ test("route enforces media type, payload size, method, and rate limits", async (
   assert.equal(limited.headers.get("retry-after"), "60");
 });
 
+test("chunked oversized bodies are cancelled before the stream is fully consumed", async () => {
+  let produced = 0;
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      produced += 1;
+      controller.enqueue(new Uint8Array(64 * 1024));
+      if (produced === 20) controller.close();
+    },
+    cancel() { cancelled = true; },
+  });
+  const request = new Request(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body,
+    duplex: "half",
+  } as RequestInit & { duplex: "half" });
+  const response = await handleRequest(request);
+  assert.equal(response.status, 413);
+  assert.equal(cancelled, true);
+  assert.ok(produced < 20, `oversized stream was fully consumed (${produced} chunks)`);
+});
+
+test("malformed Content-Length and incomplete production bindings fail closed", async () => {
+  const malformed = await handleRequest(new Request(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json", "content-length": "not-a-number" },
+    body: example(),
+  }));
+  assert.equal(malformed.status, 400);
+  assert.match(await malformed.text(), /invalid_content_length/);
+
+  const missingSource: WorkerEnv = {
+    APP_ENV: "production",
+    ROUTE_RATE_LIMITER: { async limit() { return { success: true }; } },
+  };
+  assert.equal((await handleRequest(new Request("https://agent.example/readyz"), missingSource)).status, 503);
+
+  const invalidScope: WorkerEnv = {
+    APP_ENV: "production",
+    SOURCE_COMMIT: "a".repeat(40),
+    RATE_LIMIT_SCOPE: "function_instance",
+    PLATFORM_RATE_LIMITER: {
+      async limit() { return { status: "allowed" }; },
+      async probe() { return { status: "ready" }; },
+    },
+  };
+  assert.equal((await handleRequest(new Request("https://agent.example/readyz"), invalidScope)).status, 503);
+});
+
 test("static assets receive browser security headers", async () => {
   const env: WorkerEnv = { ASSETS: { async fetch() { return new Response("<h1>asset</h1>", { headers: { "content-type": "text/html" } }); } } };
   const response = await handleRequest(new Request("https://agent.example/"), env);

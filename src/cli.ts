@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
 import { CONTRACT_VERSION, PRODUCT_VERSION } from "./contracts.js";
 import { createDefaultRouteRequest, createDemoRuntime } from "./defaults.js";
 import { NymrelError, publicError } from "./errors.js";
@@ -10,8 +9,26 @@ import { AgentRuntime } from "./runtime.js";
 import { parsePublicRoutePayload } from "./validation.js";
 
 function flagValue(args: readonly string[], flag: string): string | undefined {
-  const index = args.indexOf(flag);
-  return index >= 0 ? args[index + 1] : undefined;
+  const indexes = args.flatMap((value, index) => value === flag ? [index] : []);
+  if (indexes.length > 1) throw new NymrelError("usage_error", `${flag} may be provided only once.`, 64);
+  const index = indexes[0];
+  if (index === undefined) return undefined;
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("--")) throw new NymrelError("usage_error", `${flag} requires a value.`, 64);
+  return value;
+}
+
+function validateOptions(args: readonly string[], start: number, allowed: readonly string[]): void {
+  const allowedSet = new Set(allowed);
+  const seen = new Set<string>();
+  for (let index = start; index < args.length; index += 2) {
+    const flag = args[index];
+    if (flag === undefined || !allowedSet.has(flag)) throw new NymrelError("usage_error", "Unknown or misplaced command option.", 64);
+    if (seen.has(flag)) throw new NymrelError("usage_error", `${flag} may be provided only once.`, 64);
+    const value = args[index + 1];
+    if (value === undefined || value.startsWith("--")) throw new NymrelError("usage_error", `${flag} requires a value.`, 64);
+    seen.add(flag);
+  }
 }
 
 function requireFlag(args: readonly string[], flag: string): string {
@@ -36,11 +53,49 @@ function printJson(value: unknown): void {
 
 function endpointUrl(value: string): string {
   const url = new URL(value);
-  const local = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1";
+  const hostname = url.hostname.toLowerCase().replace(/^\[/, "").replace(/\]$/, "");
+  const local = hostname === "localhost" || hostname === "::1" || hostname.startsWith("127.");
   if (url.username || url.password || url.search || url.hash || (url.protocol !== "https:" && !(local && url.protocol === "http:"))) {
     throw new NymrelError("endpoint_invalid", "The endpoint must use HTTPS (or HTTP localhost) and contain no credentials, query, or fragment.", 64);
   }
   return `${url.toString().replace(/\/$/, "")}/v1/route`;
+}
+
+export async function boundedResponseBody(response: Response, maximum: number): Promise<Uint8Array> {
+  const declaredLength = response.headers.get("content-length");
+  if (declaredLength !== null) {
+    if (!/^\d+$/.test(declaredLength) || !Number.isSafeInteger(Number(declaredLength))) {
+      throw new NymrelError("endpoint_invalid_response", "The routing endpoint returned an invalid Content-Length.", 69);
+    }
+    if (Number(declaredLength) > maximum) {
+      throw new NymrelError("response_too_large", "The routing endpoint returned an oversized response.", 69);
+    }
+  }
+  if (response.body === null) return new Uint8Array();
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maximum) {
+        try { await reader.cancel(); } catch { /* The bounded error remains authoritative. */ }
+        throw new NymrelError("response_too_large", "The routing endpoint returned an oversized response.", 69);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return result;
 }
 
 async function remoteRoute(endpoint: string, payload: unknown): Promise<number> {
@@ -55,8 +110,7 @@ async function remoteRoute(endpoint: string, payload: unknown): Promise<number> 
   } catch {
     throw new NymrelError("endpoint_unavailable", "The routing endpoint could not be reached.", 69);
   }
-  const bytes = await response.arrayBuffer();
-  if (bytes.byteLength > 1024 * 1024) throw new NymrelError("response_too_large", "The routing endpoint returned an oversized response.", 69);
+  const bytes = await boundedResponseBody(response, 1024 * 1024);
   const result = parseJson(new TextDecoder().decode(bytes), "The endpoint response");
   printJson(result);
   return response.ok ? 0 : 69;
@@ -88,14 +142,22 @@ function help(): void {
 
 export async function main(args: readonly string[] = process.argv.slice(2)): Promise<number> {
   const command = args[0];
-  if (command === undefined || command === "help" || command === "--help" || command === "-h") { help(); return 0; }
-  if (command === "contract") { printJson({ name: "Nymrel Agent", version: PRODUCT_VERSION, contractVersion: CONTRACT_VERSION, publicExecution: false, localExecutionProfile: "read-only" }); return 0; }
+  if (command === undefined || command === "help" || command === "--help" || command === "-h") {
+    if (args.length > 1) throw new NymrelError("usage_error", "Help does not accept additional options.", 64);
+    help(); return 0;
+  }
+  if (command === "contract") {
+    validateOptions(args, 1, []);
+    printJson({ name: "Nymrel Agent", version: PRODUCT_VERSION, contractVersion: CONTRACT_VERSION, publicExecution: false, localExecutionProfile: "read-only" }); return 0;
+  }
   if (command === "demo") {
+    validateOptions(args, 1, []);
     const result = await createDemoRuntime().run({ task: "Explain the demo boundary.", profile: "read-only", route: createDefaultRouteRequest() });
     printJson(result);
     return result.receipt.status === "completed" ? 0 : 2;
   }
   if (command === "route") {
+    validateOptions(args, 1, ["--file", "--endpoint"]);
     const payload = parsePublicRoutePayload(parseJson(readText(requireFlag(args, "--file")), "The route payload"));
     const endpoint = flagValue(args, "--endpoint");
     if (endpoint !== undefined) return remoteRoute(endpoint, payload);
@@ -103,6 +165,7 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
     return 0;
   }
   if (command === "models" && args[1] === "doctor") {
+    validateOptions(args, 2, ["--config"]);
     const configPath = flagValue(args, "--config");
     const runtime = configPath === undefined
       ? createDemoRuntime()
@@ -111,6 +174,7 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
     return 0;
   }
   if (command === "run") {
+    validateOptions(args, 1, ["--config", "--task", "--task-file", "--max-output-tokens"]);
     const config = localConfig(args);
     const runtime = new AgentRuntime(createConfiguredAdapters(config, process.env));
     const maxOutputRaw = flagValue(args, "--max-output-tokens");
@@ -125,7 +189,7 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
   throw new NymrelError("usage_error", "Unknown command. Run nymrel-agent --help.", 64);
 }
 
-async function invoked(): Promise<void> {
+export async function invokeCli(): Promise<void> {
   try { process.exitCode = await main(); }
   catch (caught) {
     const error = publicError(caught);
@@ -138,6 +202,3 @@ async function invoked(): Promise<void> {
       : 70;
   }
 }
-
-const invokedPath = process.argv[1];
-if (invokedPath !== undefined && import.meta.url === pathToFileURL(invokedPath).href) await invoked();

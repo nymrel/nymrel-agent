@@ -72,6 +72,20 @@ test("provider failures and output limits produce truthful failed receipts", asy
   assert.ok(limited.receipt.reasonCodes.includes("provider_output_limit"));
 });
 
+test("provider failures retain only allowlisted body-free status classes", async () => {
+  const failingAdapter = (message: string): ProviderAdapter => ({
+    executionKind: "live",
+    profile,
+    async probe(checkedAt) { return { modelId: profile.modelId, providerId: profile.providerId, state: "healthy", code: "configured", checkedAt }; },
+    async *run() { throw new Error(message); },
+  });
+  const throttled = await runtime(failingAdapter("provider_http_429")).run({ task: "read", profile: "read-only", route: readRoute });
+  assert.ok(throttled.receipt.reasonCodes.includes("provider_http_4xx"));
+  assert.doesNotMatch(JSON.stringify(throttled.receipt), /429/);
+  const incomplete = await runtime(failingAdapter("provider_response_incomplete")).run({ task: "read", profile: "read-only", route: readRoute });
+  assert.ok(incomplete.receipt.reasonCodes.includes("provider_response_incomplete"));
+});
+
 test("doctor fails closed and duplicate adapter IDs are rejected", async () => {
   const provider = new FakeProvider(profile, { failProbe: true });
   const report = await runtime(provider).doctor();

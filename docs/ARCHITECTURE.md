@@ -23,11 +23,11 @@ deterministic objective scoring --> route plan
 
 ## Hosted surface
 
-One Fetch-compatible handler owns the six dynamic public route classes. `POST /v1/route` checks media type and size, validates exact fields, applies the routing core, and returns JSON with a request ID. There is no application database, queue, provider adapter, task field, or credential binding.
+One Fetch-compatible handler owns the six dynamic public route classes. `POST /v1/route` checks media type and incrementally reads at most 256 KiB before parsing, validates exact fields, applies the routing core, and returns JSON with a request ID. There is no application database, queue, provider adapter, task field, or credential binding.
 
-The production Vercel adapter serves named reviewed assets from the platform CDN and handles `/` plus dynamic API paths through Hono. The homepage is a compile-time JSON import; release verification enforces that its HTML is byte-identical to the canonical `public/index.html`, with no runtime filesystem or network read. The adapter supplies an in-memory limit of 120 routing requests per 60-second window per hashed network identity and warm function instance, bounded to 10,000 active identities. This is an abuse-reduction layer, not a globally coordinated quota; Vercel's platform protection remains the volumetric backstop. The ready probe exposes the `function_instance` scope.
+The production Vercel adapter serves named reviewed assets from the platform CDN and handles `/` plus dynamic API paths through Hono. The homepage is a compile-time JSON import; release verification enforces that its HTML is byte-identical to the canonical `public/index.html`, with no runtime filesystem or network read. Routing calls use the project-level Vercel WAF rate-limit rule `nymrel-agent-route-v1`: 120 requests per 60 seconds against a hashed network identity, shared across function instances. The adapter calls `@vercel/firewall` and fails closed when the rule is missing or cannot be checked. The ready probe checks the rule and reports `deployment` scope.
 
-The ready Cloudflare adapter instead supplies the same handler with a native rate-limit binding scoped to an edge location. Production readiness fails closed on both adapters if their configured application limiter is missing. Application code does not log request bodies.
+The Cloudflare adapter supplies the same handler with a native rate-limit binding explicitly reported as `edge_location`; Cloudflare documents those counters as local to a Cloudflare location and eventually consistent. Both adapters also require a 40-character source commit binding before production readiness. Application code does not log request bodies.
 
 ## Routing core
 
@@ -49,9 +49,9 @@ Eligible candidates receive integer components. Quality and reliability use call
 The OpenAI Responses adapter:
 
 - reads a key value supplied by the CLI from an environment-variable name in local config;
-- validates an HTTPS base URL, with HTTP allowed only for localhost;
+- validates an HTTPS base URL, with HTTP allowed only for loopback hosts, and rejects any remote adapter profile that claims `local_only` custody;
 - sends `store: false` and a bounded output request;
-- times out and reports status-class error codes without provider response bodies;
+- incrementally bounds the provider response, requires `status: completed`, and reports an allowlisted status-class error without provider response bodies;
 - never appears in the public Worker dependency graph.
 
 ## MCP

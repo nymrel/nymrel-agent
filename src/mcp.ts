@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio, type StdioServerHandle } from "@modelcontextprotocol/server/stdio";
-import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { CONTRACT_VERSION, PRODUCT_VERSION } from "./contracts.js";
 import { NymrelError, publicError } from "./errors.js";
@@ -58,6 +57,3 @@ export function createNymrelMcpServer(): McpServer {
 export function serve(): StdioServerHandle {
   return serveStdio(() => createNymrelMcpServer());
 }
-
-const invokedPath = process.argv[1];
-if (invokedPath !== undefined && import.meta.url === pathToFileURL(invokedPath).href) serve();

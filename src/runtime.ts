@@ -25,6 +25,20 @@ export interface RuntimeOptions {
 type WithoutEventEnvelope<T> = T extends unknown ? Omit<T, "sequence" | "at"> : never;
 type PendingRunEvent = WithoutEventEnvelope<RunEvent>;
 
+function providerFailureReason(error: unknown): string {
+  if (!(error instanceof Error)) return "provider_execution_failed";
+  if (["provider_event_limit", "provider_output_limit"].includes(error.message)) return error.message;
+  if (/^provider_http_4\d\d$/.test(error.message)) return "provider_http_4xx";
+  if (/^provider_http_5\d\d$/.test(error.message)) return "provider_http_5xx";
+  if (error.message === "provider_timeout") return "provider_timeout";
+  if (error.message === "provider_response_incomplete") return "provider_response_incomplete";
+  if (error.message === "provider_response_too_large") return "provider_response_limit";
+  if (["provider_response_invalid", "provider_output_missing", "provider_response_not_completed"].includes(error.message)) {
+    return "provider_response_invalid";
+  }
+  return "provider_execution_failed";
+}
+
 export class AgentRuntime {
   private readonly adaptersByModel = new Map<string, ProviderAdapter>();
   private readonly clock: () => string;
@@ -164,9 +178,7 @@ export class AgentRuntime {
       addEvent({ type: "run.completed", modelId });
     } catch (error) {
       status = "failed";
-      const reasonCode = error instanceof Error && ["provider_event_limit", "provider_output_limit"].includes(error.message)
-        ? error.message
-        : "provider_execution_failed";
+      const reasonCode = providerFailureReason(error);
       reasonCodes.push(reasonCode);
       addEvent({ type: "run.failed", reasonCode });
     }

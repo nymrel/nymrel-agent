@@ -1,6 +1,7 @@
 import type { ModelProfile, ProviderAdapter, ProviderHealth, ProviderRunEvent, ProviderRunInput } from "./contracts.js";
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+const MAX_PROVIDER_RESPONSE_BYTES = 4 * 1024 * 1024;
 
 export interface OpenAIResponsesProviderOptions {
   readonly apiKey: string;
@@ -12,13 +13,25 @@ export interface OpenAIResponsesProviderOptions {
   readonly fetcher?: Fetcher;
 }
 
-function validatedBaseUrl(value: string): string {
+interface ValidatedBaseUrl {
+  readonly value: string;
+  readonly loopback: boolean;
+}
+
+function isLoopbackHostname(value: string): boolean {
+  const hostname = value.toLowerCase().replace(/^\[/, "").replace(/\]$/, "");
+  if (hostname === "localhost" || hostname === "::1") return true;
+  const octets = hostname.split(".");
+  return octets.length === 4 && octets.every((octet) => /^\d{1,3}$/.test(octet) && Number(octet) <= 255) && octets[0] === "127";
+}
+
+function validatedBaseUrl(value: string): ValidatedBaseUrl {
   const url = new URL(value);
-  const local = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1";
-  if (url.username || url.password || url.search || url.hash || (url.protocol !== "https:" && !(local && url.protocol === "http:"))) {
+  const loopback = isLoopbackHostname(url.hostname);
+  if (url.username || url.password || url.search || url.hash || (url.protocol !== "https:" && !(loopback && url.protocol === "http:"))) {
     throw new Error("OpenAI Responses base URL must use HTTPS (or HTTP localhost) with no credentials, query, or fragment");
   }
-  return url.toString().replace(/\/$/, "");
+  return { value: url.toString().replace(/\/$/, ""), loopback };
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -52,6 +65,43 @@ function usage(value: unknown): { inputTokens: number; outputTokens: number } {
   return { inputTokens, outputTokens };
 }
 
+async function boundedJson(response: Response): Promise<unknown> {
+  const declaredLength = response.headers.get("content-length");
+  if (declaredLength !== null) {
+    if (!/^\d+$/.test(declaredLength) || !Number.isSafeInteger(Number(declaredLength))) throw new Error("provider_response_invalid");
+    if (Number(declaredLength) > MAX_PROVIDER_RESPONSE_BYTES) throw new Error("provider_response_too_large");
+  }
+  if (response.body === null) throw new Error("provider_response_invalid");
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_PROVIDER_RESPONSE_BYTES) {
+        try { await reader.cancel(); } catch { /* The bounded error remains authoritative. */ }
+        throw new Error("provider_response_too_large");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  try {
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as unknown;
+  } catch {
+    throw new Error("provider_response_invalid");
+  }
+}
+
 export class OpenAIResponsesProvider implements ProviderAdapter {
   public readonly profile: ModelProfile;
   public readonly executionKind = "live" as const;
@@ -65,14 +115,19 @@ export class OpenAIResponsesProvider implements ProviderAdapter {
 
   public constructor(profile: ModelProfile, options: OpenAIResponsesProviderOptions) {
     if (options.apiKey.trim().length === 0) throw new Error("OpenAI API key is required");
+    if (!Array.isArray(profile.dataBoundaries)) throw new Error("OpenAI Responses adapter requires declared data boundaries");
     if (!profile.riskClasses.includes("read")) throw new Error("OpenAI Responses adapter requires a read-capable profile");
     if (profile.capabilities.toolUse) throw new Error("OpenAI Responses adapter v0.1 does not execute tools");
     if (profile.capabilities.structuredOutput) throw new Error("OpenAI Responses adapter v0.1 does not enforce structured output");
     if (profile.capabilities.modalities.some((modality) => modality !== "text")) throw new Error("OpenAI Responses adapter v0.1 accepts text only");
     if (options.providerModelId !== undefined && options.providerModelId.trim().length === 0) throw new Error("OpenAI provider model id must not be empty");
+    const baseUrl = validatedBaseUrl(options.baseUrl ?? "https://api.openai.com/v1");
+    if (profile.dataBoundaries.includes("local_only") && !baseUrl.loopback) {
+      throw new Error("OpenAI Responses adapter local_only profiles require a loopback base URL");
+    }
     this.profile = profile;
     this.#apiKey = options.apiKey;
-    this.#baseUrl = validatedBaseUrl(options.baseUrl ?? "https://api.openai.com/v1");
+    this.#baseUrl = baseUrl.value;
     this.#providerModelId = options.providerModelId ?? profile.modelId;
     this.#organization = options.organization;
     this.#project = options.project;
@@ -107,9 +162,13 @@ export class OpenAIResponsesProvider implements ProviderAdapter {
         signal: controller.signal,
       });
       if (!response.ok) throw new Error(`provider_http_${response.status}`);
-      const payload = await response.json() as unknown;
-      yield { type: "delta", text: outputText(payload) };
-      yield { type: "usage", ...usage(payload) };
+      const payload = await boundedJson(response);
+      const responseRecord = record(payload);
+      if (responseRecord?.status !== "completed") {
+        throw new Error(responseRecord?.status === "incomplete" ? "provider_response_incomplete" : "provider_response_not_completed");
+      }
+      yield { type: "delta", text: outputText(responseRecord) };
+      yield { type: "usage", ...usage(responseRecord) };
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") throw new Error("provider_timeout");
       throw error;

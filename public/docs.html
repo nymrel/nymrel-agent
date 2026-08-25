@@ -53,23 +53,23 @@
       <div class="callout"><strong>Evidence rule.</strong> Quality scores, reliability, cost, latency, boundaries, and capabilities are caller-supplied inputs. Nymrel Agent explains how it used them; it does not certify that they are accurate.</div>
 
       <h2 id="errors">Errors</h2>
-      <p>All API errors are JSON and include a request ID plus a stable code. Expected codes include <code>invalid_json</code>, <code>invalid_request</code>, <code>payload_too_large</code>, <code>unsupported_media_type</code>, <code>method_not_allowed</code>, <code>rate_limited</code>, and <code>not_found</code>. The production endpoint applies 120 routing calls per 60-second window per hashed network identity and warm function instance, plus hosting-platform abuse protection. It is an abuse-reduction control, not a globally coordinated customer quota; shared networks can share an allowance. Internal stack traces and request bodies are never returned.</p>
+      <p>All API errors are JSON and include a request ID plus a stable code. Expected codes include <code>invalid_json</code>, <code>invalid_content_length</code>, <code>invalid_request</code>, <code>payload_too_large</code>, <code>unsupported_media_type</code>, <code>method_not_allowed</code>, <code>rate_limited</code>, <code>service_misconfigured</code>, <code>service_disabled</code>, and <code>not_found</code>. The Vercel production endpoint applies a project-level WAF limit of 120 routing calls per 60-second window per hashed network identity, shared across function instances. Shared networks can share an allowance. Internal stack traces and request bodies are never returned.</p>
 
       <h2 id="cli">CLI</h2>
-      <p>Until the npm package is published, install from the signed source release:</p>
+      <p>Until the npm package is published, install from the immutable <code>v0.1.0</code> source release:</p>
       <pre><code>git clone https://github.com/JalenBuildsHub/nymrel-agent.git
 cd nymrel-agent
 npm ci
 npm run compile
-node dist/src/cli.js route --file examples/route-request.json</code></pre>
+node dist/src/bin/nymrel-agent.js route --file examples/route-request.json</code></pre>
       <p>The CLI reads locally by default and writes the result as JSON to stdout. Use <code>--endpoint https://nymrel-agent.vercel.app</code> to call the hosted router. No prompt is sent because route payloads contain metadata only.</p>
 
       <h2 id="mcp">MCP</h2>
-      <p>The MCP server exposes <code>route_models</code> and <code>explain_contract</code> over stdio. Configure your compatible client to run <code>node /absolute/path/to/dist/src/mcp.js</code>. Protocol messages use stdout; diagnostics use stderr.</p>
+      <p>The MCP server exposes <code>route_models</code> and <code>explain_contract</code> over stdio. Configure your compatible client to run <code>node /absolute/path/to/dist/src/bin/nymrel-agent-mcp.js</code>. Protocol messages use stdout; diagnostics use stderr.</p>
 
       <h2 id="local-execution">Local execution</h2>
       <p>The optional local harness can execute read-only tasks through explicitly configured adapters. Provider keys are read from an environment variable named in your local config and sent directly from your machine to that provider. Keys are never accepted by the public Nymrel endpoint, stored in receipts, or printed by the CLI.</p>
-      <p>v0.1 includes an OpenAI Responses adapter and a synthetic adapter for offline verification. The public router remains provider-neutral and can rank any provider profile. Write-capable tools and hosted key custody are not enabled.</p>
+      <p>v0.1 includes an OpenAI Responses adapter and a synthetic adapter for offline verification. A profile that claims <code>local_only</code> custody is accepted only when its adapter uses a loopback base URL. Provider responses are size-bounded and must report <code>completed</code>; partial responses fail closed. The public router remains provider-neutral and can rank any provider profile. Write-capable tools and hosted key custody are not enabled.</p>
 
       <h2 id="security">Security and privacy</h2>
       <ul><li>The hosted router accepts no prompts, files, provider keys, or customer identifiers.</li><li>Requests are processed in memory and are not written by application code.</li><li>Standard network metadata may be processed by the hosting platform for delivery, abuse protection, and operational telemetry.</li><li>Local receipts contain SHA-256 correlation digests, not task or output bodies. A digest is not an encryption or confidentiality control.</li><li>The local execution runtime permits read-only runs only in v0.1.</li></ul>

@@ -6,7 +6,7 @@ import { createConfiguredAdapters, parseLocalAgentConfig } from "../src/local-co
 function config(): Record<string, unknown> {
   const example = JSON.parse(readFileSync("examples/route-request.json", "utf8")) as Record<string, unknown>;
   const source = (example.models as Array<Record<string, unknown>>)[0] as Record<string, unknown>;
-  const model = { ...source, modelId: "openai/example", providerId: "openai", riskClasses: ["read"], capabilities: { toolUse: false, structuredOutput: false, contextTokens: 128000, modalities: ["text"] } };
+  const model = { ...source, modelId: "openai/example", providerId: "openai", dataBoundaries: ["approved_provider"], riskClasses: ["read"], capabilities: { toolUse: false, structuredOutput: false, contextTokens: 128000, modalities: ["text"] } };
   return { route: { ...(example.request as Record<string, unknown>), risk: "read" }, models: [model], adapters: [{ kind: "openai-responses", modelId: "openai/example", providerModelId: "example", apiKeyEnv: "OPENAI_API_KEY" }] };
 }
 
@@ -15,6 +15,30 @@ test("local config stores credential names, not values", () => {
   assert.equal(parsed.adapters[0]?.apiKeyEnv, "OPENAI_API_KEY");
   assert.throws(() => createConfiguredAdapters(parsed, {}), /OPENAI_API_KEY/);
   assert.equal(createConfiguredAdapters(parsed, { OPENAI_API_KEY: "credential-value" }).length, 1);
+});
+
+test("local config rejects remote adapters that claim local_only custody", () => {
+  const remote = config();
+  (remote.models as Array<Record<string, unknown>>)[0] = {
+    ...(remote.models as Array<Record<string, unknown>>)[0],
+    dataBoundaries: ["local_only"],
+  };
+  const parsedRemote = parseLocalAgentConfig(remote);
+  assert.throws(
+    () => createConfiguredAdapters(parsedRemote, { OPENAI_API_KEY: "credential-value" }),
+    /local_only profiles require a loopback base URL/,
+  );
+
+  const loopback = config();
+  (loopback.models as Array<Record<string, unknown>>)[0] = {
+    ...(loopback.models as Array<Record<string, unknown>>)[0],
+    dataBoundaries: ["local_only"],
+  };
+  (loopback.adapters as Array<Record<string, unknown>>)[0] = {
+    ...(loopback.adapters as Array<Record<string, unknown>>)[0],
+    baseUrl: "http://localhost:8080/v1",
+  };
+  assert.equal(createConfiguredAdapters(parseLocalAgentConfig(loopback), { OPENAI_API_KEY: "credential-value" }).length, 1);
 });
 
 test("local config rejects embedded keys, lowercase env names, and orphan adapters", () => {

@@ -21,12 +21,21 @@ export const STATIC_ASSET_POLICY = Object.freeze([
 
 interface AssetsBinding { fetch(request: Request): Promise<Response> }
 interface RateLimitBinding { limit(options: { key: string }): Promise<{ success: boolean }> }
+export interface PlatformRateLimiter {
+  limit(options: { key: string; request: Request }): Promise<{
+    status: "allowed" | "limited" | "misconfigured";
+  }>;
+  probe(request: Request): Promise<{ status: "ready" | "misconfigured" }>;
+}
 export interface WorkerEnv {
   readonly ASSETS?: AssetsBinding;
   readonly ROUTE_RATE_LIMITER?: RateLimitBinding;
+  readonly PLATFORM_RATE_LIMITER?: PlatformRateLimiter;
   readonly APP_ENV?: string;
   readonly RATE_LIMIT_SCOPE?: string;
   readonly PLATFORM_ABUSE_PROTECTION?: string;
+  readonly ROUTING_API_ENABLED?: string;
+  readonly SOURCE_COMMIT?: string;
 }
 
 function securityHeaders(api = false): Headers {
@@ -73,12 +82,65 @@ async function rateLimitKey(request: Request): Promise<string> {
 }
 
 async function enforceRateLimit(request: Request, env: WorkerEnv): Promise<void> {
-  if (!env.ROUTE_RATE_LIMITER) {
-    if (env.APP_ENV === "production") throw new NymrelError("service_misconfigured", "The routing service is not ready.", 503);
-    return;
+  const key = await rateLimitKey(request);
+  if (env.PLATFORM_RATE_LIMITER) {
+    let decision: "allowed" | "limited" | "misconfigured";
+    try {
+      ({ status: decision } = await env.PLATFORM_RATE_LIMITER.limit({ key, request }));
+    } catch {
+      decision = "misconfigured";
+    }
+    if (decision === "misconfigured") {
+      throw new NymrelError("service_misconfigured", "The routing service is not ready.", 503);
+    }
+    if (decision === "limited") {
+      throw new NymrelError("rate_limited", "The free routing limit has been reached. Retry shortly.", 429);
+    }
   }
-  const result = await env.ROUTE_RATE_LIMITER.limit({ key: await rateLimitKey(request) });
-  if (!result.success) throw new NymrelError("rate_limited", "The free routing limit has been reached. Retry shortly.", 429);
+  if (env.ROUTE_RATE_LIMITER) {
+    let success = false;
+    try {
+      ({ success } = await env.ROUTE_RATE_LIMITER.limit({ key }));
+    } catch {
+      throw new NymrelError("service_misconfigured", "The routing service is not ready.", 503);
+    }
+    if (!success) throw new NymrelError("rate_limited", "The free routing limit has been reached. Retry shortly.", 429);
+  }
+  if (!env.PLATFORM_RATE_LIMITER && !env.ROUTE_RATE_LIMITER && env.APP_ENV === "production") {
+    throw new NymrelError("service_misconfigured", "The routing service is not ready.", 503);
+  }
+}
+
+async function readBoundedBody(request: Request): Promise<Uint8Array> {
+  if (request.body === null) return new Uint8Array();
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_BODY_BYTES) {
+        try {
+          await reader.cancel();
+        } catch {
+          // The 413 remains authoritative even if the source rejects cancellation.
+        }
+        throw new NymrelError("payload_too_large", "The routing payload exceeds 256 KiB.", 413);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
 }
 
 async function parseJsonBody(request: Request): Promise<unknown> {
@@ -87,13 +149,17 @@ async function parseJsonBody(request: Request): Promise<unknown> {
     throw new NymrelError("unsupported_media_type", "Content-Type must be application/json.", 415);
   }
   const declaredLength = request.headers.get("content-length");
-  if (declaredLength !== null && Number(declaredLength) > MAX_BODY_BYTES) {
-    throw new NymrelError("payload_too_large", "The routing payload exceeds 256 KiB.", 413);
+  if (declaredLength !== null) {
+    if (!/^\d+$/.test(declaredLength) || !Number.isSafeInteger(Number(declaredLength))) {
+      throw new NymrelError("invalid_content_length", "Content-Length must be a non-negative decimal integer.", 400);
+    }
+    if (Number(declaredLength) > MAX_BODY_BYTES) {
+      throw new NymrelError("payload_too_large", "The routing payload exceeds 256 KiB.", 413);
+    }
   }
-  const bytes = await request.arrayBuffer();
-  if (bytes.byteLength > MAX_BODY_BYTES) throw new NymrelError("payload_too_large", "The routing payload exceeds 256 KiB.", 413);
+  const bytes = await readBoundedBody(request);
   try {
-    return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as unknown;
   } catch {
     throw new NymrelError("invalid_json", "The request body is not valid JSON.", 400);
   }
@@ -115,22 +181,49 @@ async function handleApi(request: Request, env: WorkerEnv): Promise<Response> {
   try {
     if (request.method === "OPTIONS" && url.pathname === "/v1/route") return new Response(null, { status: 204, headers: apiHeaders(id) });
     if (request.method === "GET" && url.pathname === "/healthz") {
-      return json({ ok: true, status: "healthy", version: PRODUCT_VERSION }, 200, id);
+      return json({
+        ok: true,
+        status: "healthy",
+        version: PRODUCT_VERSION,
+        sourceCommit: env.SOURCE_COMMIT ?? "unbound",
+      }, 200, id);
     }
     if (request.method === "GET" && url.pathname === "/readyz") {
-      const rateLimitReady = env.APP_ENV !== "production" || env.ROUTE_RATE_LIMITER !== undefined;
+      const routingApiReady = env.ROUTING_API_ENABLED !== "false";
+      const sourceCommitReady = env.APP_ENV !== "production" || /^[a-f0-9]{40}$/.test(env.SOURCE_COMMIT ?? "");
+      let platformProbeReady = false;
+      if (env.PLATFORM_RATE_LIMITER !== undefined && env.RATE_LIMIT_SCOPE === "deployment") {
+        try {
+          platformProbeReady = (await env.PLATFORM_RATE_LIMITER.probe(request)).status === "ready";
+        } catch {
+          platformProbeReady = false;
+        }
+      }
+      const platformRateLimitReady = env.PLATFORM_RATE_LIMITER !== undefined && env.RATE_LIMIT_SCOPE === "deployment" && platformProbeReady;
+      const bindingRateLimitReady = env.ROUTE_RATE_LIMITER !== undefined;
+      const rateLimitReady = env.APP_ENV !== "production" || platformRateLimitReady || bindingRateLimitReady;
+      const ready = routingApiReady && sourceCommitReady && rateLimitReady;
+      const rateLimitStatus = platformRateLimitReady
+        ? "platform_ready"
+        : bindingRateLimitReady
+          ? "binding_ready"
+          : env.PLATFORM_RATE_LIMITER === undefined
+            ? (rateLimitReady ? "not_configured" : "missing")
+            : "scope_invalid";
       return json({
-        ok: rateLimitReady,
-        status: rateLimitReady ? "ready" : "not_ready",
+        ok: ready,
+        status: ready ? "ready" : "not_ready",
         checks: {
           router: "ready",
-          rateLimit: env.ROUTE_RATE_LIMITER === undefined ? (rateLimitReady ? "not_configured" : "missing") : "ready",
-          rateLimitScope: env.ROUTE_RATE_LIMITER === undefined ? "not_configured" : (env.RATE_LIMIT_SCOPE ?? "deployment"),
+          routingApi: routingApiReady ? "enabled" : "disabled",
+          sourceCommit: sourceCommitReady ? (env.SOURCE_COMMIT ?? "development") : "missing_or_invalid",
+          rateLimit: rateLimitStatus,
+          rateLimitScope: platformRateLimitReady ? "deployment" : bindingRateLimitReady ? (env.RATE_LIMIT_SCOPE ?? "edge_location") : "not_configured",
           platformAbuseProtection: env.PLATFORM_ABUSE_PROTECTION ?? "not_declared",
           storage: "not_used",
           providers: "not_used",
         },
-      }, rateLimitReady ? 200 : 503, id);
+      }, ready ? 200 : 503, id);
     }
     if (request.method === "GET" && url.pathname === "/v1") {
       return json({ ok: true, name: "Nymrel Agent", version: PRODUCT_VERSION, contractVersion: CONTRACT_VERSION, route: "/v1/route", openapi: "/v1/openapi.json" }, 200, id);
@@ -140,6 +233,9 @@ async function handleApi(request: Request, env: WorkerEnv): Promise<Response> {
       throw new NymrelError("method_not_allowed", "Use POST for this endpoint.", 405);
     }
     if (request.method === "POST" && url.pathname === "/v1/route") {
+      if (env.ROUTING_API_ENABLED === "false") {
+        throw new NymrelError("service_disabled", "The routing API is temporarily offline.", 503);
+      }
       await enforceRateLimit(request, env);
       const payload = parsePublicRoutePayload(await parseJsonBody(request));
       const response: PublicRouteResponse = { ok: true, requestId: id, plan: route(payload.request, payload.models) };

@@ -4,8 +4,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { boundedResponseBody } from "../src/cli.js";
 
-const cli = path.join(process.cwd(), "dist", "src", "cli.js");
+const cli = path.join(process.cwd(), "dist", "src", "bin", "nymrel-agent.js");
 function runCli(args: readonly string[]): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(process.execPath, [cli, ...args], { cwd: process.cwd(), encoding: "utf8", env: { PATH: process.env.PATH } });
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
@@ -63,6 +64,34 @@ test("CLI reports a missing local credential by variable name only", () => {
     assert.match(result.stderr, /OPENAI_API_KEY/);
     assert.doesNotMatch(result.stderr, /safe local task/);
   } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("CLI rejects missing, duplicate, and unknown option values", () => {
+  const missingEndpoint = runCli(["route", "--file", "examples/route-request.json", "--endpoint"]);
+  assert.equal(missingEndpoint.status, 64);
+  assert.match(missingEndpoint.stderr, /usage_error/);
+  assert.doesNotMatch(missingEndpoint.stdout, /"requestId": "local"/);
+
+  const duplicate = runCli(["route", "--file", "examples/route-request.json", "--file", "examples/route-request.json"]);
+  assert.equal(duplicate.status, 64);
+  const unknown = runCli(["route", "--file", "examples/route-request.json", "--unknown", "value"]);
+  assert.equal(unknown.status, 64);
+});
+
+test("CLI response reader cancels chunked oversized endpoint responses", async () => {
+  let produced = 0;
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      produced += 1;
+      controller.enqueue(new Uint8Array(64 * 1024));
+      if (produced === 20) controller.close();
+    },
+    cancel() { cancelled = true; },
+  });
+  await assert.rejects(() => boundedResponseBody(new Response(body), 256 * 1024), /oversized response/);
+  assert.equal(cancelled, true);
+  assert.ok(produced < 20);
 });
 
 function requireText(file: string): string {

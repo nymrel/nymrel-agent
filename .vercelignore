@@ -6,6 +6,7 @@
 /examples/
 tsconfig.package.json
 src/cli.ts
+src/bin/
 src/doctor.ts
 src/fake-provider.ts
 src/index.ts

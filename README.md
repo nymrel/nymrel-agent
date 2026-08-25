@@ -21,7 +21,7 @@ Route the same payload locally:
 ```bash
 npm ci
 npm run compile
-node dist/src/cli.js route --file examples/route-request.json
+node dist/src/bin/nymrel-agent.js route --file examples/route-request.json
 ```
 
 Full documentation: <https://nymrel-agent.vercel.app/docs>
@@ -65,7 +65,7 @@ Example client configuration after building from source:
   "mcpServers": {
     "nymrel-agent": {
       "command": "node",
-      "args": ["/absolute/path/to/nymrel-agent/dist/src/mcp.js"]
+      "args": ["/absolute/path/to/nymrel-agent/dist/src/bin/nymrel-agent-mcp.js"]
     }
   }
 }
@@ -77,16 +77,16 @@ v0.1 includes an OpenAI Responses adapter for read-only local runs. The local co
 
 ```powershell
 $env:OPENAI_API_KEY = "set-this-in-your-secret-aware-shell"
-node dist/src/cli.js run --config examples/openai-local-config.example.json --task-file -
+node dist/src/bin/nymrel-agent.js run --config examples/openai-local-config.example.json --task-file -
 ```
 
-The adapter calls `POST /v1/responses` from the customer's machine, sets `store: false`, bounds time and output, sanitizes provider errors, and keeps task/output bodies out of receipts. The public Worker is never in this path.
+The adapter calls `POST /v1/responses` from the customer's machine, requires a completed response, sets `store: false`, bounds time and response size, sanitizes provider errors, and keeps task/output bodies out of receipts. A profile that claims `local_only` custody is accepted only with a loopback base URL. The public Worker is never in this path.
 
 The example contains `YOUR_MODEL_ID`; replace it and its caller-supplied profile facts with a model your account can use. Nymrel does not ship benchmark claims in the example.
 
 ## Security boundary
 
-- Public API: routing metadata only, no prompt or provider execution, 256 KiB and 100-model caps, strict unknown-field rejection, deployment-scoped rate limiting, deterministic JSON errors.
+- Public API: routing metadata only, no prompt or provider execution, streamed 256 KiB and 100-model caps, strict unknown-field rejection, Vercel deployment-wide WAF rate limiting (or a Cloudflare edge-location binding), exact-source readiness, and deterministic JSON errors.
 - Local runtime: read-only execution only, explicit adapters, bounded provider events/output, body-free receipts.
 - Not included: hosted keys, accounts, billing, customer-data persistence, shell or filesystem-write tools, outreach, purchases, deployment tools, or autonomous side effects.
 - Receipt SHA-256 values are correlation digests, not encryption or confidentiality controls.
@@ -99,13 +99,13 @@ Nymrel can configure evidence-backed catalogs, routing policy, evals, customer-l
 
 ## Development and release proof
 
-Requires Node.js 22 or newer.
+Requires Node.js 22, 23, or 24.
 
 ```powershell
 npm ci
 npm run verify
 npm pack --dry-run
-git diff --check
+git show --check --oneline HEAD
 ```
 
 `npm run verify` runs type checking, the offline/integration test suite, the release manifest and secret scan, and a Cloudflare deployment dry-run. The production Vercel adapter is exercised by the same compiled integration suite and by preview verification before promotion. Phase 0 evidence remains under `docs/PHASE0_CONTRACT.md` and `evidence/phase0-receipt.json` as historical provenance, not current product status.

@@ -13,6 +13,8 @@ const required = [
   "public/openapi.json", "public/llms.txt", "examples/route-request.json",
   "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
+  "src/bin/nymrel-agent.ts", "src/bin/nymrel-agent-mcp.ts", "scripts/verify-packed-install.mjs",
+  ".github/workflows/ci.yml",
 ];
 for (const relative of required) assert.ok(existsSync(path.join(root, relative)), `missing release file: ${relative}`);
 
@@ -25,14 +27,15 @@ assert.equal(packageJson.license, "MIT");
 assert.equal(packageJson.publishConfig?.access, "public");
 assert.equal(packageJson.publishConfig?.provenance, true);
 assert.equal(packageJson.engines?.node, ">=22 <25");
-assert.equal(packageJson.bin?.["nymrel-agent"], "dist/src/cli.js");
-assert.equal(packageJson.bin?.["nymrel-agent-mcp"], "dist/src/mcp.js");
+assert.equal(packageJson.bin?.["nymrel-agent"], "dist/src/bin/nymrel-agent.js");
+assert.equal(packageJson.bin?.["nymrel-agent-mcp"], "dist/src/bin/nymrel-agent-mcp.js");
 assert.equal(packageJson.scripts?.build, undefined, "Vercel Hono detection requires no package build script");
 assert.equal(packageJson.scripts?.compile, "npm run clean --silent && tsc -p tsconfig.package.json");
 assert.equal(packageLock.name, packageJson.name);
 assert.equal(packageLock.version, packageJson.version);
 assert.equal(packageLock.packages?.[""]?.version, packageJson.version);
 assert.equal(packageJson.dependencies?.["@modelcontextprotocol/server"], "2.0.0");
+assert.equal(packageJson.dependencies?.["@vercel/firewall"], "1.2.5");
 assert.equal(packageJson.dependencies?.hono, "4.13.4");
 assert.equal(packageJson.dependencies?.zod, "4.4.3");
 
@@ -49,6 +52,10 @@ const openapi = json("public/openapi.json");
 assert.equal(openapi.openapi, "3.1.0");
 assert.equal(openapi.info.version, packageJson.version);
 assert.ok(openapi.paths?.["/v1/route"]?.post, "OpenAPI route operation is missing");
+assert.ok(openapi.paths?.["/v1/route"]?.options, "OpenAPI preflight operation is missing");
+assert.ok(openapi.paths?.["/v1"]?.get, "OpenAPI discovery operation is missing");
+assert.ok(openapi.paths?.["/v1/openapi.json"]?.get, "OpenAPI document operation is missing");
+assert.ok(openapi.paths?.["/readyz"]?.get?.responses?.["503"], "OpenAPI readiness 503 response is missing");
 assert.equal(openapi.components?.schemas?.RoutePayload?.additionalProperties, false);
 assert.equal(openapi.components?.schemas?.ModelProfile?.additionalProperties, false);
 assert.equal(openapi.servers?.[0]?.url, packageJson.homepage);
@@ -75,12 +82,17 @@ for (const forbidden of ["./runtime", "./receipt", "./local-config", "./openai-r
 assert.ok(worker.includes("MAX_BODY_BYTES = 256 * 1024"));
 assert.ok(worker.includes("parsePublicRoutePayload"));
 assert.ok(worker.includes("ROUTE_RATE_LIMITER"));
+assert.ok(worker.includes("PLATFORM_RATE_LIMITER"));
+assert.ok(worker.includes("SOURCE_COMMIT"));
+assert.equal(worker.includes("request.arrayBuffer()"), false, "public request size must be enforced before full buffering");
 assert.ok(worker.includes(cspHash), "Worker CSP does not authorize the exact JSON-LD block");
 
 const server = read("server.ts");
 assert.ok(server.includes('APP_ENV: "production"'));
-assert.ok(server.includes('RATE_LIMIT_SCOPE: "function_instance"'));
-assert.ok(server.includes("MAX_ACTIVE_KEYS = 10_000"));
+assert.ok(server.includes('RATE_LIMIT_SCOPE: "deployment"'));
+assert.ok(server.includes('VERCEL_RATE_LIMIT_ID = "nymrel-agent-route-v1"'));
+assert.ok(server.includes("@vercel/firewall"));
+assert.equal(server.includes("new Map"), false, "Vercel limiter must not be instance-local");
 for (const forbidden of ["./src/runtime", "./src/receipt", "./src/local-config", "./src/openai-responses-provider", "console."]) {
   assert.equal(server.includes(forbidden), false, `public Vercel adapter must not include ${forbidden}`);
 }
@@ -99,7 +111,7 @@ assert.deepEqual(vercel.rewrites, [
 assert.equal(json("homepage.json").html, read("public/index.html"), "Vercel homepage payload drifted from the canonical homepage");
 assert.ok(vercel.headers?.some((entry) => entry.source === "/" && entry.headers?.some((header) => header.key === "Content-Security-Policy" && header.value.includes(cspHash))), "Vercel CSP does not authorize the exact JSON-LD block");
 const vercelIgnore = read(".vercelignore");
-for (const requiredIgnore of ["/dist/", "/.wrangler/", "/test/", "/evidence/", "public/_headers"]) {
+for (const requiredIgnore of ["/dist/", "/.wrangler/", "/test/", "/evidence/", "src/bin/", "public/_headers"]) {
   assert.ok(vercelIgnore.split(/\r?\n/).includes(requiredIgnore), `Vercel source bundle must exclude ${requiredIgnore}`);
 }
 for (const localOnlySource of ["src/cli.ts", "src/local-config.ts", "src/mcp.ts", "src/openai-responses-provider.ts", "src/receipt.ts", "src/runtime.ts"]) {
@@ -118,6 +130,8 @@ assert.equal(wrangler.observability?.enabled, true);
 assert.equal(wrangler.ratelimits?.[0]?.name, "ROUTE_RATE_LIMITER");
 assert.equal(wrangler.ratelimits?.[0]?.simple?.limit, 120);
 assert.equal(wrangler.ratelimits?.[0]?.simple?.period, 60);
+assert.equal(wrangler.vars?.RATE_LIMIT_SCOPE, "edge_location");
+assert.equal(wrangler.vars?.ROUTING_API_ENABLED, "true");
 assert.equal(wrangler.routes, undefined, "custom DNS route requires a separate protected gate");
 
 function files(directory) {

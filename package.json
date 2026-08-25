@@ -30,8 +30,8 @@
     "CONTRIBUTING.md"
   ],
   "bin": {
-    "nymrel-agent": "dist/src/cli.js",
-    "nymrel-agent-mcp": "dist/src/mcp.js"
+    "nymrel-agent": "dist/src/bin/nymrel-agent.js",
+    "nymrel-agent-mcp": "dist/src/bin/nymrel-agent-mcp.js"
   },
   "exports": {
     ".": {
@@ -49,12 +49,13 @@
     "typecheck": "tsc -p tsconfig.package.json --noEmit",
     "test": "npm run compile --silent && node --test \"dist/test/*.test.js\"",
     "verify:release": "node scripts/verify-release.mjs",
+    "verify:packed-install": "npm run compile --silent && node scripts/verify-packed-install.mjs",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
-    "verify": "npm run typecheck && npm test && npm run verify:release && npm run deploy:dry-run",
+    "verify": "npm run typecheck && npm test && npm run verify:release && npm run verify:packed-install && npm run deploy:dry-run",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
     "deploy": "wrangler deploy",
-    "smoke": "npm run compile --silent && node dist/src/cli.js route --file examples/route-request.json",
-    "mcp": "node dist/src/mcp.js",
+    "smoke": "npm run compile --silent && node dist/src/bin/nymrel-agent.js route --file examples/route-request.json",
+    "mcp": "node dist/src/bin/nymrel-agent-mcp.js",
     "prepack": "npm run compile --silent && npm run verify:release"
   },
   "engines": {
@@ -62,6 +63,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
+    "@vercel/firewall": "1.2.5",
     "hono": "4.13.4",
     "zod": "4.4.3"
   },

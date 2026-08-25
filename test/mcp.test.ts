@@ -44,11 +44,11 @@ function rpcHarness(child: ChildProcessWithoutNullStreams): {
   };
 }
 
-test("MCP stdio handshake lists and calls the read-only routing tools", async () => {
-  const child = spawn(process.execPath, [path.join(process.cwd(), "dist", "src", "mcp.js")], { cwd: process.cwd(), stdio: ["pipe", "pipe", "pipe"] });
+async function verifyHandshake(protocolVersion: string): Promise<void> {
+  const child = spawn(process.execPath, [path.join(process.cwd(), "dist", "src", "bin", "nymrel-agent-mcp.js")], { cwd: process.cwd(), stdio: ["pipe", "pipe", "pipe"] });
   const rpc = rpcHarness(child);
   try {
-    const initialized = await rpc.request("initialize", { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "nymrel-agent-test", version: "1.0.0" } });
+    const initialized = await rpc.request("initialize", { protocolVersion, capabilities: {}, clientInfo: { name: "nymrel-agent-test", version: "1.0.0" } });
     assert.equal(initialized.error, undefined);
     rpc.notify("notifications/initialized");
     const listed = await rpc.request("tools/list", {});
@@ -64,4 +64,10 @@ test("MCP stdio handshake lists and calls the read-only routing tools", async ()
     child.stdin.end();
     child.kill();
   }
-});
+}
+
+for (const protocolVersion of ["2025-11-25", "2026-07-28"]) {
+  test(`MCP ${protocolVersion} stdio handshake lists and calls the read-only routing tools`, async () => {
+    await verifyHandshake(protocolVersion);
+  });
+}

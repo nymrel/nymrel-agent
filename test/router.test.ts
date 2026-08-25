@@ -64,11 +64,28 @@ test("an incumbent receives a visible stickiness bonus", () => {
 });
 
 test("invalid and duplicate profiles fail closed", () => {
-  const invalid = route(baseRequest, [profile("invalid", { qualityScore: 101 })]);
-  assert.deepEqual(invalid.rejected[0]?.reasonCodes, ["profile_invalid"]);
+  assert.throws(
+    () => route(baseRequest, [profile("invalid", { qualityScore: 101 })]),
+    /routing payload is invalid/,
+  );
   const duplicate = route(baseRequest, [profile("duplicate"), profile("duplicate")]);
   assert.equal(duplicate.selectedModelId, null);
   assert.ok(duplicate.rejected.every((entry) => entry.reasonCodes.includes("duplicate_model_id")));
-  const invalidEnum = route(baseRequest, [profile("bad-health", { health: "unknown" as ModelProfile["health"] })]);
-  assert.deepEqual(invalidEnum.rejected[0]?.reasonCodes, ["profile_invalid"]);
+  assert.throws(
+    () => route(baseRequest, [profile("bad-health", { health: "unknown" as ModelProfile["health"] })]),
+    /routing payload is invalid/,
+  );
+});
+
+test("the exported router rejects malformed JavaScript runtime shapes deterministically", () => {
+  const malformedProfiles: unknown[] = [
+    [null],
+    [{ modelId: "missing-fields" }],
+    [{ ...profile("scalar-arrays"), dataBoundaries: "approved_provider" }],
+    [{ ...profile("missing-capabilities"), capabilities: null }],
+  ];
+  for (const profiles of malformedProfiles) {
+    assert.throws(() => route(baseRequest, profiles), /routing payload is invalid/);
+  }
+  assert.throws(() => route(null, [profile("valid")]), /routing payload is invalid/);
 });

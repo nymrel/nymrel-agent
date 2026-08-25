@@ -18,7 +18,24 @@
       "get": {
         "operationId": "getReadiness",
         "summary": "Router readiness probe",
-        "responses": { "200": { "description": "Router is ready", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Readiness" } } } } }
+        "responses": {
+          "200": { "description": "Router is ready", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Readiness" } } } },
+          "503": { "description": "A required production binding is missing, invalid, or disabled", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Readiness" } } } }
+        }
+      }
+    },
+    "/v1": {
+      "get": {
+        "operationId": "getApiDiscovery",
+        "summary": "API discovery",
+        "responses": { "200": { "description": "Versioned API links", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Discovery" } } } } }
+      }
+    },
+    "/v1/openapi.json": {
+      "get": {
+        "operationId": "getOpenApiDocument",
+        "summary": "OpenAPI document",
+        "responses": { "200": { "description": "This OpenAPI 3.1 document", "content": { "application/json": { "schema": { "type": "object" } } } } }
       }
     },
     "/v1/route": {
@@ -39,6 +56,20 @@
           "503": { "$ref": "#/components/responses/ServiceUnavailable" },
           "500": { "$ref": "#/components/responses/InternalError" }
         }
+      },
+      "options": {
+        "operationId": "preflightRouteModels",
+        "summary": "CORS preflight",
+        "responses": {
+          "204": {
+            "description": "CORS preflight accepted",
+            "headers": {
+              "Access-Control-Allow-Origin": { "schema": { "type": "string", "const": "*" } },
+              "Access-Control-Allow-Methods": { "schema": { "type": "string" } },
+              "Access-Control-Allow-Headers": { "schema": { "type": "string" } }
+            }
+          }
+        }
       }
     }
   },
@@ -47,7 +78,7 @@
       "BadRequest": { "description": "Invalid JSON or routing contract", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
       "PayloadTooLarge": { "description": "Payload exceeds 256 KiB", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
       "UnsupportedMediaType": { "description": "Content-Type is not application/json", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
-      "RateLimited": { "description": "Deployment-scoped free routing limit reached", "headers": { "Retry-After": { "schema": { "type": "integer", "example": 60 } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "RateLimited": { "description": "The configured platform free-routing limit was reached", "headers": { "Retry-After": { "schema": { "type": "integer", "example": 60 } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
       "ServiceUnavailable": { "description": "Required production abuse control is unavailable", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
       "InternalError": { "description": "Unexpected internal error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
     },
@@ -165,12 +196,24 @@
         }
       },
       "Health": {
-        "type": "object", "required": ["ok", "status", "version"],
-        "properties": { "ok": { "type": "boolean", "const": true }, "status": { "type": "string", "const": "healthy" }, "version": { "type": "string" } }
+        "type": "object", "additionalProperties": false, "required": ["ok", "status", "version", "sourceCommit"],
+        "properties": { "ok": { "type": "boolean", "const": true }, "status": { "type": "string", "const": "healthy" }, "version": { "type": "string" }, "sourceCommit": { "type": "string" } }
       },
       "Readiness": {
-        "type": "object", "required": ["ok", "status", "checks"],
-        "properties": { "ok": { "type": "boolean", "const": true }, "status": { "type": "string", "const": "ready" }, "checks": { "type": "object" } }
+        "type": "object", "additionalProperties": false, "required": ["ok", "status", "checks"],
+        "properties": { "ok": { "type": "boolean" }, "status": { "type": "string", "enum": ["ready", "not_ready"] }, "checks": { "type": "object", "additionalProperties": { "type": "string" } } }
+      },
+      "Discovery": {
+        "type": "object", "additionalProperties": false,
+        "required": ["ok", "name", "version", "contractVersion", "route", "openapi"],
+        "properties": {
+          "ok": { "type": "boolean", "const": true },
+          "name": { "type": "string", "const": "Nymrel Agent" },
+          "version": { "type": "string" },
+          "contractVersion": { "type": "string", "const": "nymrel.agent.route/v1" },
+          "route": { "type": "string", "const": "/v1/route" },
+          "openapi": { "type": "string", "const": "/v1/openapi.json" }
+        }
       }
     }
   }

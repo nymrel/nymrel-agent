@@ -13,7 +13,7 @@ The public v0.1 endpoint:
 - accepts no prompt, provider credential, file, or customer identifier field;
 - filters before scoring and explains every rejected model;
 - ranks under balanced, quality, cost, or latency objectives;
-- applies a deployment-scoped anonymous rate limit plus hosting-platform abuse protection; the published readiness probe identifies the configured scope;
+- requires a configured platform limiter before production readiness: a deployment-wide Vercel WAF rule on the primary endpoint or an edge-location Cloudflare binding on that adapter;
 - writes no request body through application code and uses no application database;
 - executes no model call.
 
@@ -36,7 +36,7 @@ The exact deliverables, schedule, support, and price are defined in a project br
 ## Customer responsibilities
 
 - Supply lawful provider access and accurate model-profile evidence.
-- Decide which providers and data boundaries are approved.
+- Decide which providers and data boundaries are approved; `local_only` profiles must use a loopback adapter endpoint.
 - Keep credentials in a customer-controlled secret channel.
 - Review model output and retain authority over side effects.
 - Replace the conservative placeholder facts in the example local config.

@@ -1,9 +1,13 @@
 # Nymrel Agent production launch packet
 
-Status: release candidate in active production verification  
-Owner: Codex production lane under claim `codex-nymrel-agent-production-20260825`  
-Target release: `0.1.0`  
-Public contract: `nymrel.agent.route/v1`  
+Status: replacement release candidate under final acceptance
+
+Owner: Codex production lane under claim `codex-nymrel-agent-production-20260825`
+
+Target release: `0.1.0`
+
+Public contract: `nymrel.agent.route/v1`
+
 Source branch: `codex/nymrel-agent-production-20260825`
 
 ## Decision
@@ -13,13 +17,12 @@ Launch Nymrel Agent as a public stateless multi-model routing product with custo
 Decision card:
 
 - Door type: Type 1 public launch; explicitly authorized by the operator on 2026-08-25.
-- Reversibility: 4/5. Worker versions can roll back and source releases can be superseded, while public source disclosure cannot be made private again.
+- Reversibility: 4/5. Deployments and aliases can roll back and releases can be superseded, while public source disclosure cannot be made private again.
 - Customer impact: developers can route against their own model evidence without giving Nymrel prompts or provider credentials.
-- Simplicity check: one deterministic core powers API, CLI, and MCP; hosted execution, accounts, billing, and customer-data custody are excluded.
-- Revenue direction: a credible product-led entry point plus an on-request implementation and optimization service, with no invented price.
-- Risks: API abuse, misconfigured model evidence, accidental prompt/credential custody, compatibility overclaim, and public-source disclosure.
-- Mitigations: metadata-only contract, strict validation and bounds, public-route register, deployment-scoped rate limiting plus platform abuse protection, redacted application behavior, customer-local read-only execution, exact-commit review, canary deploy, and rollback receipt.
-- Confidence: the Phase 0 core was independently accepted; the production surface preserves deterministic routing and body-free receipts while narrowing hosted custody.
+- Simplicity check: one validated deterministic core powers API, CLI, and MCP; hosted execution, accounts, billing, and customer-data custody are excluded.
+- Revenue direction: a product-led entry point plus an on-request implementation and optimization service, with no invented price.
+- Risks: API abuse, malformed evidence, accidental prompt or credential custody, compatibility overclaim, remote transport mislabeled `local_only`, stale deployment bytes, and public-source disclosure.
+- Mitigations: streamed bounds, exact-shape validation, public-route register, provider-native rate limiting, source-commit readiness, customer-local read-only execution, loopback enforcement for `local_only`, immutable review, offline fallback, and post-deploy proof.
 
 Machine-readable card: `evidence/production-decision-card.json`.
 
@@ -46,64 +49,101 @@ Managed service:
 
 Authorized in this lane:
 
-- Production code, documentation, tests, package artifact, public GitHub repository/release, and an isolated existing-account Vercel project on its default public domain.
+- Production code, documentation, tests, package artifact, public GitHub repository and release, an isolated existing-account Vercel project on its default domain, and a reversible project-level WAF rule.
 
 Still separately protected:
 
 - npm login or trusted-publisher configuration.
-- Custom-domain/DNS mutation for `agent.nymrel.com`.
+- Custom-domain or DNS mutation for `agent.nymrel.com`.
 - Provider keys, live customer prompts, live customer data, hosted provider execution, billing, account creation, or legal agreement acceptance.
 
-The Vercel service and GitHub release can launch without crossing those gates. The Cloudflare adapter remains release-ready but cannot deploy until its existing token is repaired. Public documents use the Vercel project URL until the custom-domain gate is completed.
+The Vercel service and GitHub release can launch without crossing those gates. The Cloudflare adapter passes a deployment dry-run but remains undeployed until its existing token is repaired and the exact source commit is supplied at deploy time. Public documents use the Vercel project URL until the custom-domain gate is completed.
 
 ## Acceptance contract
 
 Local gate:
 
 ```powershell
-npm ci
-npm run typecheck
-npm test
-npm run verify:release
-npm run deploy:dry-run
+npm ci --ignore-scripts
+npm run verify
 npm audit --omit=dev --audit-level=high
-npm pack --dry-run
-git diff --check
+npm pack --dry-run --json
+git diff --check HEAD^ HEAD
+git show --check --oneline HEAD
 ```
+
+`npm run verify` includes type checking, compiled tests, public-release verification, installed-tarball CLI and MCP probes, and a Cloudflare dry-run.
 
 Independent gate:
 
-- Exact candidate commit reviewed by a separate current-generation model.
-- Review must cover public contract, hosted custody, local credential path, authorization register, package contents, test adequacy, documentation claims, and rollback.
-- Any high-confidence correctness, security, or launch-truth finding is fixed and the review rerun against the replacement commit.
+- Review one immutable candidate commit with no concurrent writes.
+- Cover public contract, streamed bounds, hosted custody, local transport custody, provider response status, rate-limit scope, source binding, bins after packed installation, authorization register, package contents, claims, and rollback.
+- Fix every accepted correctness, security, compatibility, or launch-truth finding and rerun review against the replacement commit.
 
-Post-deploy gate:
+## Pre-promotion gate
 
-- `GET /healthz` is 200 with the released version.
-- `GET /readyz` is 200 and reports the rate limiter ready with its exact deployment scope.
-- `GET /`, `/docs`, `/openapi.json`, `/llms.txt`, and `/examples/route-request.json` are public and carry the intended security/content headers.
-- A valid route request returns the same selection as the local CLI example.
-- Unknown prompt fields, wrong media type, oversized payload, wrong method, and a preview rate-limit denial produce the documented non-2xx shape without echoing bodies.
-- Public GitHub source and release artifact bind to the deployed commit.
-- No stale local dev server, browser automation, or tail process remains.
+1. Publish and verify the Vercel WAF rule `nymrel-agent-route-v1` at 120 requests per 60 seconds.
+2. Create an immutable offline-fallback deployment from the accepted commit with `ROUTING_API_ENABLED=false` and the exact `NYMREL_SOURCE_COMMIT`.
+3. Verify the fallback homepage and docs return 200, `/healthz` returns 200 with the accepted SHA, `/readyz` returns 503, and `POST /v1/route` returns the stable JSON `service_disabled` error.
+4. Record the fallback deployment ID and confirm the alias reassignment command before promoting the enabled deployment.
+5. Deploy the enabled candidate from the same clean commit with `ROUTING_API_ENABLED=true` and the exact `NYMREL_SOURCE_COMMIT`.
+
+## Post-deploy route matrix
+
+Every registered dynamic route is checked against the production alias:
+
+| Method | Path | Expected proof |
+| --- | --- | --- |
+| GET | `/healthz` | 200 JSON; version `0.1.0`; `sourceCommit` equals accepted SHA |
+| GET | `/readyz` | 200 JSON; routing enabled; source SHA bound; WAF `platform_ready`; scope `deployment` |
+| GET | `/v1` | 200 JSON; contract `nymrel.agent.route/v1`; route and OpenAPI links |
+| GET | `/v1/openapi.json` | 200 JSON; OpenAPI `3.1.0` |
+| OPTIONS | `/v1/route` | 204; origin `*`; methods `GET, POST, OPTIONS`; header `content-type` |
+| POST | `/v1/route` | 200 for canonical fixture; same selected model as local CLI |
+| GET | `/v1/route` | 405 JSON; `Allow: POST, OPTIONS` |
+
+Static checks cover `/`, `/docs`, `/openapi.json`, `/llms.txt`, `/robots.txt`, and `/examples/route-request.json`, including security and content headers.
+
+Negative checks cover malformed `Content-Length`, invalid JSON, unknown prompt fields, wrong media type, streamed payload overflow, platform rate denial, missing WAF configuration in a preview harness, and disabled fallback behavior. Errors must be JSON, include a request ID, and never echo bodies or unknown field names.
+
+Source and install checks:
+
+- The GitHub tag and release target the accepted SHA.
+- The deployed `/healthz` and `/readyz` expose that SHA.
+- Vercel inspection identifies the exact organization, project, and immutable deployment.
+- An unauthenticated clean checkout passes the public quickstart.
+- The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass on Windows and Linux CI.
 
 ## Rollback
 
-1. Record the immutable Vercel deployment ID and public alias immediately after promotion.
-2. On functional or security regression, reassign the production alias to the last accepted immutable deployment.
-3. Mark the affected GitHub release as superseded and publish a patch; do not rewrite released source history.
-4. If the issue is in local execution only, leave the metadata-only routing service online when safe and remove the affected package artifact until a patch is accepted.
-5. Re-run local, independent, and post-deploy gates before restoring the release claim.
+Before promotion, record:
+
+- enabled deployment ID and URL;
+- offline-fallback deployment ID and URL;
+- stable alias `nymrel-agent.vercel.app`;
+- accepted source SHA;
+- WAF configuration version.
+
+On a functional or security regression:
+
+```powershell
+npx vercel alias set <offline-fallback-deployment-url> nymrel-agent.vercel.app
+```
+
+Then verify the fallback matrix above, mark the affected GitHub release superseded if the source artifact is affected, and publish a patch without rewriting released history. Restore routing only after local, independent, source-binding, and post-deploy gates pass again.
+
+Cloudflare rollback, if that adapter is later deployed, must record the prior immutable Worker version and use Wrangler version rollback before any custom-domain route is attached. No Cloudflare production claim is made in v0.1.
 
 ## Launch evidence
 
-The final production receipt will record:
+The final production receipt records:
 
 - exact source commit and tree;
 - package tarball name and SHA-256;
-- test/typecheck/audit/dry-run results;
-- independent-review verdict and reviewer identity;
+- test, typecheck, audit, dry-run, packed-install, and committed-tree hygiene results;
+- independent-review findings and replacement acceptance;
 - GitHub repository, tag, and release URL;
-- Vercel deployment ID and public URL;
-- post-deploy probe results;
-- npm and custom-domain gate state.
+- Vercel organization, project, enabled deployment, fallback deployment, stable alias, and WAF rule;
+- full post-deploy route matrix;
+- npm, custom-domain, and Cloudflare gate state;
+- cleanup proof for local servers, browser automation, and reviewer processes.

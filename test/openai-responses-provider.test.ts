@@ -25,7 +25,7 @@ test("OpenAI adapter sends a non-stored Responses request and parses usage", asy
       const headers = new Headers(init?.headers);
       authorizationPresent = headers.has("authorization");
       requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      return new Response(JSON.stringify({ output_text: "provider output", usage: { input_tokens: 11, output_tokens: 7 } }), { status: 200, headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify({ status: "completed", output_text: "provider output", usage: { input_tokens: 11, output_tokens: 7 } }), { status: 200, headers: { "content-type": "application/json" } });
     },
   });
   const events = await collect(provider);
@@ -37,7 +37,7 @@ test("OpenAI adapter sends a non-stored Responses request and parses usage", asy
 test("OpenAI adapter parses message content and never includes provider error bodies", async () => {
   const messageProvider = new OpenAIResponsesProvider(profile, {
     apiKey: "credential-value",
-    fetcher: async () => new Response(JSON.stringify({ output: [{ type: "message", content: [{ type: "output_text", text: "part one" }, { type: "output_text", text: " part two" }] }], usage: {} }), { status: 200 }),
+    fetcher: async () => new Response(JSON.stringify({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: "part one" }, { type: "output_text", text: " part two" }] }], usage: {} }), { status: 200 }),
   });
   assert.equal((await collect(messageProvider))[0]?.type, "delta");
   const failed = new OpenAIResponsesProvider(profile, {
@@ -53,6 +53,49 @@ test("OpenAI adapter rejects unsafe base URLs and non-read execution", async () 
   await assert.rejects(async () => {
     for await (const _event of provider.run({ runId: "run", task: "task", phase: "implement", risk: "workspace_write" })) { /* no-op */ }
   }, /runtime_non_read_rejected/);
+});
+
+test("OpenAI adapter binds local_only custody to loopback transport", () => {
+  const localProfile = { ...profile, dataBoundaries: ["local_only"] as const };
+  assert.throws(
+    () => new OpenAIResponsesProvider(localProfile, { apiKey: "credential-value" }),
+    /local_only profiles require a loopback base URL/,
+  );
+  assert.throws(
+    () => new OpenAIResponsesProvider(localProfile, { apiKey: "credential-value", baseUrl: "https://remote.example/v1" }),
+    /local_only profiles require a loopback base URL/,
+  );
+  assert.doesNotThrow(
+    () => new OpenAIResponsesProvider(localProfile, { apiKey: "credential-value", baseUrl: "http://127.0.0.2:8080/v1" }),
+  );
+});
+
+test("OpenAI adapter rejects incomplete 200 responses instead of returning partial output", async () => {
+  const provider = new OpenAIResponsesProvider(profile, {
+    apiKey: "credential-value",
+    fetcher: async () => new Response(JSON.stringify({ status: "incomplete", output_text: "partial" }), { status: 200 }),
+  });
+  await assert.rejects(() => collect(provider), /provider_response_incomplete/);
+});
+
+test("OpenAI adapter cancels oversized chunked response bodies before full buffering", async () => {
+  let produced = 0;
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      produced += 1;
+      controller.enqueue(new Uint8Array(1024 * 1024));
+      if (produced === 12) controller.close();
+    },
+    cancel() { cancelled = true; },
+  });
+  const provider = new OpenAIResponsesProvider(profile, {
+    apiKey: "credential-value",
+    fetcher: async () => new Response(body, { status: 200 }),
+  });
+  await assert.rejects(() => collect(provider), /provider_response_too_large/);
+  assert.equal(cancelled, true);
+  assert.ok(produced < 12);
 });
 
 test("OpenAI adapter rejects capabilities it does not execute", () => {
