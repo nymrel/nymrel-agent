@@ -49,7 +49,7 @@ Managed service:
 
 Authorized in this lane:
 
-- Production code, documentation, tests, package artifact, public GitHub repository and release, an isolated existing-account Vercel project on its default domain, and a reversible project-level WAF rule.
+- Production code, documentation, tests, versioned source and package artifacts, an attempted public GitHub mirror, an isolated existing-account Vercel project on its default domain, and a reversible project-level WAF rule.
 
 Still separately protected:
 
@@ -57,7 +57,7 @@ Still separately protected:
 - Custom-domain or DNS mutation for `agent.nymrel.com`.
 - Provider keys, live customer prompts, live customer data, hosted provider execution, billing, account creation, or legal agreement acceptance.
 
-The Vercel service and GitHub release can launch without crossing those gates. The Cloudflare adapter passes a deployment dry-run but remains undeployed until its existing token is repaired and a provider-bound source identity is designed and verified. Public documents use the Vercel project URL until the custom-domain gate is completed.
+The Vercel service can launch without crossing those gates and hosts the canonical versioned package, source archive, and digest manifest. The GitHub repository, tag, and release exist under the authenticated account but return 404 to unauthenticated customers because of an account-level suspension; they remain a blocked mirror, not the public distribution claim. The Cloudflare adapter passes a deployment dry-run but remains undeployed until its existing token is repaired and a provider-bound source identity is designed and verified. Public documents use the Vercel project URL until the custom-domain gate is completed.
 
 ## Acceptance contract
 
@@ -84,8 +84,8 @@ Independent gate:
 
 This sequence uses Vercel's documented [staged production deployment](https://vercel.com/docs/deployments/promoting-a-deployment#staging-and-promoting-a-production-deployment) flow so the enabled build cannot take the production alias before inspection.
 
-1. Create the public GitHub repository without an initial commit, connect the existing Vercel project to that exact repository, and enable Vercel system environment variables. Provider Git is the preferred source mode. If the existing Vercel account cannot connect GitHub without a new OAuth/login gate, record that gate and use only the `verified_cli_bundle` contingency below.
-2. Configure `ROUTING_API_ENABLED=false` for production, then push the accepted commit to public `main`. An ordinary local-directory deployment is not an eligible release source. The contingency is eligible only from a clean checkout of that exact public commit when every uploaded source file and byte passes `scripts/verify-vercel-source.mjs` against Vercel's deployment inventory.
+1. Attempt to create the public GitHub mirror, connect the existing Vercel project to that exact repository, and enable Vercel system environment variables. Provider Git is the preferred source mode. If existing GitHub/Vercel account gates prevent unauthenticated repository access or a new OAuth/login connection, record those gates and use only the `verified_cli_bundle` contingency below.
+2. Configure `ROUTING_API_ENABLED=false` for production, push the accepted commit to authenticated remote `main`, and publish the exact versioned source and package artifacts plus their digest manifest on the Vercel service. An ordinary local-directory deployment is not an eligible release source. The contingency is eligible only from a clean checkout of that exact remote commit when every uploaded source file and byte passes `scripts/verify-vercel-source.mjs` against Vercel's deployment inventory.
 3. Inspect the resulting fallback deployment. In `provider_git` mode, require provider `gitSource`, runtime `VERCEL_GIT_COMMIT_SHA`, `/healthz`, and the accepted commit to agree. In `verified_cli_bundle` mode, require remote `main`, local `HEAD`, provider `meta.githubCommitSha`, runtime `VERCEL_GIT_COMMIT_SHA`, and `/healthz` to agree; require `meta.gitDirty` to be absent or false; and pipe the authenticated deployment inventory through the exact-byte verifier:
 
 ```powershell
@@ -128,10 +128,10 @@ Negative checks cover malformed `Content-Length`, invalid JSON, unknown prompt f
 
 Source and install checks:
 
-- The versioned GitHub tag and release target the accepted SHA; no source-immutability badge is claimed without a separate GitHub immutable-release receipt.
+- The public Vercel release manifest binds the versioned source archive and package artifact to SHA-256 digests and the release source commit. The authenticated GitHub tag and release target that same source, but no public GitHub availability or source-immutability badge is claimed while the account gate remains.
 - The deployed `/healthz` and `/readyz` expose that SHA.
 - Vercel inspection identifies the exact organization, project, deployment, source mode, and source SHA. `provider_git` requires the connected repository and provider `gitSource`; `verified_cli_bundle` requires the public remote commit plus an exact allowlist and SHA-1 proof for every uploaded source file.
-- An unauthenticated clean checkout passes the public quickstart.
+- An unauthenticated download and install from the Vercel-hosted package passes the public quickstart; the Vercel-hosted source archive expands to the recorded release source.
 - The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass on Windows and Linux CI.
 
 ## Rollback
@@ -162,7 +162,7 @@ The final production receipt records:
 - package tarball name and SHA-256;
 - test, typecheck, audit, dry-run, packed-install, and committed-tree hygiene results;
 - independent-review findings and replacement acceptance;
-- GitHub repository, tag, and release URL;
+- Vercel source/package manifest and hashes, plus GitHub repository/tag/release mirror gate state;
 - Vercel organization, project, enabled deployment, fallback deployment, stable alias, and WAF rule;
 - full post-deploy route matrix;
 - npm, custom-domain, and Cloudflare gate state;

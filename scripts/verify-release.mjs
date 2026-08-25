@@ -10,6 +10,7 @@ const json = (relative) => JSON.parse(read(relative));
 const required = [
   "README.md", "LICENSE", "SECURITY.md", "CHANGELOG.md", "CONTRIBUTING.md", "AGENTS.md",
   "authz-allowlist.json", "wrangler.jsonc", "vercel.json", ".vercelignore", "server.ts", "homepage.json", "tsconfig.package.json", "public/index.html", "public/docs.html",
+  "public/downloads/nymrel-agent-0.1.0.tgz", "public/downloads/nymrel-agent-v0.1.0-source.tar.gz", "public/downloads/v0.1.0.json",
   "public/openapi.json", "public/llms.txt", "examples/route-request.json",
   "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
@@ -63,8 +64,31 @@ assert.equal(openapi.components?.schemas?.RoutePayload?.additionalProperties, fa
 assert.equal(openapi.components?.schemas?.ModelProfile?.additionalProperties, false);
 assert.equal(openapi.servers?.[0]?.url, packageJson.homepage);
 
+const releaseManifest = json("public/downloads/v0.1.0.json");
+assert.equal(releaseManifest.schemaVersion, "nymrel.agent.release/v1");
+assert.equal(releaseManifest.version, packageJson.version);
+assert.equal(releaseManifest.releaseSourceCommit, "ad8a6cc19994026de7323b074ffba8a282ee4046");
+assert.equal(releaseManifest.license, packageJson.license);
+for (const [kind, filename] of [
+  ["package", "nymrel-agent-0.1.0.tgz"],
+  ["source", "nymrel-agent-v0.1.0-source.tar.gz"],
+]) {
+  const bytes = readFileSync(path.join(root, "public", "downloads", filename));
+  assert.equal(releaseManifest[kind].bytes, bytes.length, `${kind} release byte count drifted`);
+  assert.equal(releaseManifest[kind].sha256, createHash("sha256").update(bytes).digest("hex"), `${kind} release digest drifted`);
+  assert.equal(releaseManifest[kind].url, `${packageJson.homepage}/downloads/${filename}`);
+}
+
 const indexHtml = read("public/index.html");
 assert.ok(indexHtml.includes(`<link rel="canonical" href="${packageJson.homepage}/">`));
+const docsHtml = read("public/docs.html");
+const llmsText = read("public/llms.txt");
+for (const publicDocument of [indexHtml, docsHtml, llmsText]) {
+  assert.equal(publicDocument.includes("github.com/JalenBuildsHub/nymrel-agent"), false, "public launch document links to the account-gated GitHub mirror");
+}
+for (const filename of ["nymrel-agent-0.1.0.tgz", "nymrel-agent-v0.1.0-source.tar.gz", "v0.1.0.json"]) {
+  assert.ok(`${indexHtml}\n${docsHtml}\n${llmsText}`.includes(`/downloads/${filename}`), `public launch documents omit ${filename}`);
+}
 const structuredData = indexHtml.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
 assert.ok(structuredData, "structured product data is missing");
 const cspHash = `sha256-${createHash("sha256").update(structuredData).digest("base64")}`;
@@ -118,6 +142,7 @@ assert.deepEqual(vercel.rewrites, [
 ]);
 assert.equal(json("homepage.json").html, read("public/index.html"), "Vercel homepage payload drifted from the canonical homepage");
 assert.ok(vercel.headers?.some((entry) => entry.source === "/" && entry.headers?.some((header) => header.key === "Content-Security-Policy" && header.value.includes(cspHash))), "Vercel CSP does not authorize the exact JSON-LD block");
+assert.ok(vercel.headers?.some((entry) => entry.source === "/downloads/:path*" && entry.headers?.some((header) => header.key === "Cache-Control" && header.value.includes("immutable"))), "Vercel download cache contract is missing");
 const vercelIgnore = read(".vercelignore");
 for (const requiredIgnore of [
   "/dist/", "/.github/", "/.playwright-cli/", "/.vercel/", "/.wrangler/",
@@ -132,6 +157,7 @@ for (const localOnlySource of [
   assert.ok(vercelIgnore.split(/\r?\n/).includes(localOnlySource), `Vercel source bundle must exclude ${localOnlySource}`);
 }
 assert.ok(vercelIgnore.split(/\r?\n/).includes("scripts/verify-*.mjs"), "Vercel source bundle must exclude release-only verification scripts");
+assert.ok(vercelIgnore.split(/\r?\n/).includes("/*.tgz"), "Vercel must exclude root package artifacts without excluding public downloads");
 const vercelTsconfig = json("tsconfig.json");
 assert.equal(vercelTsconfig.compilerOptions?.types, undefined);
 assert.equal(vercelTsconfig.compilerOptions?.noEmit, true);

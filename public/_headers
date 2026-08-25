@@ -13,3 +13,7 @@
 
 /llms.txt
   Cache-Control: public, max-age=3600
+
+/downloads/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff

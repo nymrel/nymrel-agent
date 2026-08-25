@@ -5,6 +5,7 @@ dist/
 coverage/
 output/
 *.tgz
+!public/downloads/*.tgz
 *.tsbuildinfo
 *.log
 .vercel
