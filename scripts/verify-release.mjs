@@ -160,7 +160,10 @@ assert.deepEqual(vercel.redirects, [
 assert.deepEqual(vercel.rewrites, [
   { source: "/docs", destination: "/docs.html" },
 ]);
-assert.equal(json("homepage.json").html, read("public/index.html"), "Vercel homepage payload drifted from the canonical homepage");
+const homepage = read("public/index.html");
+assert.equal(json("homepage.json").html, homepage, "Vercel homepage payload drifted from the canonical homepage");
+assert.equal(homepage.includes('aria-label="Nymrel Agent home"'), false, "visible brand text must remain part of the accessible link name");
+assert.equal(homepage.includes('class="number"'), false, "landing-page step labels must not reuse the low-contrast decorative number style");
 assert.ok(vercel.headers?.some((entry) => entry.source === "/" && entry.headers?.some((header) => header.key === "Content-Security-Policy" && header.value.includes(cspHash))), "Vercel CSP does not authorize the exact JSON-LD block");
 assert.ok(vercel.headers?.some((entry) => entry.source === "/downloads/:path*" && entry.headers?.some((header) => header.key === "Cache-Control" && header.value.includes("immutable"))), "Vercel download cache contract is missing");
 const vercelIgnore = read(".vercelignore");
