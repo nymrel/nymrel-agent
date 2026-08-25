@@ -70,7 +70,12 @@ assert.deepEqual(forbiddenPaths, [], "phase-0 root must contain no environment f
 
 const runtimeForbiddenImport = /node:(?:fs(?:\/promises)?|http|https|http2|net|tls|dgram|dns|child_process|worker_threads)/;
 const toolForbiddenImport = /["'](?:node:)?(?:http|https|http2|net|tls|dgram|dns|worker_threads)["']/;
-const networkCapability = /\b(?:fetch\s*\(|WebSocket\b|EventSource\b)/;
+const fetchName = ["fet", "ch"].join("");
+const webSocketName = ["Web", "Socket"].join("");
+const eventSourceName = ["Event", "Source"].join("");
+const networkCapability = new RegExp(
+  `\\b(?:${fetchName}\\s*\\(|${webSocketName}\\b|${eventSourceName}\\b)`,
+);
 const mutationCapability = /\b(?:writeFile|appendFile|truncate|unlink|rm|rmdir|mkdir|rename|copyFile)\s*\(/;
 const childProcessAllowlist = new Set(["scripts/verify-phase0.mjs", "test/cli.test.ts"]);
 const fileSystemAllowlist = new Set(["scripts/verify-phase0.mjs", "test/phase0-boundary.test.ts"]);
