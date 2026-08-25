@@ -10,7 +10,7 @@ import {
   type RouteRequest,
 } from "./contracts.js";
 import { doctorProviders } from "./doctor.js";
-import { FakeProvider } from "./fake-provider.js";
+import { FakeProvider, isExactFakeProvider } from "./fake-provider.js";
 import { compareCodeUnits } from "./ordering.js";
 import { createRunReceipt } from "./receipt.js";
 import { route } from "./router.js";
@@ -33,11 +33,7 @@ export class AgentRuntime {
     options: RuntimeOptions = {},
   ) {
     for (const adapter of adapters) {
-      if (
-        !(adapter instanceof FakeProvider) ||
-        Object.getPrototypeOf(adapter) !== FakeProvider.prototype ||
-        adapter.executionKind !== "synthetic"
-      ) {
+      if (!isExactFakeProvider(adapter) || adapter.executionKind !== "synthetic") {
         throw new Error("Phase 0 accepts exact FakeProvider instances only");
       }
       if (this.adaptersByModel.has(adapter.profile.modelId)) {

@@ -14,6 +14,8 @@ Prove that a Nymrel-owned runtime boundary can route and execute a read-only req
 4. `AgentRuntime` accepts only exact `FakeProvider` instances, blocks non-read work before provider execution, then emits body-free events and a receipt.
 5. `RunReceipt` stores hashes and bounded metadata—not task or output bodies.
 
+The whole-body hashes are unkeyed local correlation digests. They do not conceal a low-entropy body from an actor who can guess it, and phase zero does not authorize receipt export. A future export boundary must replace them with a separately reviewed keyed construction.
+
 ## Explicit non-goals
 
 - No real model integration, credential, network client, MCP server, agent-to-agent transport, shell tool, workspace mutation, persistence layer, sandbox, deployment, or publication.

@@ -55,6 +55,9 @@ test("read-only execution completes through the fake provider", async () => {
   assert.equal(result.output, "synthetic output");
   assert.equal(result.receipt.status, "completed");
   assert.equal(provider.runCount, 1);
+  assert.equal(Object.isFrozen(provider), true);
+  assert.equal(Object.isFrozen(provider.profile), true);
+  assert.equal(Object.isFrozen(provider.profile.capabilities), true);
   assert.equal(result.receipt.usage.outputTokens, 4);
   const receiptJson = JSON.stringify(result.receipt);
   assert.doesNotMatch(receiptJson, /private task body/);
@@ -118,7 +121,7 @@ test("routing preserves the probe-failure diagnostic", async () => {
   assert.deepEqual(plan.rejected[0]?.reasonCodes, ["health_unavailable", "probe_failed"]);
 });
 
-test("runtime construction rejects a live adapter", () => {
+test("runtime construction rejects every non-authentic fake adapter", () => {
   const liveAdapter: ProviderAdapter = {
     executionKind: "live",
     profile,
@@ -136,6 +139,12 @@ test("runtime construction rejects a live adapter", () => {
     },
   };
   const forgedSynthetic = { ...liveAdapter, executionKind: "synthetic" as const };
+  const prototypeGraft = Object.create(FakeProvider.prototype) as FakeProvider;
+  Object.defineProperties(prototypeGraft, {
+    profile: { value: profile, enumerable: true },
+    probe: { value: liveAdapter.probe, enumerable: true },
+    run: { value: liveAdapter.run, enumerable: true },
+  });
   class FakeProviderSubclass extends FakeProvider {}
   assert.throws(
     () => new AgentRuntime([liveAdapter as unknown as FakeProvider]),
@@ -143,6 +152,10 @@ test("runtime construction rejects a live adapter", () => {
   );
   assert.throws(
     () => new AgentRuntime([forgedSynthetic as unknown as FakeProvider]),
+    /exact FakeProvider instances only/,
+  );
+  assert.throws(
+    () => new AgentRuntime([prototypeGraft]),
     /exact FakeProvider instances only/,
   );
   assert.throws(

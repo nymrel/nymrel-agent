@@ -68,12 +68,39 @@ const forbiddenPaths = candidateFiles
   .map((entry) => path.relative(root, entry));
 assert.deepEqual(forbiddenPaths, [], "phase-0 root must contain no environment files");
 
-const forbiddenImport = /node:(?:http|https|http2|net|tls|dgram|dns|child_process|worker_threads)/;
-const forbiddenCapability = /\b(?:fetch\s*\(|WebSocket\b|EventSource\b|process\.env\b)/;
-for (const sourcePath of candidateFiles.filter((entry) => entry.endsWith(".ts") && entry.includes(`${path.sep}src${path.sep}`))) {
-  const source = readFileSync(sourcePath, "utf8");
-  assert.doesNotMatch(source, forbiddenImport, `network/process import forbidden: ${sourcePath}`);
-  assert.doesNotMatch(source, forbiddenCapability, `network/environment capability forbidden: ${sourcePath}`);
+const runtimeForbiddenImport = /node:(?:fs(?:\/promises)?|http|https|http2|net|tls|dgram|dns|child_process|worker_threads)/;
+const toolForbiddenImport = /["'](?:node:)?(?:http|https|http2|net|tls|dgram|dns|worker_threads)["']/;
+const networkCapability = /\b(?:fetch\s*\(|WebSocket\b|EventSource\b)/;
+const mutationCapability = /\b(?:writeFile|appendFile|truncate|unlink|rm|rmdir|mkdir|rename|copyFile)\s*\(/;
+const childProcessAllowlist = new Set(["scripts/verify-phase0.mjs", "test/cli.test.ts"]);
+const fileSystemAllowlist = new Set(["scripts/verify-phase0.mjs", "test/phase0-boundary.test.ts"]);
+const toolFiles = candidateFiles.filter((entry) => /\.(?:ts|mjs)$/.test(entry));
+for (const toolPath of toolFiles) {
+  const relativePath = path.relative(root, toolPath).replaceAll(path.sep, "/");
+  const source = readFileSync(toolPath, "utf8");
+  assert.doesNotMatch(source, toolForbiddenImport, `network/process import forbidden: ${relativePath}`);
+  assert.doesNotMatch(source, networkCapability, `network capability forbidden: ${relativePath}`);
+  assert.doesNotMatch(source, mutationCapability, `filesystem mutation forbidden: ${relativePath}`);
+  if (/node:child_process/.test(source)) {
+    assert.ok(childProcessAllowlist.has(relativePath), `child-process import not allowlisted: ${relativePath}`);
+  }
+  if (/node:fs(?:\/promises)?/.test(source)) {
+    assert.ok(fileSystemAllowlist.has(relativePath), `filesystem import not allowlisted: ${relativePath}`);
+  }
+  if (relativePath.startsWith("src/")) {
+    assert.doesNotMatch(source, runtimeForbiddenImport, `runtime capability import forbidden: ${relativePath}`);
+    assert.doesNotMatch(source, /\bprocess\.env\b/, `runtime environment access forbidden: ${relativePath}`);
+  }
+  const environmentReads = source.match(/\bprocess\.env\.[A-Za-z_][A-Za-z0-9_]*/g) ?? [];
+  const environmentSurfaces = source.match(/\bprocess\.env\b/g) ?? [];
+  const allowedPathRead = ["process", "env", "PATH"].join(".");
+  const allowedEnvironmentReads = relativePath === "test/cli.test.ts" ? [allowedPathRead] : [];
+  assert.equal(
+    environmentSurfaces.length,
+    allowedEnvironmentReads.length,
+    `unexpected environment surface: ${relativePath}`,
+  );
+  assert.deepEqual(environmentReads, allowedEnvironmentReads, `unexpected environment read: ${relativePath}`);
 }
 
 assert.equal(receipt.status, "candidate_review_required");

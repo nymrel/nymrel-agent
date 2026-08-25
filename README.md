@@ -34,6 +34,8 @@ Phase 0 can execute only requests whose profile and risk are both read-only. Wor
 
 This is not process, filesystem, or network isolation. A future write-capable runtime would require a separately reviewed operating-system sandbox and policy boundary.
 
+The receipt's whole-body SHA-256 values are local correlation digests, not confidentiality controls. They can confirm a guessed low-entropy task or output, so phase-zero receipts must remain inside the trusted local boundary. Any exportable receipt design requires a separately reviewed keyed digest.
+
 ## Decision gate
 
 The candidate remains unadopted until independent review. Its dated absorb/promote/archive deadline and default outcome are recorded in [`evidence/phase0-receipt.json`](evidence/phase0-receipt.json).
