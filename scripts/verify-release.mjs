@@ -32,6 +32,7 @@ assert.equal(packageJson.bin?.["nymrel-agent"], "dist/src/bin/nymrel-agent.js");
 assert.equal(packageJson.bin?.["nymrel-agent-mcp"], "dist/src/bin/nymrel-agent-mcp.js");
 assert.equal(packageJson.scripts?.build, undefined, "Vercel Hono detection requires no package build script");
 assert.equal(packageJson.scripts?.compile, "npm run clean --silent && tsc -p tsconfig.package.json");
+assert.equal(packageJson.scripts?.typecheck, "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.package.json --noEmit");
 assert.equal(packageLock.name, packageJson.name);
 assert.equal(packageLock.version, packageJson.version);
 assert.equal(packageLock.packages?.[""]?.version, packageJson.version);
@@ -96,7 +97,9 @@ assert.ok(server.includes("@vercel/firewall"));
 assert.equal(server.includes("new Map"), false, "Vercel limiter must not be instance-local");
 assert.equal(server.includes("rateLimitKey"), false, "Vercel must let the platform derive trusted client identity");
 assert.equal(server.includes("NYMREL_SOURCE_COMMIT"), false, "Vercel source identity must come from its provider-supplied system variable");
-assert.ok(server.includes("process.env.VERCEL_GIT_COMMIT_SHA"));
+assert.equal(server.includes("process.env"), false, "Vercel source must typecheck without Node ambient globals");
+assert.ok(server.includes("environment.VERCEL_GIT_COMMIT_SHA"));
+assert.ok(server.includes("environment.ROUTING_API_ENABLED"));
 for (const forbidden of ["./src/runtime", "./src/receipt", "./src/local-config", "./src/openai-responses-provider", "console."]) {
   assert.equal(server.includes(forbidden), false, `public Vercel adapter must not include ${forbidden}`);
 }

@@ -17,6 +17,13 @@ export interface ServerOptions {
   readonly sourceCommit?: string;
 }
 
+function runtimeEnvironment(): Readonly<Record<string, string | undefined>> {
+  const runtime = (globalThis as typeof globalThis & {
+    readonly process?: { readonly env?: Readonly<Record<string, string | undefined>> };
+  }).process;
+  return runtime?.env ?? {};
+}
+
 function platformRateLimiter(checker: VercelRateLimitChecker): PlatformRateLimiter {
   return {
     async limit({ request }) {
@@ -42,10 +49,11 @@ function platformRateLimiter(checker: VercelRateLimitChecker): PlatformRateLimit
 
 export function createApp(options: ServerOptions = {}): Hono {
   const checker = options.rateLimitChecker ?? checkRateLimit;
+  const environment = runtimeEnvironment();
   const sourceCommit = options.sourceCommit
-    ?? process.env.VERCEL_GIT_COMMIT_SHA;
+    ?? environment.VERCEL_GIT_COMMIT_SHA;
   const routingApiEnabled = options.routingApiEnabled
-    ?? process.env.ROUTING_API_ENABLED !== "false";
+    ?? environment.ROUTING_API_ENABLED !== "false";
   const openapiBody = `${JSON.stringify(openapiDocument)}\n`;
   const runtimeEnv: WorkerEnv = {
     APP_ENV: "production",

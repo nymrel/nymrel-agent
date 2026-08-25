@@ -46,7 +46,7 @@
   "scripts": {
     "clean": "node scripts/clean.mjs",
     "compile": "npm run clean --silent && tsc -p tsconfig.package.json",
-    "typecheck": "tsc -p tsconfig.package.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.package.json --noEmit",
     "test": "npm run compile --silent && node --test \"dist/test/*.test.js\"",
     "verify:release": "node scripts/verify-release.mjs",
     "verify:packed-install": "npm run compile --silent && node scripts/verify-packed-install.mjs",
