@@ -10,7 +10,7 @@
   },
   "source": {
     "url": "https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.1.0-source.tar.gz",
-    "bytes": 85446,
-    "sha256": "d07822b988e452517153a84ca839661e1b040ec27c04bff25d0e92b9b8d19ff7"
+    "bytes": 85552,
+    "sha256": "d7d2d99f61d2ad59ea65c048662cfc7f50b6d7663abe0bb916f682d546eb19e2"
   }
 }

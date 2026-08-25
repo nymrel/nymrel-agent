@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -77,6 +78,25 @@ for (const [kind, filename] of [
   assert.equal(releaseManifest[kind].bytes, bytes.length, `${kind} release byte count drifted`);
   assert.equal(releaseManifest[kind].sha256, createHash("sha256").update(bytes).digest("hex"), `${kind} release digest drifted`);
   assert.equal(releaseManifest[kind].url, `${packageJson.homepage}/downloads/${filename}`);
+}
+
+const sourceArchive = path.join(root, "public", "downloads", "nymrel-agent-v0.1.0-source.tar.gz");
+const archiveRoot = "nymrel-agent-0.1.0/";
+const archiveNames = execFileSync("tar", ["-tzf", sourceArchive], { encoding: "utf8" }).trimEnd().split(/\r?\n/);
+assert.ok(archiveNames.length > 1, "source archive is empty");
+assert.equal(archiveNames[0], archiveRoot, "source archive must begin with one versioned root");
+assert.equal(archiveNames.filter((name) => name === archiveRoot).length, 1, "source archive has a duplicate root");
+assert.equal(new Set(archiveNames).size, archiveNames.length, "source archive has duplicate members");
+for (const name of archiveNames) {
+  assert.ok(name.startsWith(archiveRoot), `source archive member escaped its versioned root: ${name}`);
+  assert.equal(name.startsWith("/"), false, `source archive contains an absolute path: ${name}`);
+  assert.equal(name.includes("\\"), false, `source archive contains a backslash path: ${name}`);
+  assert.equal(name.split("/").includes(".."), false, `source archive contains traversal: ${name}`);
+}
+const archiveDetails = execFileSync("tar", ["-tvzf", sourceArchive], { encoding: "utf8" }).trimEnd().split(/\r?\n/);
+assert.equal(archiveDetails.length, archiveNames.length, "source archive detail listing drifted");
+for (const detail of archiveDetails) {
+  assert.match(detail, /^[d-]/, `source archive contains a link or special member: ${detail}`);
 }
 
 const indexHtml = read("public/index.html");
