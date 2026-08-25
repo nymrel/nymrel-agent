@@ -125,7 +125,10 @@ for (const requiredIgnore of [
 ]) {
   assert.ok(vercelIgnore.split(/\r?\n/).includes(requiredIgnore), `Vercel source bundle must exclude ${requiredIgnore}`);
 }
-for (const localOnlySource of ["src/cli.ts", "src/local-config.ts", "src/mcp.ts", "src/openai-responses-provider.ts", "src/receipt.ts", "src/runtime.ts"]) {
+for (const localOnlySource of [
+  "src/cli.ts", "src/defaults.ts", "src/local-config.ts", "src/mcp.ts",
+  "src/openai-responses-provider.ts", "src/receipt.ts", "src/runtime.ts", "src/url-security.ts",
+]) {
   assert.ok(vercelIgnore.split(/\r?\n/).includes(localOnlySource), `Vercel source bundle must exclude ${localOnlySource}`);
 }
 assert.ok(vercelIgnore.split(/\r?\n/).includes("scripts/verify-*.mjs"), "Vercel source bundle must exclude release-only verification scripts");
