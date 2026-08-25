@@ -22,7 +22,7 @@ export const STATIC_ASSET_POLICY = Object.freeze([
 interface AssetsBinding { fetch(request: Request): Promise<Response> }
 interface RateLimitBinding { limit(options: { key: string }): Promise<{ success: boolean }> }
 export interface PlatformRateLimiter {
-  limit(options: { key: string; request: Request }): Promise<{
+  limit(options: { request: Request }): Promise<{
     status: "allowed" | "limited" | "misconfigured";
   }>;
   probe(request: Request): Promise<{ status: "ready" | "misconfigured" }>;
@@ -74,19 +74,17 @@ function json(value: unknown, status: number, requestId: string): Response {
   return new Response(`${JSON.stringify(value)}\n`, { status, headers: apiHeaders(requestId) });
 }
 
-async function rateLimitKey(request: Request): Promise<string> {
-  const forwarded = request.headers.get("x-vercel-forwarded-for") ?? request.headers.get("x-forwarded-for");
-  const source = (request.headers.get("cf-connecting-ip") ?? forwarded?.split(",", 1)[0]?.trim() ?? "unknown").slice(0, 160);
+async function bindingRateLimitKey(request: Request): Promise<string> {
+  const source = (request.headers.get("cf-connecting-ip") ?? "unknown").slice(0, 160);
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
   return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("").slice(0, 32);
 }
 
 async function enforceRateLimit(request: Request, env: WorkerEnv): Promise<void> {
-  const key = await rateLimitKey(request);
   if (env.PLATFORM_RATE_LIMITER) {
     let decision: "allowed" | "limited" | "misconfigured";
     try {
-      ({ status: decision } = await env.PLATFORM_RATE_LIMITER.limit({ key, request }));
+      ({ status: decision } = await env.PLATFORM_RATE_LIMITER.limit({ request }));
     } catch {
       decision = "misconfigured";
     }
@@ -98,6 +96,7 @@ async function enforceRateLimit(request: Request, env: WorkerEnv): Promise<void>
     }
   }
   if (env.ROUTE_RATE_LIMITER) {
+    const key = await bindingRateLimitKey(request);
     let success = false;
     try {
       ({ success } = await env.ROUTE_RATE_LIMITER.limit({ key }));

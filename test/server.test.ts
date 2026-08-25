@@ -44,25 +44,32 @@ test("Vercel adapter verifies its deployment-wide WAF rule and serves API discov
 
 test("Vercel adapter shares one external limiter across independent app instances", async () => {
   const counts = new Map<string, number>();
-  const checker: VercelRateLimitChecker = async (_rateLimitId, { rateLimitKey }) => {
-    if (rateLimitKey === "readiness-probe") return { rateLimited: false };
-    const count = (counts.get(rateLimitKey) ?? 0) + 1;
-    counts.set(rateLimitKey, count);
+  const observedOptionKeys: string[][] = [];
+  const checker: VercelRateLimitChecker = async (_rateLimitId, options) => {
+    observedOptionKeys.push(Object.keys(options).sort());
+    const platformIp = options.request.headers.get("x-vercel-forwarded-for") ?? "unknown";
+    const count = (counts.get(platformIp) ?? 0) + 1;
+    counts.set(platformIp, count);
     return { rateLimited: count > 120 };
   };
   const first = createApp({ rateLimitChecker: checker, sourceCommit: SOURCE_COMMIT });
   const second = createApp({ rateLimitChecker: checker, sourceCommit: SOURCE_COMMIT });
-  const request = (app: ReturnType<typeof createApp>) => app.request("https://agent.example/v1/route", {
+  const request = (app: ReturnType<typeof createApp>, spoofedCloudflareIp: string) => app.request("https://agent.example/v1/route", {
     method: "POST",
-    headers: { "content-type": "application/json", "x-vercel-forwarded-for": "198.51.100.42" },
+    headers: {
+      "content-type": "application/json",
+      "x-vercel-forwarded-for": "198.51.100.42",
+      "cf-connecting-ip": spoofedCloudflareIp,
+    },
     body: example(),
   });
   for (let index = 0; index < 120; index += 1) {
-    assert.equal((await request(index % 2 === 0 ? first : second)).status, 200);
+    assert.equal((await request(index % 2 === 0 ? first : second, `192.0.2.${index % 255}`)).status, 200);
   }
-  const limited = await request(first);
+  const limited = await request(first, "203.0.113.250");
   assert.equal(limited.status, 429);
   assert.equal(limited.headers.get("retry-after"), "60");
+  assert.ok(observedOptionKeys.every((keys) => keys.length === 1 && keys[0] === "request"));
 });
 
 test("Vercel adapter fails readiness and routing closed when the WAF rule is missing", async () => {

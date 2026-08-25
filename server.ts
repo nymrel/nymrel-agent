@@ -8,7 +8,7 @@ export const VERCEL_RATE_LIMIT_ID = "nymrel-agent-route-v1";
 
 export type VercelRateLimitChecker = (
   rateLimitId: string,
-  options: { request: Request; rateLimitKey: string },
+  options: { request: Request },
 ) => Promise<{ rateLimited: boolean; error?: "not-found" | "blocked" }>;
 
 export interface ServerOptions {
@@ -19,9 +19,9 @@ export interface ServerOptions {
 
 function platformRateLimiter(checker: VercelRateLimitChecker): PlatformRateLimiter {
   return {
-    async limit({ key, request }) {
+    async limit({ request }) {
       try {
-        const result = await checker(VERCEL_RATE_LIMIT_ID, { request, rateLimitKey: key });
+        const result = await checker(VERCEL_RATE_LIMIT_ID, { request });
         if (result.error === "not-found") return { status: "misconfigured" };
         if (result.rateLimited) return { status: "limited" };
         return { status: "allowed" };
@@ -31,7 +31,7 @@ function platformRateLimiter(checker: VercelRateLimitChecker): PlatformRateLimit
     },
     async probe(request) {
       try {
-        const result = await checker(VERCEL_RATE_LIMIT_ID, { request, rateLimitKey: "readiness-probe" });
+        const result = await checker(VERCEL_RATE_LIMIT_ID, { request });
         return { status: result.error === undefined ? "ready" : "misconfigured" };
       } catch {
         return { status: "misconfigured" };

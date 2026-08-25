@@ -93,6 +93,7 @@ assert.ok(server.includes('RATE_LIMIT_SCOPE: "deployment"'));
 assert.ok(server.includes('VERCEL_RATE_LIMIT_ID = "nymrel-agent-route-v1"'));
 assert.ok(server.includes("@vercel/firewall"));
 assert.equal(server.includes("new Map"), false, "Vercel limiter must not be instance-local");
+assert.equal(server.includes("rateLimitKey"), false, "Vercel must let the platform derive trusted client identity");
 for (const forbidden of ["./src/runtime", "./src/receipt", "./src/local-config", "./src/openai-responses-provider", "console."]) {
   assert.equal(server.includes(forbidden), false, `public Vercel adapter must not include ${forbidden}`);
 }
@@ -133,6 +134,10 @@ assert.equal(wrangler.ratelimits?.[0]?.simple?.period, 60);
 assert.equal(wrangler.vars?.RATE_LIMIT_SCOPE, "edge_location");
 assert.equal(wrangler.vars?.ROUTING_API_ENABLED, "true");
 assert.equal(wrangler.routes, undefined, "custom DNS route requires a separate protected gate");
+
+const ciWorkflow = read(".github/workflows/ci.yml");
+assert.doesNotMatch(ciWorkflow, /uses:\s+\S+@v\d+/i, "CI actions must use immutable commit SHAs");
+assert.ok(ciWorkflow.includes("persist-credentials: false"), "CI checkout must not persist its token");
 
 function files(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
