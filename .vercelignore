@@ -1,5 +1,10 @@
 /dist/
+/.github/
+/.playwright-cli/
+/.vercel/
 /.wrangler/
+/coverage/
+/output/
 /test/
 /evidence/
 /docs/

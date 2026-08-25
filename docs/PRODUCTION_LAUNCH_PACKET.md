@@ -84,15 +84,22 @@ Independent gate:
 
 This sequence uses Vercel's documented [staged production deployment](https://vercel.com/docs/deployments/promoting-a-deployment#staging-and-promoting-a-production-deployment) flow so the enabled build cannot take the production alias before inspection.
 
-1. Create the public GitHub repository without an initial commit, connect the existing Vercel project to that exact repository, and enable Vercel system environment variables.
-2. Configure `ROUTING_API_ENABLED=false` for production before the first connected push, then push the accepted commit to `main`. Local-directory deployments are not eligible release sources.
-3. Inspect the resulting fallback deployment and require its provider-reported `gitSource` SHA, runtime `VERCEL_GIT_COMMIT_SHA`, `/healthz` source commit, and accepted commit to be identical. Absence or disagreement fails closed.
+1. Create the public GitHub repository without an initial commit, connect the existing Vercel project to that exact repository, and enable Vercel system environment variables. Provider Git is the preferred source mode. If the existing Vercel account cannot connect GitHub without a new OAuth/login gate, record that gate and use only the `verified_cli_bundle` contingency below.
+2. Configure `ROUTING_API_ENABLED=false` for production, then push the accepted commit to public `main`. An ordinary local-directory deployment is not an eligible release source. The contingency is eligible only from a clean checkout of that exact public commit when every uploaded source file and byte passes `scripts/verify-vercel-source.mjs` against Vercel's deployment inventory.
+3. Inspect the resulting fallback deployment. In `provider_git` mode, require provider `gitSource`, runtime `VERCEL_GIT_COMMIT_SHA`, `/healthz`, and the accepted commit to agree. In `verified_cli_bundle` mode, require remote `main`, local `HEAD`, provider `meta.githubCommitSha`, runtime `VERCEL_GIT_COMMIT_SHA`, and `/healthz` to agree; require `meta.gitDirty` to be absent or false; and pipe the authenticated deployment inventory through the exact-byte verifier:
+
+```powershell
+npx vercel api '/v6/deployments/<deployment-id>/files?teamId=<team-id>' |
+  node scripts/verify-vercel-source.mjs
+```
+
+Absence, disagreement, an unexpected file, or a byte-digest mismatch fails closed. The verifier's explicit allowlist excludes browser evidence, output, coverage, CI files, provider-local state, tests, package-only execution code, and release-only scripts.
 4. Verify the fallback homepage and docs return 200, `/healthz` returns 200 with the accepted SHA, `/readyz` returns 503, and `POST /v1/route` returns the stable JSON `service_disabled` error.
 5. Record the fallback deployment ID and confirm the alias reassignment command before enabling routing.
 6. Stage, inspect, and publish the Vercel WAF rule `nymrel-agent-route-v1` at 120 requests per 60 seconds. Stop if Vercel presents a new pricing, billing, or legal-acceptance gate.
 7. Disable **Production > Branch Tracking > Auto-assign Custom Production Domains** and verify that the offline fallback remains `Current` at `nymrel-agent.vercel.app`. Do not change the routing flag until that hold is proven.
-8. Change the production routing flag to `true` and redeploy the exact Git-backed fallback source as a production deployment. Require the new enabled deployment to remain `Staged`, require the stable alias to continue serving the fallback, and inspect the staged deployment directly.
-9. Before promotion, require the staged deployment's provider `gitSource` SHA, runtime source commit, `/healthz` source commit, and accepted commit to be identical. Require `/readyz` and the canonical route fixture to pass against the staged URL, and inspect its error logs.
+8. Change the production routing flag to `true` and redeploy the exact accepted source through the same verified source mode as a production deployment. Require the new enabled deployment to remain `Staged`, require the stable alias to continue serving the fallback, and inspect the staged deployment directly.
+9. Before promotion, repeat the applicable source-mode proof from step 3 against the staged deployment. Require `/readyz` and the canonical route fixture to pass against the staged URL, and inspect its error logs.
 10. Promote only that verified staged deployment with an explicit confirmation:
 
 ```powershell
@@ -123,7 +130,7 @@ Source and install checks:
 
 - The versioned GitHub tag and release target the accepted SHA; no source-immutability badge is claimed without a separate GitHub immutable-release receipt.
 - The deployed `/healthz` and `/readyz` expose that SHA.
-- Vercel inspection identifies the exact organization, project, deployment, connected GitHub repository, and provider-reported `gitSource` SHA.
+- Vercel inspection identifies the exact organization, project, deployment, source mode, and source SHA. `provider_git` requires the connected repository and provider `gitSource`; `verified_cli_bundle` requires the public remote commit plus an exact allowlist and SHA-1 proof for every uploaded source file.
 - An unauthenticated clean checkout passes the public quickstart.
 - The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass on Windows and Linux CI.
 

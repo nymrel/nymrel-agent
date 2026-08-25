@@ -14,6 +14,7 @@ const required = [
   "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
   "src/bin/nymrel-agent.ts", "src/bin/nymrel-agent-mcp.ts", "scripts/verify-packed-install.mjs",
+  "scripts/verify-vercel-source.mjs",
   "src/url-security.ts",
   ".github/workflows/ci.yml",
 ];
@@ -118,12 +119,16 @@ assert.deepEqual(vercel.rewrites, [
 assert.equal(json("homepage.json").html, read("public/index.html"), "Vercel homepage payload drifted from the canonical homepage");
 assert.ok(vercel.headers?.some((entry) => entry.source === "/" && entry.headers?.some((header) => header.key === "Content-Security-Policy" && header.value.includes(cspHash))), "Vercel CSP does not authorize the exact JSON-LD block");
 const vercelIgnore = read(".vercelignore");
-for (const requiredIgnore of ["/dist/", "/.wrangler/", "/test/", "/evidence/", "src/bin/", "public/_headers"]) {
+for (const requiredIgnore of [
+  "/dist/", "/.github/", "/.playwright-cli/", "/.vercel/", "/.wrangler/",
+  "/coverage/", "/output/", "/test/", "/evidence/", "src/bin/", "public/_headers",
+]) {
   assert.ok(vercelIgnore.split(/\r?\n/).includes(requiredIgnore), `Vercel source bundle must exclude ${requiredIgnore}`);
 }
 for (const localOnlySource of ["src/cli.ts", "src/local-config.ts", "src/mcp.ts", "src/openai-responses-provider.ts", "src/receipt.ts", "src/runtime.ts"]) {
   assert.ok(vercelIgnore.split(/\r?\n/).includes(localOnlySource), `Vercel source bundle must exclude ${localOnlySource}`);
 }
+assert.ok(vercelIgnore.split(/\r?\n/).includes("scripts/verify-*.mjs"), "Vercel source bundle must exclude release-only verification scripts");
 const vercelTsconfig = json("tsconfig.json");
 assert.equal(vercelTsconfig.compilerOptions?.types, undefined);
 assert.equal(vercelTsconfig.compilerOptions?.noEmit, true);
@@ -158,7 +163,7 @@ for (const requiredLaunchHold of [
 
 function files(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    if ([".git", ".wrangler", "dist", "node_modules"].includes(entry.name)) return [];
+    if ([".git", ".vercel", ".wrangler", "dist", "node_modules"].includes(entry.name)) return [];
     const absolute = path.join(directory, entry.name);
     return entry.isDirectory() ? files(absolute) : [absolute];
   });
