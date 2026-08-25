@@ -1,4 +1,5 @@
 import type { ModelProfile, ProviderAdapter, ProviderHealth, ProviderRunEvent, ProviderRunInput } from "./contracts.js";
+import { isLoopbackHostname } from "./url-security.js";
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 const MAX_PROVIDER_RESPONSE_BYTES = 4 * 1024 * 1024;
@@ -16,13 +17,6 @@ export interface OpenAIResponsesProviderOptions {
 interface ValidatedBaseUrl {
   readonly value: string;
   readonly loopback: boolean;
-}
-
-function isLoopbackHostname(value: string): boolean {
-  const hostname = value.toLowerCase().replace(/^\[/, "").replace(/\]$/, "");
-  if (hostname === "localhost" || hostname === "::1") return true;
-  const octets = hostname.split(".");
-  return octets.length === 4 && octets.every((octet) => /^\d{1,3}$/.test(octet) && Number(octet) <= 255) && octets[0] === "127";
 }
 
 function validatedBaseUrl(value: string): ValidatedBaseUrl {

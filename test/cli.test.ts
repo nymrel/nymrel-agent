@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { boundedResponseBody } from "../src/cli.js";
+import { isLoopbackHostname } from "../src/url-security.js";
 
 const cli = path.join(process.cwd(), "dist", "src", "bin", "nymrel-agent.js");
 function runCli(args: readonly string[]): { status: number | null; stdout: string; stderr: string } {
@@ -76,6 +77,14 @@ test("CLI rejects missing, duplicate, and unknown option values", () => {
   assert.equal(duplicate.status, 64);
   const unknown = runCli(["route", "--file", "examples/route-request.json", "--unknown", "value"]);
   assert.equal(unknown.status, 64);
+});
+
+test("CLI loopback transport policy rejects attacker-controlled 127-prefixed hosts", () => {
+  assert.equal(isLoopbackHostname("localhost"), true);
+  assert.equal(isLoopbackHostname("::1"), true);
+  assert.equal(isLoopbackHostname("127.0.0.2"), true);
+  assert.equal(isLoopbackHostname("127.attacker.example"), false);
+  assert.equal(isLoopbackHostname("127.0.0.1.attacker.example"), false);
 });
 
 test("CLI response reader cancels chunked oversized endpoint responses", async () => {

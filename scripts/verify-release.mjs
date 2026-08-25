@@ -14,6 +14,7 @@ const required = [
   "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
   "src/bin/nymrel-agent.ts", "src/bin/nymrel-agent-mcp.ts", "scripts/verify-packed-install.mjs",
+  "src/url-security.ts",
   ".github/workflows/ci.yml",
 ];
 for (const relative of required) assert.ok(existsSync(path.join(root, relative)), `missing release file: ${relative}`);

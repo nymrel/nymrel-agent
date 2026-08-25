@@ -6,6 +6,7 @@ import { NymrelError, publicError } from "./errors.js";
 import { createConfiguredAdapters, parseLocalAgentConfig } from "./local-config.js";
 import { route } from "./router.js";
 import { AgentRuntime } from "./runtime.js";
+import { isLoopbackHostname } from "./url-security.js";
 import { parsePublicRoutePayload } from "./validation.js";
 
 function flagValue(args: readonly string[], flag: string): string | undefined {
@@ -53,8 +54,7 @@ function printJson(value: unknown): void {
 
 function endpointUrl(value: string): string {
   const url = new URL(value);
-  const hostname = url.hostname.toLowerCase().replace(/^\[/, "").replace(/\]$/, "");
-  const local = hostname === "localhost" || hostname === "::1" || hostname.startsWith("127.");
+  const local = isLoopbackHostname(url.hostname);
   if (url.username || url.password || url.search || url.hash || (url.protocol !== "https:" && !(local && url.protocol === "http:"))) {
     throw new NymrelError("endpoint_invalid", "The endpoint must use HTTPS (or HTTP localhost) and contain no credentials, query, or fragment.", 64);
   }

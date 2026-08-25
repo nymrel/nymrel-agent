@@ -65,6 +65,10 @@ test("OpenAI adapter binds local_only custody to loopback transport", () => {
     () => new OpenAIResponsesProvider(localProfile, { apiKey: "credential-value", baseUrl: "https://remote.example/v1" }),
     /local_only profiles require a loopback base URL/,
   );
+  assert.throws(
+    () => new OpenAIResponsesProvider(localProfile, { apiKey: "credential-value", baseUrl: "http://127.attacker.example/v1" }),
+    /must use HTTPS/,
+  );
   assert.doesNotThrow(
     () => new OpenAIResponsesProvider(localProfile, { apiKey: "credential-value", baseUrl: "http://127.0.0.2:8080/v1" }),
   );
