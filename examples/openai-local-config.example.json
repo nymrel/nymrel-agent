@@ -1,0 +1,47 @@
+{
+  "route": {
+    "phase": "research",
+    "risk": "read",
+    "objective": "quality",
+    "requirements": {
+      "toolUse": false,
+      "structuredOutput": false,
+      "minContextTokens": 1,
+      "modalities": ["text"]
+    },
+    "constraints": {
+      "dataBoundary": "approved_provider",
+      "maxCostMicroUsd": 1000000,
+      "maxLatencyMs": 300000
+    }
+  },
+  "models": [
+    {
+      "modelId": "openai/YOUR_MODEL_ID",
+      "providerId": "openai",
+      "health": "healthy",
+      "healthCode": "operator_configured",
+      "qualityScore": 50,
+      "reliabilityBasisPoints": 5000,
+      "estimatedCostMicroUsd": 0,
+      "estimatedLatencyMs": 0,
+      "dataBoundaries": ["approved_provider"],
+      "riskClasses": ["read"],
+      "capabilities": {
+        "toolUse": false,
+        "structuredOutput": false,
+        "contextTokens": 1,
+        "modalities": ["text"]
+      }
+    }
+  ],
+  "adapters": [
+    {
+      "kind": "openai-responses",
+      "modelId": "openai/YOUR_MODEL_ID",
+      "providerModelId": "YOUR_MODEL_ID",
+      "apiKeyEnv": "OPENAI_API_KEY",
+      "timeoutMs": 60000
+    }
+  ]
+}

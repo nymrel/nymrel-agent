@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "nymrel.agent.authz/v1",
+  "surface": "cloudflare-worker",
+  "defaultPolicy": "deny-unregistered-dynamic-route",
+  "guardedRoutes": [],
+  "publicRoutes": [
+    { "method": "GET", "path": "/healthz", "reason": "Public liveness probe; returns version and status only." },
+    { "method": "GET", "path": "/readyz", "reason": "Public readiness probe; returns deterministic router readiness only." },
+    { "method": "GET", "path": "/v1", "reason": "Public API discovery document; contains no customer data." },
+    { "method": "GET", "path": "/v1/openapi.json", "reason": "Public machine-readable API documentation." },
+    { "method": "POST", "path": "/v1/route", "reason": "Free stateless router; accepts model metadata only and stores nothing." },
+    { "method": "OPTIONS", "path": "/v1/route", "reason": "CORS preflight for the public stateless router." },
+    { "method": "GET", "path": "/{static-asset}", "reason": "Public immutable product, documentation, discoverability, and example files from the reviewed public directory." },
+    { "method": "HEAD", "path": "/{static-asset}", "reason": "Public metadata probe for the same reviewed static assets; returns no application or customer data." }
+  ]
+}

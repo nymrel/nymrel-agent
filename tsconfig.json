@@ -12,8 +12,17 @@
     "forceConsistentCasingInFileNames": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "types": ["node"],
-    "sourceMap": true
+    "resolveJsonModule": true,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "noEmit": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "server.ts",
+    "src/contracts.ts",
+    "src/errors.ts",
+    "src/ordering.ts",
+    "src/router.ts",
+    "src/validation.ts",
+    "src/worker.ts"
+  ]
 }

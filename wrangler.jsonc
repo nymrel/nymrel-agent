@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "nymrel-agent",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-08-25",
+  "account_id": "51bfa4786404f2d78014330d9b1d6e8c",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "drop-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": true
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  },
+  "ratelimits": [
+    {
+      "name": "ROUTE_RATE_LIMITER",
+      "namespace_id": "2026082501",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    }
+  ],
+  "vars": {
+    "APP_ENV": "production"
+  }
+}

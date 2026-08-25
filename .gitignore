@@ -1,6 +1,11 @@
 node_modules/
 dist/
+.playwright-cli/
+.wrangler/
+coverage/
+output/
+*.tgz
 *.tsbuildinfo
 *.log
-.env
-.env.*
+.vercel
+.env*

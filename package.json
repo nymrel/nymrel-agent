@@ -1,21 +1,77 @@
 {
-  "name": "nymrel-agent-phase0",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Internal phase-0 candidate for a provider-neutral, read-only Nymrel agent runtime.",
+  "name": "@nymrel/agent",
+  "version": "0.1.0",
+  "description": "Explainable multi-model routing with a stateless API, local CLI, MCP server, and low-custody execution harness.",
   "type": "module",
+  "license": "MIT",
+  "homepage": "https://nymrel-agent.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JalenBuildsHub/nymrel-agent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JalenBuildsHub/nymrel-agent/issues"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "llm",
+    "mcp",
+    "model-router",
+    "routing"
+  ],
+  "files": [
+    "dist/src",
+    "examples",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md"
+  ],
+  "bin": {
+    "nymrel-agent": "dist/src/cli.js",
+    "nymrel-agent-mcp": "dist/src/mcp.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    },
+    "./mcp": {
+      "types": "./dist/src/mcp.d.ts",
+      "import": "./dist/src/mcp.js"
+    }
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test \"dist/test/*.test.js\"",
-    "verify:phase0": "node scripts/verify-phase0.mjs",
-    "smoke": "npm run build --silent && node dist/src/cli.js run --task \"Summarize the phase-zero boundary\""
+    "clean": "node scripts/clean.mjs",
+    "compile": "npm run clean --silent && tsc -p tsconfig.package.json",
+    "typecheck": "tsc -p tsconfig.package.json --noEmit",
+    "test": "npm run compile --silent && node --test \"dist/test/*.test.js\"",
+    "verify:release": "node scripts/verify-release.mjs",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "verify": "npm run typecheck && npm test && npm run verify:release && npm run deploy:dry-run",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
+    "deploy": "wrangler deploy",
+    "smoke": "npm run compile --silent && node dist/src/cli.js route --file examples/route-request.json",
+    "mcp": "node dist/src/mcp.js",
+    "prepack": "npm run compile --silent && npm run verify:release"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22 <25"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
+    "hono": "4.13.4",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "26.3.0",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "wrangler": "4.126.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

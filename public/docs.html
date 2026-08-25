@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation — Nymrel Agent</title>
+  <meta name="description" content="Quickstart, API contract, CLI, MCP, routing policy, and security boundary for Nymrel Agent.">
+  <link rel="canonical" href="https://nymrel-agent.vercel.app/docs">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="nav shell"><a class="brand" href="/"><span class="mark" aria-hidden="true">N</span><span>Nymrel Agent</span></a><nav aria-label="Primary navigation"><a href="/">Product</a><a href="/openapi.json">OpenAPI</a><a href="https://github.com/JalenBuildsHub/nymrel-agent">GitHub</a><a class="button small" href="https://nymrel.com/brief">Work with Nymrel</a></nav></header>
+  <main class="docs shell">
+    <aside aria-label="Documentation sections"><p class="eyebrow">DOCUMENTATION</p><a href="#quickstart">Quickstart</a><a href="#contract">Request contract</a><a href="#scoring">Scoring</a><a href="#errors">Errors</a><a href="#cli">CLI</a><a href="#mcp">MCP</a><a href="#local-execution">Local execution</a><a href="#security">Security</a><a href="#service">Managed service</a></aside>
+    <article class="prose">
+      <p class="status-pill">v0.1 · production</p>
+      <h1>Route work across the models you already use.</h1>
+      <p>Nymrel Agent applies one deterministic routing contract across a public API, a local CLI, and an MCP server. You supply the model catalog and its evidence. Nymrel Agent filters ineligible options, ranks the rest, and explains the decision.</p>
+
+      <h2 id="quickstart">Quickstart</h2>
+      <p>The public endpoint needs no account or API key. It accepts model metadata, not task or prompt text.</p>
+      <pre><code>curl -sS https://nymrel-agent.vercel.app/v1/route \
+  -H "content-type: application/json" \
+  --data-binary @examples/route-request.json</code></pre>
+      <p>Download the example at <a href="/examples/route-request.json"><code>/examples/route-request.json</code></a>. A successful response includes <code>selectedModelId</code>, the ranked eligible set, every rejected candidate with reason codes, and the score components.</p>
+
+      <h2 id="contract">Request contract</h2>
+      <p>The root object has exactly two fields: <code>request</code> and <code>models</code>. Unknown fields fail closed. Payloads are capped at 256 KiB and 100 models.</p>
+      <pre><code>{
+  "request": {
+    "phase": "implement",
+    "risk": "workspace_write",
+    "objective": "balanced",
+    "requirements": {
+      "toolUse": true,
+      "structuredOutput": true,
+      "minContextTokens": 32000,
+      "modalities": ["text"]
+    },
+    "constraints": {
+      "dataBoundary": "approved_provider",
+      "maxCostMicroUsd": 50000,
+      "maxLatencyMs": 10000
+    }
+  },
+  "models": [/* 1–100 model profiles */]
+}</code></pre>
+      <p>See the complete <a href="/openapi.json">OpenAPI 3.1 document</a> for enums, limits, and response schemas.</p>
+
+      <h2 id="scoring">Scoring</h2>
+      <p>Routing happens in two phases. First, a model is rejected if it violates health, risk class, data boundary, capability, context, modality, cost, or latency requirements. Duplicate model IDs are also rejected. Second, eligible candidates receive normalized quality, reliability, cost, latency, health, and optional incumbent-stickiness components.</p>
+      <p>The selected objective changes explicit weights:</p>
+      <ul><li><code>balanced</code>: quality 35%, reliability 25%, cost 20%, latency 15%, health 5%.</li><li><code>quality</code>: quality 60%, reliability 25%, with 5% each for cost, latency, and health.</li><li><code>cost</code>: cost 45%, quality and reliability 20% each, latency 10%, health 5%.</li><li><code>latency</code>: latency 45%, quality and reliability 20% each, cost 10%, health 5%.</li></ul>
+      <div class="callout"><strong>Evidence rule.</strong> Quality scores, reliability, cost, latency, boundaries, and capabilities are caller-supplied inputs. Nymrel Agent explains how it used them; it does not certify that they are accurate.</div>
+
+      <h2 id="errors">Errors</h2>
+      <p>All API errors are JSON and include a request ID plus a stable code. Expected codes include <code>invalid_json</code>, <code>invalid_request</code>, <code>payload_too_large</code>, <code>unsupported_media_type</code>, <code>method_not_allowed</code>, <code>rate_limited</code>, and <code>not_found</code>. The production endpoint applies 120 routing calls per 60-second window per hashed network identity and warm function instance, plus hosting-platform abuse protection. It is an abuse-reduction control, not a globally coordinated customer quota; shared networks can share an allowance. Internal stack traces and request bodies are never returned.</p>
+
+      <h2 id="cli">CLI</h2>
+      <p>Until the npm package is published, install from the signed source release:</p>
+      <pre><code>git clone https://github.com/JalenBuildsHub/nymrel-agent.git
+cd nymrel-agent
+npm ci
+npm run compile
+node dist/src/cli.js route --file examples/route-request.json</code></pre>
+      <p>The CLI reads locally by default and writes the result as JSON to stdout. Use <code>--endpoint https://nymrel-agent.vercel.app</code> to call the hosted router. No prompt is sent because route payloads contain metadata only.</p>
+
+      <h2 id="mcp">MCP</h2>
+      <p>The MCP server exposes <code>route_models</code> and <code>explain_contract</code> over stdio. Configure your compatible client to run <code>node /absolute/path/to/dist/src/mcp.js</code>. Protocol messages use stdout; diagnostics use stderr.</p>
+
+      <h2 id="local-execution">Local execution</h2>
+      <p>The optional local harness can execute read-only tasks through explicitly configured adapters. Provider keys are read from an environment variable named in your local config and sent directly from your machine to that provider. Keys are never accepted by the public Nymrel endpoint, stored in receipts, or printed by the CLI.</p>
+      <p>v0.1 includes an OpenAI Responses adapter and a synthetic adapter for offline verification. The public router remains provider-neutral and can rank any provider profile. Write-capable tools and hosted key custody are not enabled.</p>
+
+      <h2 id="security">Security and privacy</h2>
+      <ul><li>The hosted router accepts no prompts, files, provider keys, or customer identifiers.</li><li>Requests are processed in memory and are not written by application code.</li><li>Standard network metadata may be processed by the hosting platform for delivery, abuse protection, and operational telemetry.</li><li>Local receipts contain SHA-256 correlation digests, not task or output bodies. A digest is not an encryption or confidentiality control.</li><li>The local execution runtime permits read-only runs only in v0.1.</li></ul>
+      <p>Report a security issue privately to <a href="mailto:contact@jalenbuilds.com?subject=Nymrel%20Agent%20security">contact@jalenbuilds.com</a>. Do not include provider credentials or customer data.</p>
+
+      <h2 id="service">Managed implementation service</h2>
+      <p>Nymrel can configure a model catalog, evidence collection, routing policy, evals, local adapters, and operational receipts for a real workflow. Hosted provider execution, credentials, data retention, and write-capable tools require a separate scope and security review. Pricing is provided on request.</p>
+      <p><a class="button" href="https://nymrel.com/brief">Start a project brief</a></p>
+    </article>
+  </main>
+  <footer class="footer shell"><div><a class="brand" href="https://nymrel.com"><span class="mark" aria-hidden="true">N</span><span>Nymrel</span></a><p>Products and services built to hold up under real use.</p></div><div class="footer-links"><a href="/llms.txt">llms.txt</a><a href="/healthz">Status</a><a href="https://nymrel.com/privacy">Privacy</a></div></footer>
+</body>
+</html>

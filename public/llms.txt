@@ -1,0 +1,30 @@
+# Nymrel Agent
+
+> Nymrel Agent is an explainable, deterministic multi-model router from Nymrel. The hosted API accepts model metadata only; it does not accept prompts or provider credentials.
+
+## Canonical resources
+
+- Product: https://nymrel-agent.vercel.app/
+- Documentation: https://nymrel-agent.vercel.app/docs
+- OpenAPI 3.1: https://nymrel-agent.vercel.app/openapi.json
+- API discovery: https://nymrel-agent.vercel.app/v1
+- Health: https://nymrel-agent.vercel.app/healthz
+- Source: https://github.com/JalenBuildsHub/nymrel-agent
+- Company: https://nymrel.com/
+- Service brief: https://nymrel.com/brief
+
+## Core operation
+
+POST /v1/route accepts exactly `request` and `models`. It filters models by health, risk class, data boundary, tool use, structured output, context size, modality, cost, and latency. Eligible models are ranked under `balanced`, `quality`, `cost`, or `latency` objectives. Responses include the selection, ranked candidates, rejected candidates, stable reason codes, score components, and a request ID.
+
+## Important boundaries
+
+- Hosted routing is stateless application logic and does not execute model calls.
+- Model metrics and capabilities are supplied by the caller; Nymrel Agent does not certify them.
+- The local v0.1 harness executes read-only requests only.
+- Provider credentials remain on the customer's machine for local execution.
+- Write-capable tools, hosted credential custody, billing, and autonomous side effects are outside v0.1.
+
+## Service
+
+Nymrel offers on-request implementation work for model catalogs, evaluation, routing policy, local adapters, and operational receipts. Scope and pricing are provided after a project brief.

@@ -1,0 +1,13 @@
+{
+  "decision": "Launch Nymrel Agent as a public stateless multi-model routing product with customer-local provider execution and a separately scoped managed implementation service.",
+  "door_type": "Type 1",
+  "reversibility_score": 4,
+  "customer_impact": "Developers get an immediately usable routing API, CLI, and MCP surface without handing Nymrel provider credentials or prompt data.",
+  "simplicity_check": "One deterministic routing core powers every surface; hosted execution, accounts, billing, and customer-data custody are excluded from the initial launch.",
+  "revenue_impact": "Creates a credible Nymrel product-led entry point and an on-request implementation and optimization service without inventing pricing.",
+  "risks": ["Public API abuse; routing misconfiguration; accidental credential or prompt custody; premature compatibility claims."],
+  "mitigations": ["Stateless route-only public API, bounded inputs, explicit public-route register, redacted logs, deterministic receipts, local-only execution adapters, canary deployment, rollback-ready releases."],
+  "confidence_reason": "The Phase 0 router and receipt contracts were independently accepted, the production surface stays stateless, and all sensitive execution remains opt-in and local.",
+  "log_link": "docs/PRODUCTION_LAUNCH_PACKET.md",
+  "related_cases": []
+}

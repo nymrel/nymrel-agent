@@ -1,6 +1,8 @@
-# Phase-0 contract
+# Phase-0 contract (historical)
 
-Status: internal candidate; independent review required.
+Status: independently accepted and promoted into the production v0.1 line on 2026-08-25.
+
+This file records the narrower proof boundary that preceded promotion; it is not the current product contract. The current contract is `nymrel.agent.route/v1`, documented in `README.md` and `docs/ARCHITECTURE.md`.
 
 ## Objective
 

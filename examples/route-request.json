@@ -1,0 +1,56 @@
+{
+  "request": {
+    "phase": "implement",
+    "risk": "workspace_write",
+    "objective": "balanced",
+    "requirements": {
+      "toolUse": true,
+      "structuredOutput": true,
+      "minContextTokens": 32000,
+      "modalities": ["text"]
+    },
+    "constraints": {
+      "dataBoundary": "approved_provider",
+      "maxCostMicroUsd": 50000,
+      "maxLatencyMs": 10000
+    }
+  },
+  "models": [
+    {
+      "modelId": "provider-a/reasoning-large",
+      "providerId": "provider-a",
+      "health": "healthy",
+      "qualityScore": 92,
+      "reliabilityBasisPoints": 9850,
+      "estimatedCostMicroUsd": 42000,
+      "estimatedLatencyMs": 4200,
+      "dataBoundaries": ["approved_provider"],
+      "riskClasses": ["read", "workspace_write"],
+      "capabilities": { "toolUse": true, "structuredOutput": true, "contextTokens": 200000, "modalities": ["text", "image"] }
+    },
+    {
+      "modelId": "provider-b/fast",
+      "providerId": "provider-b",
+      "health": "healthy",
+      "qualityScore": 84,
+      "reliabilityBasisPoints": 9940,
+      "estimatedCostMicroUsd": 12000,
+      "estimatedLatencyMs": 900,
+      "dataBoundaries": ["approved_provider", "zero_retention_provider"],
+      "riskClasses": ["read", "workspace_write"],
+      "capabilities": { "toolUse": true, "structuredOutput": true, "contextTokens": 128000, "modalities": ["text"] }
+    },
+    {
+      "modelId": "local/text-small",
+      "providerId": "local",
+      "health": "healthy",
+      "qualityScore": 68,
+      "reliabilityBasisPoints": 9700,
+      "estimatedCostMicroUsd": 0,
+      "estimatedLatencyMs": 300,
+      "dataBoundaries": ["local_only"],
+      "riskClasses": ["read"],
+      "capabilities": { "toolUse": false, "structuredOutput": true, "contextTokens": 16000, "modalities": ["text"] }
+    }
+  ]
+}

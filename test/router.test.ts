@@ -4,33 +4,17 @@ import type { ModelProfile, RouteRequest } from "../src/contracts.js";
 import { route } from "../src/router.js";
 
 const baseRequest: RouteRequest = {
-  phase: "research",
-  risk: "read",
-  requirements: {
-    toolUse: false,
-    structuredOutput: true,
-    minContextTokens: 8_000,
-    modalities: ["text"],
-  },
+  phase: "research", risk: "read", objective: "balanced",
+  requirements: { toolUse: false, structuredOutput: true, minContextTokens: 8_000, modalities: ["text"] },
   constraints: { dataBoundary: "approved_provider" },
 };
 
 function profile(modelId: string, overrides: Partial<ModelProfile> = {}): ModelProfile {
   return {
-    modelId,
-    providerId: "fake",
-    health: "healthy",
-    qualityScore: 80,
-    reliabilityBasisPoints: 9_900,
-    estimatedCostMicroUsd: 10_000,
-    estimatedLatencyMs: 200,
-    dataBoundaries: ["approved_provider"],
-    capabilities: {
-      toolUse: true,
-      structuredOutput: true,
-      contextTokens: 32_000,
-      modalities: ["text"],
-    },
+    modelId, providerId: "test-provider", health: "healthy", qualityScore: 80,
+    reliabilityBasisPoints: 9_900, estimatedCostMicroUsd: 10_000, estimatedLatencyMs: 200,
+    dataBoundaries: ["approved_provider"], riskClasses: ["read"],
+    capabilities: { toolUse: true, structuredOutput: true, contextTokens: 32_000, modalities: ["text"] },
     ...overrides,
   };
 }
@@ -38,56 +22,53 @@ function profile(modelId: string, overrides: Partial<ModelProfile> = {}): ModelP
 test("routing is deterministic and breaks equal scores by model id", () => {
   const plan = route(baseRequest, [profile("z.model"), profile("Z.model")]);
   assert.equal(plan.selectedModelId, "Z.model");
-  assert.deepEqual(
-    plan.eligible.map((candidate) => candidate.modelId),
-    ["Z.model", "z.model"],
-  );
+  assert.deepEqual(plan.eligible.map((candidate) => candidate.modelId), ["Z.model", "z.model"]);
 });
 
-test("routing explains every capability and boundary rejection", () => {
-  const plan = route(baseRequest, [
-    profile("offline", { health: "unavailable" }),
-    profile("local", { dataBoundaries: ["local_only"] }),
-    profile("small", {
-      capabilities: {
-        toolUse: true,
-        structuredOutput: true,
-        contextTokens: 100,
-        modalities: ["text"],
-      },
-    }),
+test("routing explains capability, boundary, risk, health, cost, and latency rejections", () => {
+  const request: RouteRequest = { ...baseRequest, risk: "workspace_write", constraints: { dataBoundary: "approved_provider", maxCostMicroUsd: 20_000, maxLatencyMs: 1_000 } };
+  const plan = route(request, [
+    profile("offline", { health: "unavailable", riskClasses: ["workspace_write"] }),
+    profile("local", { dataBoundaries: ["local_only"], riskClasses: ["workspace_write"] }),
+    profile("read-only"),
+    profile("small", { riskClasses: ["workspace_write"], capabilities: { toolUse: true, structuredOutput: true, contextTokens: 100, modalities: ["text"] } }),
+    profile("expensive", { riskClasses: ["workspace_write"], estimatedCostMicroUsd: 20_001 }),
+    profile("slow", { riskClasses: ["workspace_write"], estimatedLatencyMs: 1_001 }),
   ]);
   assert.equal(plan.selectedModelId, null);
-  assert.deepEqual(plan.rejected[0]?.reasonCodes, ["data_boundary_unsupported"]);
-  assert.deepEqual(plan.rejected[1]?.reasonCodes, ["health_unavailable"]);
-  assert.deepEqual(plan.rejected[2]?.reasonCodes, ["context_too_small"]);
+  const reasons = new Map(plan.rejected.map((entry) => [entry.modelId, entry.reasonCodes]));
+  assert.deepEqual(reasons.get("local"), ["data_boundary_unsupported"]);
+  assert.deepEqual(reasons.get("offline"), ["health_unavailable"]);
+  assert.deepEqual(reasons.get("read-only"), ["risk_class_unsupported"]);
+  assert.deepEqual(reasons.get("small"), ["context_too_small"]);
+  assert.deepEqual(reasons.get("expensive"), ["cost_budget_exceeded"]);
+  assert.deepEqual(reasons.get("slow"), ["latency_budget_exceeded"]);
 });
 
-test("phase zero rejects non-read work before scoring", () => {
-  const plan = route({ ...baseRequest, risk: "workspace_write" }, [profile("capable")]);
-  assert.equal(plan.selectedModelId, null);
-  assert.deepEqual(plan.decisionCodes, ["policy_blocked", "phase0_non_read_rejected"]);
-  assert.deepEqual(plan.eligible, []);
+test("risk classes are routable metadata when a profile explicitly supports them", () => {
+  const plan = route({ ...baseRequest, risk: "workspace_write" }, [profile("write-capable", { riskClasses: ["read", "workspace_write"] })]);
+  assert.equal(plan.selectedModelId, "write-capable");
+});
+
+test("quality and cost objectives produce explainably different winners", () => {
+  const quality = profile("quality", { qualityScore: 100, estimatedCostMicroUsd: 100_000, estimatedLatencyMs: 1_000 });
+  const economy = profile("economy", { qualityScore: 70, estimatedCostMicroUsd: 0, estimatedLatencyMs: 100 });
+  assert.equal(route({ ...baseRequest, objective: "quality" }, [quality, economy]).selectedModelId, "quality");
+  assert.equal(route({ ...baseRequest, objective: "cost" }, [quality, economy]).selectedModelId, "economy");
 });
 
 test("an incumbent receives a visible stickiness bonus", () => {
-  const plan = route({ ...baseRequest, incumbentModelId: "z.model" }, [
-    profile("a.model"),
-    profile("z.model"),
-  ]);
+  const plan = route({ ...baseRequest, incumbentModelId: "z.model" }, [profile("a.model"), profile("z.model")]);
   assert.equal(plan.selectedModelId, "z.model");
-  assert.equal(plan.eligible[0]?.components.stickinessBonus, 250);
+  assert.equal(plan.eligible[0]?.components.stickiness, 250);
 });
 
-test("invalid profiles fail closed with a stable reason", () => {
-  const plan = route(baseRequest, [profile("invalid", { qualityScore: 101 })]);
-  assert.equal(plan.selectedModelId, null);
-  assert.deepEqual(plan.rejected[0]?.reasonCodes, ["profile_invalid"]);
-});
-
-test("every duplicate model id is rejected", () => {
-  const plan = route(baseRequest, [profile("duplicate"), profile("duplicate")]);
-  assert.equal(plan.selectedModelId, null);
-  assert.equal(plan.rejected.length, 2);
-  assert.ok(plan.rejected.every((entry) => entry.reasonCodes.includes("duplicate_model_id")));
+test("invalid and duplicate profiles fail closed", () => {
+  const invalid = route(baseRequest, [profile("invalid", { qualityScore: 101 })]);
+  assert.deepEqual(invalid.rejected[0]?.reasonCodes, ["profile_invalid"]);
+  const duplicate = route(baseRequest, [profile("duplicate"), profile("duplicate")]);
+  assert.equal(duplicate.selectedModelId, null);
+  assert.ok(duplicate.rejected.every((entry) => entry.reasonCodes.includes("duplicate_model_id")));
+  const invalidEnum = route(baseRequest, [profile("bad-health", { health: "unknown" as ModelProfile["health"] })]);
+  assert.deepEqual(invalidEnum.rejected[0]?.reasonCodes, ["profile_invalid"]);
 });

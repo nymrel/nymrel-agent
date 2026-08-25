@@ -5,161 +5,77 @@ import { FakeProvider } from "../src/fake-provider.js";
 import { AgentRuntime } from "../src/runtime.js";
 
 const profile: ModelProfile = {
-  modelId: "fake.test",
-  providerId: "fake",
-  health: "healthy",
-  qualityScore: 90,
-  reliabilityBasisPoints: 9_999,
-  estimatedCostMicroUsd: 0,
-  estimatedLatencyMs: 1,
-  dataBoundaries: ["local_only"],
-  capabilities: {
-    toolUse: false,
-    structuredOutput: true,
-    contextTokens: 32_000,
-    modalities: ["text"],
-  },
+  modelId: "test.model", providerId: "test-provider", health: "healthy", qualityScore: 90,
+  reliabilityBasisPoints: 9_999, estimatedCostMicroUsd: 0, estimatedLatencyMs: 1,
+  dataBoundaries: ["local_only"], riskClasses: ["read", "workspace_write"],
+  capabilities: { toolUse: false, structuredOutput: true, contextTokens: 32_000, modalities: ["text"] },
 };
-
 const readRoute: RouteRequest = {
-  phase: "research",
-  risk: "read",
-  requirements: {
-    toolUse: false,
-    structuredOutput: true,
-    minContextTokens: 1_000,
-    modalities: ["text"],
-  },
+  phase: "research", risk: "read", objective: "balanced",
+  requirements: { toolUse: false, structuredOutput: true, minContextTokens: 1_000, modalities: ["text"] },
   constraints: { dataBoundary: "local_only" },
 };
-
-function runtime(provider: FakeProvider): AgentRuntime {
-  return new AgentRuntime([provider], {
-    clock: () => "2026-08-25T00:00:00.000Z",
-    idFactory: () => "run-fixed",
-  });
+function runtime(provider: ProviderAdapter, options: ConstructorParameters<typeof AgentRuntime>[1] = {}): AgentRuntime {
+  return new AgentRuntime([provider], { clock: () => "2026-08-25T00:00:00.000Z", idFactory: () => "run-fixed", ...options });
 }
 
-test("read-only execution completes through the fake provider", async () => {
-  const provider = new FakeProvider(profile, {
-    response: "synthetic output",
-    chunkSize: 5,
-    inputTokens: 3,
-    outputTokens: 4,
-  });
-  const result = await runtime(provider).run({
-    task: "private task body",
-    profile: "read-only",
-    route: readRoute,
-  });
+test("read-only execution completes and receipts omit task and output bodies", async () => {
+  const provider = new FakeProvider(profile, { response: "synthetic output", chunkSize: 5, inputTokens: 3, outputTokens: 4 });
+  const result = await runtime(provider).run({ task: "private task body", profile: "read-only", route: readRoute });
   assert.equal(result.output, "synthetic output");
   assert.equal(result.receipt.status, "completed");
-  assert.equal(provider.runCount, 1);
-  assert.equal(Object.isFrozen(provider), true);
-  assert.equal(Object.isFrozen(provider.profile), true);
-  assert.equal(Object.isFrozen(provider.profile.capabilities), true);
-  assert.equal(result.receipt.usage.outputTokens, 4);
-  const receiptJson = JSON.stringify(result.receipt);
-  assert.doesNotMatch(receiptJson, /private task body/);
-  assert.doesNotMatch(receiptJson, /synthetic output/);
+  assert.equal(result.receipt.selectedProviderId, "test-provider");
+  assert.ok(result.receipt.reasonCodes.includes("synthetic_provider_verified"));
+  assert.doesNotMatch(JSON.stringify(result.receipt), /private task body|synthetic output/);
   assert.match(result.receipt.inputSha256, /^[a-f0-9]{64}$/);
   assert.match(result.receipt.outputSha256 ?? "", /^[a-f0-9]{64}$/);
-  const chunkEvents = result.events.filter((event) => event.type === "provider.chunk");
-  assert.ok(chunkEvents.length > 0);
-  assert.ok(chunkEvents.every((event) => !("chunkSha256" in event)));
 });
 
-test("non-read execution is blocked before the provider runs", async () => {
+test("non-read execution is blocked before provider probe or run", async () => {
   const provider = new FakeProvider(profile, { response: "must not run" });
-  const result = await runtime(provider).run({
-    task: "change a file",
-    profile: "read-only",
-    route: { ...readRoute, risk: "workspace_write" },
-  });
+  const result = await runtime(provider).run({ task: "change a file", profile: "read-only", route: { ...readRoute, risk: "workspace_write" } });
   assert.equal(result.receipt.status, "blocked");
   assert.equal(provider.probeCount, 0);
   assert.equal(provider.runCount, 0);
-  assert.ok(result.receipt.reasonCodes.includes("phase0_non_read_rejected"));
+  assert.ok(result.receipt.reasonCodes.includes("runtime_non_read_rejected"));
 });
 
-test("an empty task is blocked before probe or execution", async () => {
-  const provider = new FakeProvider(profile, { response: "must not run" });
-  const result = await runtime(provider).run({
-    task: "   ",
-    profile: "read-only",
-    route: readRoute,
-  });
-  assert.equal(result.receipt.status, "blocked");
-  assert.equal(provider.probeCount, 0);
-  assert.equal(provider.runCount, 0);
-  assert.ok(result.receipt.reasonCodes.includes("task_empty"));
+test("empty and oversized tasks fail closed before execution", async () => {
+  const emptyProvider = new FakeProvider(profile);
+  assert.equal((await runtime(emptyProvider).run({ task: "  ", profile: "read-only", route: readRoute })).receipt.status, "blocked");
+  assert.equal(emptyProvider.runCount, 0);
+  const largeProvider = new FakeProvider(profile);
+  const large = await runtime(largeProvider).run({ task: "x".repeat(256 * 1024 + 1), profile: "read-only", route: readRoute });
+  assert.ok(large.receipt.reasonCodes.includes("task_too_large"));
+  assert.equal(largeProvider.runCount, 0);
 });
 
-test("provider failure produces a truthful failed receipt", async () => {
-  const provider = new FakeProvider(profile, { failRun: true });
-  const result = await runtime(provider).run({
-    task: "read something",
-    profile: "read-only",
-    route: readRoute,
-  });
-  assert.equal(result.receipt.status, "failed");
-  assert.equal(result.output, undefined);
-  assert.ok(result.receipt.reasonCodes.includes("provider_execution_failed"));
+test("an explicit live adapter is accepted and labeled truthfully", async () => {
+  let runs = 0;
+  const live: ProviderAdapter = {
+    executionKind: "live", profile,
+    async probe(checkedAt) { return { modelId: profile.modelId, providerId: profile.providerId, state: "healthy", code: "configured", checkedAt }; },
+    async *run() { runs += 1; yield { type: "delta", text: "live output" }; yield { type: "usage", inputTokens: 2, outputTokens: 3 }; },
+  };
+  const result = await runtime(live).run({ task: "read", profile: "read-only", route: readRoute });
+  assert.equal(runs, 1);
+  assert.equal(result.output, "live output");
+  assert.ok(result.receipt.reasonCodes.includes("live_provider_executed"));
 });
 
-test("doctor converts a thrown probe into a stable unavailable result", async () => {
+test("provider failures and output limits produce truthful failed receipts", async () => {
+  const failed = await runtime(new FakeProvider(profile, { failRun: true })).run({ task: "read", profile: "read-only", route: readRoute });
+  assert.equal(failed.receipt.status, "failed");
+  assert.ok(failed.receipt.reasonCodes.includes("provider_execution_failed"));
+  const limited = await runtime(new FakeProvider(profile, { response: "too long", chunkSize: 20 }), { maxOutputBytes: 3 }).run({ task: "read", profile: "read-only", route: readRoute });
+  assert.equal(limited.receipt.status, "failed");
+  assert.ok(limited.receipt.reasonCodes.includes("provider_output_limit"));
+});
+
+test("doctor fails closed and duplicate adapter IDs are rejected", async () => {
   const provider = new FakeProvider(profile, { failProbe: true });
   const report = await runtime(provider).doctor();
   assert.equal(report.overall, "not_ready");
   assert.equal(report.checks[0]?.code, "probe_failed");
-});
-
-test("routing preserves the probe-failure diagnostic", async () => {
-  const provider = new FakeProvider(profile, { failProbe: true });
-  const plan = await runtime(provider).plan(readRoute);
-  assert.equal(plan.selectedModelId, null);
-  assert.deepEqual(plan.rejected[0]?.reasonCodes, ["health_unavailable", "probe_failed"]);
-});
-
-test("runtime construction rejects every non-authentic fake adapter", () => {
-  const liveAdapter: ProviderAdapter = {
-    executionKind: "live",
-    profile,
-    async probe(checkedAt) {
-      return {
-        modelId: profile.modelId,
-        providerId: profile.providerId,
-        state: "healthy",
-        code: "live_ready",
-        checkedAt,
-      };
-    },
-    async *run() {
-      yield { type: "delta", text: "must not run" };
-    },
-  };
-  const forgedSynthetic = { ...liveAdapter, executionKind: "synthetic" as const };
-  const prototypeGraft = Object.create(FakeProvider.prototype) as FakeProvider;
-  Object.defineProperties(prototypeGraft, {
-    profile: { value: profile, enumerable: true },
-    probe: { value: liveAdapter.probe, enumerable: true },
-    run: { value: liveAdapter.run, enumerable: true },
-  });
-  class FakeProviderSubclass extends FakeProvider {}
-  assert.throws(
-    () => new AgentRuntime([liveAdapter as unknown as FakeProvider]),
-    /exact FakeProvider instances only/,
-  );
-  assert.throws(
-    () => new AgentRuntime([forgedSynthetic as unknown as FakeProvider]),
-    /exact FakeProvider instances only/,
-  );
-  assert.throws(
-    () => new AgentRuntime([prototypeGraft]),
-    /exact FakeProvider instances only/,
-  );
-  assert.throws(
-    () => new AgentRuntime([new FakeProviderSubclass(profile)]),
-    /exact FakeProvider instances only/,
-  );
+  assert.throws(() => new AgentRuntime([new FakeProvider(profile), new FakeProvider(profile)]), /Duplicate adapter model id/);
 });

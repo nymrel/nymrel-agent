@@ -1,0 +1,177 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Nymrel Agent Routing API",
+    "version": "0.1.0",
+    "description": "Stateless, explainable multi-model routing. The API accepts model metadata only and does not accept prompts or provider credentials."
+  },
+  "servers": [{ "url": "https://nymrel-agent.vercel.app" }],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Liveness probe",
+        "responses": { "200": { "description": "Worker is live", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } } } }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "getReadiness",
+        "summary": "Router readiness probe",
+        "responses": { "200": { "description": "Router is ready", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Readiness" } } } } }
+      }
+    },
+    "/v1/route": {
+      "post": {
+        "operationId": "routeModels",
+        "summary": "Select a model from a caller-supplied catalog",
+        "description": "Filters ineligible models, ranks the eligible set under the requested objective, and returns an explainable deterministic plan.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RoutePayload" } } }
+        },
+        "responses": {
+          "200": { "description": "Routing decision", "headers": { "Nymrel-Request-Id": { "schema": { "type": "string", "format": "uuid" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RouteResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "BadRequest": { "description": "Invalid JSON or routing contract", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "PayloadTooLarge": { "description": "Payload exceeds 256 KiB", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "UnsupportedMediaType": { "description": "Content-Type is not application/json", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "RateLimited": { "description": "Deployment-scoped free routing limit reached", "headers": { "Retry-After": { "schema": { "type": "integer", "example": 60 } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "ServiceUnavailable": { "description": "Required production abuse control is unavailable", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "InternalError": { "description": "Unexpected internal error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+    },
+    "schemas": {
+      "TaskPhase": { "type": "string", "enum": ["research", "plan", "implement", "review"] },
+      "RiskClass": { "type": "string", "enum": ["read", "workspace_write", "external_side_effect"] },
+      "DataBoundary": { "type": "string", "enum": ["local_only", "approved_provider", "zero_retention_provider"] },
+      "Modality": { "type": "string", "enum": ["text", "image", "audio"] },
+      "Objective": { "type": "string", "enum": ["balanced", "quality", "cost", "latency"] },
+      "HealthState": { "type": "string", "enum": ["healthy", "degraded", "unavailable"] },
+      "RouteRequirements": {
+        "type": "object", "additionalProperties": false,
+        "required": ["toolUse", "structuredOutput", "minContextTokens", "modalities"],
+        "properties": {
+          "toolUse": { "type": "boolean" },
+          "structuredOutput": { "type": "boolean" },
+          "minContextTokens": { "type": "integer", "minimum": 1, "maximum": 10000000 },
+          "modalities": { "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "$ref": "#/components/schemas/Modality" } }
+        }
+      },
+      "RouteConstraints": {
+        "type": "object", "additionalProperties": false, "required": ["dataBoundary"],
+        "properties": {
+          "dataBoundary": { "$ref": "#/components/schemas/DataBoundary" },
+          "maxCostMicroUsd": { "type": "integer", "minimum": 0, "maximum": 1000000000, "description": "Maximum estimated cost for one run, in millionths of a US dollar." },
+          "maxLatencyMs": { "type": "integer", "minimum": 0, "maximum": 600000 }
+        }
+      },
+      "RouteRequest": {
+        "type": "object", "additionalProperties": false,
+        "required": ["phase", "risk", "objective", "requirements", "constraints"],
+        "properties": {
+          "phase": { "$ref": "#/components/schemas/TaskPhase" },
+          "risk": { "$ref": "#/components/schemas/RiskClass" },
+          "objective": { "$ref": "#/components/schemas/Objective" },
+          "requirements": { "$ref": "#/components/schemas/RouteRequirements" },
+          "constraints": { "$ref": "#/components/schemas/RouteConstraints" },
+          "incumbentModelId": { "type": "string", "minLength": 1, "maxLength": 160 }
+        }
+      },
+      "Capabilities": {
+        "type": "object", "additionalProperties": false,
+        "required": ["toolUse", "structuredOutput", "contextTokens", "modalities"],
+        "properties": {
+          "toolUse": { "type": "boolean" },
+          "structuredOutput": { "type": "boolean" },
+          "contextTokens": { "type": "integer", "minimum": 1, "maximum": 10000000 },
+          "modalities": { "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "$ref": "#/components/schemas/Modality" } }
+        }
+      },
+      "ModelProfile": {
+        "type": "object", "additionalProperties": false,
+        "required": ["modelId", "providerId", "health", "qualityScore", "reliabilityBasisPoints", "estimatedCostMicroUsd", "estimatedLatencyMs", "dataBoundaries", "riskClasses", "capabilities"],
+        "properties": {
+          "modelId": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "providerId": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "health": { "$ref": "#/components/schemas/HealthState" },
+          "healthCode": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "qualityScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "reliabilityBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+          "estimatedCostMicroUsd": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+          "estimatedLatencyMs": { "type": "integer", "minimum": 0, "maximum": 600000 },
+          "dataBoundaries": { "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "$ref": "#/components/schemas/DataBoundary" } },
+          "riskClasses": { "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "$ref": "#/components/schemas/RiskClass" } },
+          "capabilities": { "$ref": "#/components/schemas/Capabilities" }
+        }
+      },
+      "RoutePayload": {
+        "type": "object", "additionalProperties": false, "required": ["request", "models"],
+        "properties": {
+          "request": { "$ref": "#/components/schemas/RouteRequest" },
+          "models": { "type": "array", "minItems": 1, "maxItems": 100, "items": { "$ref": "#/components/schemas/ModelProfile" } }
+        }
+      },
+      "ScoreComponents": {
+        "type": "object", "additionalProperties": false,
+        "required": ["quality", "reliability", "cost", "latency", "health", "stickiness"],
+        "properties": {
+          "quality": { "type": "integer" }, "reliability": { "type": "integer" }, "cost": { "type": "integer" },
+          "latency": { "type": "integer" }, "health": { "type": "integer" }, "stickiness": { "type": "integer" }
+        }
+      },
+      "EligibleCandidate": {
+        "type": "object", "additionalProperties": false, "required": ["modelId", "providerId", "score", "components"],
+        "properties": { "modelId": { "type": "string" }, "providerId": { "type": "string" }, "score": { "type": "integer" }, "components": { "$ref": "#/components/schemas/ScoreComponents" } }
+      },
+      "RejectedCandidate": {
+        "type": "object", "additionalProperties": false, "required": ["modelId", "providerId", "reasonCodes"],
+        "properties": { "modelId": { "type": "string" }, "providerId": { "type": "string" }, "reasonCodes": { "type": "array", "items": { "type": "string" } } }
+      },
+      "RoutePlan": {
+        "type": "object", "additionalProperties": false,
+        "required": ["contractVersion", "selectedModelId", "selectedProviderId", "objective", "eligible", "rejected", "decisionCodes", "explanation"],
+        "properties": {
+          "contractVersion": { "type": "string", "const": "nymrel.agent.route/v1" },
+          "selectedModelId": { "type": ["string", "null"] },
+          "selectedProviderId": { "type": ["string", "null"] },
+          "objective": { "$ref": "#/components/schemas/Objective" },
+          "eligible": { "type": "array", "items": { "$ref": "#/components/schemas/EligibleCandidate" } },
+          "rejected": { "type": "array", "items": { "$ref": "#/components/schemas/RejectedCandidate" } },
+          "decisionCodes": { "type": "array", "items": { "type": "string" } },
+          "explanation": { "type": "string" }
+        }
+      },
+      "RouteResponse": {
+        "type": "object", "additionalProperties": false, "required": ["ok", "requestId", "plan"],
+        "properties": { "ok": { "type": "boolean", "const": true }, "requestId": { "type": "string", "format": "uuid" }, "plan": { "$ref": "#/components/schemas/RoutePlan" } }
+      },
+      "ErrorResponse": {
+        "type": "object", "additionalProperties": false, "required": ["ok", "requestId", "error"],
+        "properties": {
+          "ok": { "type": "boolean", "const": false },
+          "requestId": { "type": "string", "format": "uuid" },
+          "error": { "type": "object", "additionalProperties": false, "required": ["code", "message"], "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "details": { "type": "array", "items": { "type": "string" } } } }
+        }
+      },
+      "Health": {
+        "type": "object", "required": ["ok", "status", "version"],
+        "properties": { "ok": { "type": "boolean", "const": true }, "status": { "type": "string", "const": "healthy" }, "version": { "type": "string" } }
+      },
+      "Readiness": {
+        "type": "object", "required": ["ok", "status", "checks"],
+        "properties": { "ok": { "type": "boolean", "const": true }, "status": { "type": "string", "const": "ready" }, "checks": { "type": "object" } }
+      }
+    }
+  }
+}

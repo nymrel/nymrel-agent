@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nymrel Agent — explainable multi-model routing</title>
+  <meta name="description" content="Route work across models with explicit constraints, deterministic scoring, and no prompt custody. Use the free API, CLI, or MCP server.">
+  <link rel="canonical" href="https://nymrel-agent.vercel.app/">
+  <meta property="og:title" content="Nymrel Agent">
+  <meta property="og:description" content="Explainable multi-model routing. Your catalog, your policies, your keys.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Nymrel Agent","applicationCategory":"DeveloperApplication","operatingSystem":"Cross-platform","description":"Explainable multi-model routing through a stateless API, CLI, and MCP server.","url":"https://nymrel-agent.vercel.app/","publisher":{"@type":"Organization","name":"Nymrel","url":"https://nymrel.com"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"The public routing endpoint is available without an account."}}</script>
+</head>
+<body>
+  <header class="nav shell">
+    <a class="brand" href="/" aria-label="Nymrel Agent home"><span class="mark" aria-hidden="true">N</span><span>Nymrel Agent</span></a>
+    <nav aria-label="Primary navigation">
+      <a href="/docs">Docs</a>
+      <a href="/openapi.json">OpenAPI</a>
+      <a href="https://github.com/JalenBuildsHub/nymrel-agent">GitHub</a>
+      <a class="button small" href="https://nymrel.com/brief">Work with Nymrel</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero shell">
+      <p class="eyebrow">EXPLAINABLE MULTI-MODEL ROUTING</p>
+      <h1>Route with evidence.<br><span>Run where your keys already live.</span></h1>
+      <p class="lede">Nymrel Agent selects a model from your catalog using explicit health, risk, capability, data-boundary, cost, and latency constraints. The public router never receives prompts or provider credentials.</p>
+      <div class="actions">
+        <a class="button" href="/docs#quickstart">Route your first request</a>
+        <a class="text-link" href="https://github.com/JalenBuildsHub/nymrel-agent">Inspect the source <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="proof-row" aria-label="Product boundaries">
+        <span>No account</span><span>No prompt custody</span><span>Deterministic result</span><span>Open contract</span>
+      </div>
+    </section>
+
+    <section class="demo shell" aria-labelledby="demo-title">
+      <div class="demo-copy">
+        <p class="eyebrow">ONE CORE, THREE SURFACES</p>
+        <h2 id="demo-title">Start with an API call.<br>Keep the same decision everywhere.</h2>
+        <p>The hosted endpoint routes metadata only. The CLI can route locally. The MCP server lets compatible agents ask Nymrel Agent for the same explainable decision.</p>
+        <ul class="check-list">
+          <li>Every rejected model carries stable reason codes.</li>
+          <li>Equal scores break deterministically by model and provider ID.</li>
+          <li>Your quality and reliability inputs remain your evidence—not our marketing claims.</li>
+        </ul>
+      </div>
+      <div class="terminal" aria-label="Example API response">
+        <div class="terminal-bar"><span></span><span></span><span></span><strong>route.json</strong></div>
+        <pre><code>{
+  "ok": true,
+  "plan": {
+    "selectedModelId": "provider-b/fast",
+    "objective": "balanced",
+    "decisionCodes": [
+      "objective_balanced",
+      "eligible_candidates_ranked",
+      "deterministic_tie_break",
+      "model_selected"
+    ]
+  }
+}</code></pre>
+      </div>
+    </section>
+
+    <section class="section shell" aria-labelledby="why-title">
+      <p class="eyebrow">DESIGNED FOR OPERATORS</p>
+      <h2 id="why-title">A router you can disagree with.</h2>
+      <div class="card-grid">
+        <article><p class="number">01</p><h3>Constraints before scores</h3><p>Models that violate risk, boundary, modality, context, cost, or latency requirements are rejected before ranking.</p></article>
+        <article><p class="number">02</p><h3>Visible tradeoffs</h3><p>Choose balanced, quality, cost, or latency. Component scores show exactly why the winner moved.</p></article>
+        <article><p class="number">03</p><h3>Low-custody by default</h3><p>The hosted service accepts routing metadata only. Optional live execution runs locally with your own provider account.</p></article>
+        <article><p class="number">04</p><h3>Receipts without bodies</h3><p>Local runs produce correlation digests, events, route facts, and usage without placing task or output text in receipts.</p></article>
+      </div>
+    </section>
+
+    <section class="boundary">
+      <div class="shell split">
+        <div><p class="eyebrow">THE V0.1 BOUNDARY</p><h2>Useful now. Honest about what is next.</h2></div>
+        <div class="boundary-copy"><p>The public product routes; it does not execute model calls. The local harness executes read-only requests through configured adapters. Write-capable tools, hosted provider-key custody, billing, and autonomous side effects are outside this release.</p><a class="text-link light" href="/docs#security">Read the security model →</a></div>
+      </div>
+    </section>
+
+    <section class="service shell" aria-labelledby="service-title">
+      <div>
+        <p class="eyebrow">NYMREL IMPLEMENTATION SERVICE</p>
+        <h2 id="service-title">Need the router fitted to a real model stack?</h2>
+      </div>
+      <div>
+        <p>We configure evidence-backed model catalogs, routing policies, evals, local provider adapters, and operational receipts around your workflow. Scope and pricing are provided on request.</p>
+        <a class="button dark" href="https://nymrel.com/brief">Start a brief</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer shell">
+    <div><a class="brand" href="https://nymrel.com"><span class="mark" aria-hidden="true">N</span><span>Nymrel</span></a><p>Products and services built to hold up under real use.</p></div>
+    <div class="footer-links"><a href="/docs">Docs</a><a href="/llms.txt">llms.txt</a><a href="/healthz">Status</a><a href="https://nymrel.com/privacy">Privacy</a></div>
+  </footer>
+</body>
+</html>
