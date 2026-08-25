@@ -43,8 +43,7 @@ function platformRateLimiter(checker: VercelRateLimitChecker): PlatformRateLimit
 export function createApp(options: ServerOptions = {}): Hono {
   const checker = options.rateLimitChecker ?? checkRateLimit;
   const sourceCommit = options.sourceCommit
-    ?? process.env.VERCEL_GIT_COMMIT_SHA
-    ?? process.env.NYMREL_SOURCE_COMMIT;
+    ?? process.env.VERCEL_GIT_COMMIT_SHA;
   const routingApiEnabled = options.routingApiEnabled
     ?? process.env.ROUTING_API_ENABLED !== "false";
   const openapiBody = `${JSON.stringify(openapiDocument)}\n`;

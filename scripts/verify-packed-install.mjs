@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,26 +30,57 @@ async function verifyMcp(executable) {
     stdio: ["pipe", "pipe", "pipe"],
   });
   let buffer = "";
-  try {
-    const response = await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("packed MCP bin did not answer initialize")), 10_000);
-      child.stdout.setEncoding("utf8");
-      child.stdout.on("data", (chunk) => {
-        buffer += chunk;
-        const newline = buffer.indexOf("\n");
-        if (newline < 0) return;
-        clearTimeout(timer);
-        try { resolve(JSON.parse(buffer.slice(0, newline))); }
-        catch (error) { reject(error); }
-      });
-      child.once("error", reject);
-      child.once("exit", (code) => {
-        if (code !== null && buffer.length === 0) reject(new Error(`packed MCP bin exited before handshake (${code})`));
-      });
-      child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2026-07-28", capabilities: {}, clientInfo: { name: "packed-smoke", version: "1.0.0" } } })}\n`);
+  let nextId = 1;
+  const pending = new Map();
+  child.stdout.setEncoding("utf8");
+  child.stdout.on("data", (chunk) => {
+    buffer += chunk;
+    while (buffer.includes("\n")) {
+      const newline = buffer.indexOf("\n");
+      const line = buffer.slice(0, newline).trim();
+      buffer = buffer.slice(newline + 1);
+      if (!line) continue;
+      const response = JSON.parse(line);
+      const waiter = pending.get(response.id);
+      if (!waiter) continue;
+      clearTimeout(waiter.timer);
+      pending.delete(response.id);
+      waiter.resolve(response);
+    }
+  });
+  const request = (method, params) => {
+    const id = nextId++;
+    const promise = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error(`packed MCP bin did not answer ${method}`));
+      }, 10_000);
+      pending.set(id, { resolve, reject, timer });
     });
-    assert.equal(response?.id, 1);
-    assert.ok(response?.result, "packed MCP initialize response is missing result");
+    child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`);
+    return promise;
+  };
+  const meta = {
+    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+    "io.modelcontextprotocol/clientCapabilities": {},
+    "io.modelcontextprotocol/clientInfo": { name: "packed-smoke", version: "1.0.0" },
+  };
+  try {
+    const discovered = await request("server/discover", { _meta: meta });
+    assert.equal(discovered.error, undefined);
+    assert.equal(discovered.result?.resultType, "complete");
+    assert.deepEqual(discovered.result?.supportedVersions, ["2026-07-28"]);
+
+    const listed = await request("tools/list", { _meta: meta });
+    assert.equal(listed.error, undefined);
+    assert.equal(listed.result?.resultType, "complete");
+    assert.deepEqual(listed.result?.tools.map((tool) => tool.name).sort(), ["explain_contract", "route_models"]);
+
+    const payload = readFileSync(path.join(root, "examples", "route-request.json"), "utf8");
+    const called = await request("tools/call", { name: "route_models", arguments: { payload }, _meta: meta });
+    assert.equal(called.error, undefined);
+    assert.equal(called.result?.resultType, "complete");
+    assert.equal(called.result?.structuredContent?.selectedModelId, "provider-b/fast");
   } finally {
     child.stdin.end();
     if (child.exitCode === null) {

@@ -44,12 +44,13 @@ function rpcHarness(child: ChildProcessWithoutNullStreams): {
   };
 }
 
-async function verifyHandshake(protocolVersion: string): Promise<void> {
+async function verifyLegacyHandshake(): Promise<void> {
   const child = spawn(process.execPath, [path.join(process.cwd(), "dist", "src", "bin", "nymrel-agent-mcp.js")], { cwd: process.cwd(), stdio: ["pipe", "pipe", "pipe"] });
   const rpc = rpcHarness(child);
   try {
-    const initialized = await rpc.request("initialize", { protocolVersion, capabilities: {}, clientInfo: { name: "nymrel-agent-test", version: "1.0.0" } });
+    const initialized = await rpc.request("initialize", { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "nymrel-agent-test", version: "1.0.0" } });
     assert.equal(initialized.error, undefined);
+    assert.equal(initialized.result?.protocolVersion, "2025-11-25");
     rpc.notify("notifications/initialized");
     const listed = await rpc.request("tools/list", {});
     const tools = listed.result?.tools as Array<{ name: string; annotations?: { readOnlyHint?: boolean } }>;
@@ -66,8 +67,41 @@ async function verifyHandshake(protocolVersion: string): Promise<void> {
   }
 }
 
-for (const protocolVersion of ["2025-11-25", "2026-07-28"]) {
-  test(`MCP ${protocolVersion} stdio handshake lists and calls the read-only routing tools`, async () => {
-    await verifyHandshake(protocolVersion);
-  });
+const modernMeta = {
+  "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+  "io.modelcontextprotocol/clientCapabilities": {},
+  "io.modelcontextprotocol/clientInfo": { name: "nymrel-agent-test", version: "1.0.0" },
+};
+
+async function verifyModernHandshake(): Promise<void> {
+  const child = spawn(process.execPath, [path.join(process.cwd(), "dist", "src", "bin", "nymrel-agent-mcp.js")], { cwd: process.cwd(), stdio: ["pipe", "pipe", "pipe"] });
+  const rpc = rpcHarness(child);
+  try {
+    const discovered = await rpc.request("server/discover", { _meta: modernMeta });
+    assert.equal(discovered.error, undefined);
+    assert.equal(discovered.result?.resultType, "complete");
+    assert.deepEqual(discovered.result?.supportedVersions, ["2026-07-28"]);
+    const discoveryMeta = discovered.result?._meta as Record<string, unknown>;
+    assert.deepEqual(discoveryMeta["io.modelcontextprotocol/serverInfo"], { name: "nymrel-agent", version: "0.1.0" });
+
+    const listed = await rpc.request("tools/list", { _meta: modernMeta });
+    assert.equal(listed.error, undefined);
+    assert.equal(listed.result?.resultType, "complete");
+    const tools = listed.result?.tools as Array<{ name: string; annotations?: { readOnlyHint?: boolean } }>;
+    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "route_models"]);
+    assert.ok(tools.every((tool) => tool.annotations?.readOnlyHint === true));
+
+    const payload = readFileSync("examples/route-request.json", "utf8");
+    const called = await rpc.request("tools/call", { name: "route_models", arguments: { payload }, _meta: modernMeta });
+    assert.equal(called.error, undefined);
+    assert.equal(called.result?.resultType, "complete");
+    const structured = called.result?.structuredContent as { selectedModelId?: string };
+    assert.equal(structured.selectedModelId, "provider-b/fast");
+  } finally {
+    child.stdin.end();
+    child.kill();
+  }
 }
+
+test("MCP 2025-11-25 stdio initialize lists and calls the read-only routing tools", verifyLegacyHandshake);
+test("MCP 2026-07-28 stdio discovery and per-request envelopes list and call the read-only routing tools", verifyModernHandshake);

@@ -95,6 +95,8 @@ assert.ok(server.includes('VERCEL_RATE_LIMIT_ID = "nymrel-agent-route-v1"'));
 assert.ok(server.includes("@vercel/firewall"));
 assert.equal(server.includes("new Map"), false, "Vercel limiter must not be instance-local");
 assert.equal(server.includes("rateLimitKey"), false, "Vercel must let the platform derive trusted client identity");
+assert.equal(server.includes("NYMREL_SOURCE_COMMIT"), false, "Vercel source identity must come from its provider-supplied system variable");
+assert.ok(server.includes("process.env.VERCEL_GIT_COMMIT_SHA"));
 for (const forbidden of ["./src/runtime", "./src/receipt", "./src/local-config", "./src/openai-responses-provider", "console."]) {
   assert.equal(server.includes(forbidden), false, `public Vercel adapter must not include ${forbidden}`);
 }

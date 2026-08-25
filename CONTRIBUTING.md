@@ -8,6 +8,7 @@ Run the complete local gate:
 npm ci
 npm run verify
 npm pack --dry-run
+git diff --check 4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD
 git show --check --oneline HEAD
 ```
 

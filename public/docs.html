@@ -53,10 +53,10 @@
       <div class="callout"><strong>Evidence rule.</strong> Quality scores, reliability, cost, latency, boundaries, and capabilities are caller-supplied inputs. Nymrel Agent explains how it used them; it does not certify that they are accurate.</div>
 
       <h2 id="errors">Errors</h2>
-      <p>All API errors are JSON and include a request ID plus a stable code. Expected codes include <code>invalid_json</code>, <code>invalid_content_length</code>, <code>invalid_request</code>, <code>payload_too_large</code>, <code>unsupported_media_type</code>, <code>method_not_allowed</code>, <code>rate_limited</code>, <code>service_misconfigured</code>, <code>service_disabled</code>, and <code>not_found</code>. The Vercel production endpoint applies a project-level WAF limit of 120 routing calls per 60-second window per hashed network identity, shared across function instances. Shared networks can share an allowance. Internal stack traces and request bodies are never returned.</p>
+      <p>All API errors are JSON and include a request ID plus a stable code. Expected codes include <code>invalid_json</code>, <code>invalid_content_length</code>, <code>invalid_request</code>, <code>payload_too_large</code>, <code>unsupported_media_type</code>, <code>method_not_allowed</code>, <code>rate_limited</code>, <code>service_misconfigured</code>, <code>service_disabled</code>, and <code>not_found</code>. The Vercel production endpoint applies a project-level WAF limit of 120 routing calls per 60-second window per platform-derived network identity, shared across function instances. Shared networks can share an allowance. Internal stack traces and request bodies are never returned.</p>
 
       <h2 id="cli">CLI</h2>
-      <p>Until the npm package is published, install from the immutable <code>v0.1.0</code> source release:</p>
+      <p>Until the npm package is published, install from the versioned <code>v0.1.0</code> source release:</p>
       <pre><code>git clone https://github.com/JalenBuildsHub/nymrel-agent.git
 cd nymrel-agent
 npm ci

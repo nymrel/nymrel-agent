@@ -57,7 +57,7 @@ Still separately protected:
 - Custom-domain or DNS mutation for `agent.nymrel.com`.
 - Provider keys, live customer prompts, live customer data, hosted provider execution, billing, account creation, or legal agreement acceptance.
 
-The Vercel service and GitHub release can launch without crossing those gates. The Cloudflare adapter passes a deployment dry-run but remains undeployed until its existing token is repaired and the exact source commit is supplied at deploy time. Public documents use the Vercel project URL until the custom-domain gate is completed.
+The Vercel service and GitHub release can launch without crossing those gates. The Cloudflare adapter passes a deployment dry-run but remains undeployed until its existing token is repaired and a provider-bound source identity is designed and verified. Public documents use the Vercel project URL until the custom-domain gate is completed.
 
 ## Acceptance contract
 
@@ -68,7 +68,7 @@ npm ci --ignore-scripts
 npm run verify
 npm audit --omit=dev --audit-level=high
 npm pack --dry-run --json
-git diff --check HEAD^ HEAD
+git diff --check 4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD
 git show --check --oneline HEAD
 ```
 
@@ -82,11 +82,13 @@ Independent gate:
 
 ## Pre-promotion gate
 
-1. Publish and verify the Vercel WAF rule `nymrel-agent-route-v1` at 120 requests per 60 seconds.
-2. Create an immutable offline-fallback deployment from the accepted commit with `ROUTING_API_ENABLED=false` and the exact `NYMREL_SOURCE_COMMIT`.
-3. Verify the fallback homepage and docs return 200, `/healthz` returns 200 with the accepted SHA, `/readyz` returns 503, and `POST /v1/route` returns the stable JSON `service_disabled` error.
-4. Record the fallback deployment ID and confirm the alias reassignment command before promoting the enabled deployment.
-5. Deploy the enabled candidate from the same clean commit with `ROUTING_API_ENABLED=true` and the exact `NYMREL_SOURCE_COMMIT`.
+1. Create the public GitHub repository without an initial commit, connect the existing Vercel project to that exact repository, and enable Vercel system environment variables.
+2. Configure `ROUTING_API_ENABLED=false` for production before the first connected push, then push the accepted commit to `main`. Local-directory deployments are not eligible release sources.
+3. Inspect the resulting fallback deployment and require its provider-reported `gitSource` SHA, runtime `VERCEL_GIT_COMMIT_SHA`, `/healthz` source commit, and accepted commit to be identical. Absence or disagreement fails closed.
+4. Verify the fallback homepage and docs return 200, `/healthz` returns 200 with the accepted SHA, `/readyz` returns 503, and `POST /v1/route` returns the stable JSON `service_disabled` error.
+5. Record the fallback deployment ID and confirm the alias reassignment command before enabling routing.
+6. Stage, inspect, and publish the Vercel WAF rule `nymrel-agent-route-v1` at 120 requests per 60 seconds. Stop if Vercel presents a new pricing, billing, or legal-acceptance gate.
+7. Change the production routing flag to `true` and redeploy the exact Git-backed fallback source. Require the new enabled deployment's provider `gitSource` SHA and runtime source commit to remain identical to the accepted commit before promotion.
 
 ## Post-deploy route matrix
 
@@ -108,9 +110,9 @@ Negative checks cover malformed `Content-Length`, invalid JSON, unknown prompt f
 
 Source and install checks:
 
-- The GitHub tag and release target the accepted SHA.
+- The versioned GitHub tag and release target the accepted SHA; no source-immutability badge is claimed without a separate GitHub immutable-release receipt.
 - The deployed `/healthz` and `/readyz` expose that SHA.
-- Vercel inspection identifies the exact organization, project, and immutable deployment.
+- Vercel inspection identifies the exact organization, project, deployment, connected GitHub repository, and provider-reported `gitSource` SHA.
 - An unauthenticated clean checkout passes the public quickstart.
 - The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass on Windows and Linux CI.
 
