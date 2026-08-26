@@ -647,14 +647,68 @@ button:focus-visible {
     height: 72px;
   }
 
+  .hero {
+    padding-top: 26px;
+  }
+
+  .hero-grid {
+    gap: 20px;
+  }
+
+  .hero .eyebrow {
+    margin-bottom: 12px;
+  }
+
   .hero h1 {
-    font-size: clamp(42px, 13vw, 58px);
+    font-size: clamp(40px, 11.5vw, 46px);
+    line-height: 1;
+  }
+
+  .lede {
+    margin-top: 18px;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+
+  .actions {
+    gap: 16px;
+    margin-top: 22px;
+  }
+
+  .actions .button {
+    min-height: 44px;
   }
 
   .terminal-controls,
   .terminal pre,
   .terminal-result-actions {
     padding-inline: 18px;
+  }
+
+  .terminal-bar {
+    height: 42px;
+  }
+
+  .terminal-controls {
+    align-items: center;
+    flex-direction: row;
+    gap: 12px;
+    padding-block: 12px;
+  }
+
+  .terminal-controls > div {
+    min-width: 0;
+  }
+
+  .terminal-controls p {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .demo-run {
+    min-height: 38px;
+    padding-inline: 12px;
+    font-size: 12px;
   }
 }
 
