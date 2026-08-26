@@ -49,7 +49,7 @@ Managed service:
 
 Authorized in this lane:
 
-- Production code, documentation, tests, versioned source and package artifacts, an attempted public GitHub mirror, an isolated existing-account Vercel project on its default domain, and a reversible project-level WAF rule.
+- Production code, documentation, tests, versioned source and package artifacts, a public Nymrel GitHub mirror, an isolated existing-account Vercel project on its default domain, and a reversible project-level WAF rule.
 
 Still separately protected:
 
@@ -57,7 +57,7 @@ Still separately protected:
 - Custom-domain or DNS mutation for `agent.nymrel.com`.
 - Provider keys, live customer prompts, live customer data, hosted provider execution, billing, account creation, or legal agreement acceptance.
 
-The Vercel service can launch without crossing those gates and hosts the canonical versioned package, source archive, and digest manifest. The GitHub repository, tag, and release exist under the authenticated account but return 404 to unauthenticated customers because of an account-level suspension; they remain a blocked mirror, not the public distribution claim. The Cloudflare adapter passes a deployment dry-run but remains undeployed until its existing token is repaired and a provider-bound source identity is designed and verified. Public documents use the Vercel project URL until the custom-domain gate is completed.
+The Vercel service can launch without crossing those gates and hosts the canonical versioned package, source archive, and digest manifest. The public `Nymrel/nymrel-agent` repository provides the source, issue, contribution, and release mirror; its unauthenticated Git, API, repository, issue, release, and artifact paths were verified independently on 2026-08-26. The Vercel manifest remains the canonical exact-byte artifact record. The Cloudflare adapter passes a deployment dry-run but remains undeployed until its existing token is repaired and a provider-bound source identity is designed and verified. Public documents use the Vercel project URL until the custom-domain gate is completed.
 
 ## Acceptance contract
 
@@ -84,7 +84,7 @@ Independent gate:
 
 This sequence uses Vercel's documented [staged production deployment](https://vercel.com/docs/deployments/promoting-a-deployment#staging-and-promoting-a-production-deployment) flow so the enabled build cannot take the production alias before inspection.
 
-1. Attempt to create the public GitHub mirror, connect the existing Vercel project to that exact repository, and enable Vercel system environment variables. Provider Git is the preferred source mode. If existing GitHub/Vercel account gates prevent unauthenticated repository access or a new OAuth/login connection, record those gates and use only the `verified_cli_bundle` contingency below.
+1. Verify the public GitHub mirror and its exact refs. Provider Git is preferred only after the existing Vercel project is explicitly connected to that repository. Until that connection is proven, use only the `verified_cli_bundle` contingency below.
 2. Configure `ROUTING_API_ENABLED=false` for production, push the accepted commit to authenticated remote `main`, and publish the exact versioned source and package artifacts plus their digest manifest on the Vercel service. An ordinary local-directory deployment is not an eligible release source. The contingency is eligible only from a clean checkout of that exact remote commit when every uploaded source file and byte passes `scripts/verify-vercel-source.mjs` against Vercel's deployment inventory.
 3. Inspect the resulting fallback deployment. In `provider_git` mode, require provider `gitSource`, runtime `VERCEL_GIT_COMMIT_SHA`, `/healthz`, and the accepted commit to agree. In `verified_cli_bundle` mode, require remote `main`, local `HEAD`, provider `meta.githubCommitSha`, runtime `VERCEL_GIT_COMMIT_SHA`, and `/healthz` to agree; require `meta.gitDirty` to be absent or false; and pipe the authenticated deployment inventory through the exact-byte verifier:
 
@@ -130,11 +130,11 @@ Negative checks cover malformed `Content-Length`, invalid JSON, unknown prompt f
 
 Source and install checks:
 
-- `releaseSourceCommit` identifies the immutable v0.1.0 package and source release. The public Vercel release manifest binds those artifacts to that commit plus exact SHA-256 digests. The authenticated GitHub tag and release target the same source, but no public GitHub availability or source-immutability badge is claimed while the account gate remains.
+- `releaseSourceCommit` identifies the immutable v0.1.0 package and source release. The public Vercel release manifest binds those artifacts to that commit plus exact SHA-256 digests. The public GitHub tag and release target the same source, and the downloaded GitHub asset independently matches the manifest's exact byte count and SHA-256 digest. No source-immutability badge is claimed because the GitHub release is not marked immutable.
 - `deploymentSourceCommit` identifies the accepted hosting carrier. It may add versioned distribution assets, customer-facing download paths, and bounded hosted interaction or correction layers, such as a metadata-only browser example, sitemap, social card, crawler posture, IndexNow ownership file, or accessibility fix. The live browser activation, sitemap, social cards, crawler policy, and IndexNow key are carrier-only and absent from the immutable v0.1.0 package and source archives. Those carrier-only changes do not alter the package/router semantics. Provider metadata, the uploaded-source inventory, `/healthz`, and `/readyz` bind the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
 - Vercel inspection identifies the exact organization, project, deployment, source mode, and `deploymentSourceCommit`. `provider_git` requires the connected repository and provider `gitSource`; `verified_cli_bundle` requires authenticated remote `main`, local `HEAD`, provider metadata, runtime probes, and the accepted hosting commit to agree, plus an exact allowlist and SHA-1 proof for every uploaded source file.
 - An unauthenticated download and install from the Vercel-hosted package passes the public quickstart; the Vercel-hosted source archive expands to the recorded release source.
-- The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass on Windows plus an independent remote Linux verification build. GitHub Actions remains separately blocked at the account layer and is not claimed as CI proof.
+- The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass on Windows plus an independent remote Linux verification build. The public repository carries the pinned GitHub Actions workflow; an exact commit is claimed as public CI proof only after both configured Node jobs pass for that commit.
 
 ## Rollback
 

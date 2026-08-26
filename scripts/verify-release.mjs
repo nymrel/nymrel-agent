@@ -140,7 +140,8 @@ for (const crawler of ["GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "
   assert.ok(robots.includes(`User-agent: ${crawler}\nAllow: /`) || robots.includes(`User-agent: ${crawler}\r\nAllow: /`), `robots.txt omits explicit ${crawler} posture`);
 }
 for (const publicDocument of [indexHtml, docsHtml, llmsText]) {
-  assert.equal(publicDocument.includes("github.com/JalenBuildsHub/nymrel-agent"), false, "public launch document links to the account-gated GitHub mirror");
+  assert.ok(publicDocument.includes("https://github.com/Nymrel/nymrel-agent"), "public launch document omits the verified Nymrel source repository");
+  assert.equal(publicDocument.includes("github.com/JalenBuildsHub/nymrel-agent"), false, "public launch document links to the suspended personal-account mirror");
 }
 for (const filename of ["nymrel-agent-0.1.0.tgz", "nymrel-agent-v0.1.0-source.tar.gz", "v0.1.0.json"]) {
   assert.ok(`${indexHtml}\n${docsHtml}\n${llmsText}`.includes(`/downloads/${filename}`), `public launch documents omit ${filename}`);
