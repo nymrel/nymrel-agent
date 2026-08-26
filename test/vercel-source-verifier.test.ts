@@ -19,6 +19,7 @@ const sourceFiles = [
   "homepage.json",
   "package-lock.json",
   "package.json",
+  "public/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt",
   "public/404.html",
   "public/demo.js",
   "public/docs.html",
@@ -30,6 +31,8 @@ const sourceFiles = [
   "public/index.html",
   "public/llms.txt",
   "public/openapi.json",
+  "public/og-image.png",
+  "public/og-image.svg",
   "public/robots.txt",
   "public/sitemap.xml",
   "public/styles.css",
@@ -76,7 +79,7 @@ function verify(inventory: InventoryNode[]) {
 test("Vercel source verifier accepts only the exact file and byte allowlist", () => {
   const result = verify(exactInventory());
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /pass \(28 exact files\)/);
+  assert.match(result.stdout, /pass \(31 exact files\)/);
 });
 
 test("Vercel source verifier rejects every unsupported provider node type", () => {

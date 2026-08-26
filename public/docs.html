@@ -5,6 +5,19 @@
   <title>Documentation — Nymrel Agent</title>
   <meta name="description" content="Quickstart, API contract, CLI, MCP, routing policy, and security boundary for Nymrel Agent.">
   <link rel="canonical" href="https://nymrel-agent.vercel.app/docs">
+  <meta property="og:title" content="Nymrel Agent documentation">
+  <meta property="og:description" content="Quickstart, API contract, CLI, MCP, routing policy, and security boundary.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nymrel-agent.vercel.app/docs">
+  <meta property="og:image" content="https://nymrel-agent.vercel.app/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Nymrel Agent — route with evidence">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Nymrel Agent documentation">
+  <meta name="twitter:description" content="Quickstart, API contract, CLI, MCP, routing policy, and security boundary.">
+  <meta name="twitter:image" content="https://nymrel-agent.vercel.app/og-image.png">
+  <meta name="twitter:image:alt" content="Nymrel Agent — route with evidence">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -19,9 +32,10 @@
       <h2 id="quickstart">Quickstart</h2>
       <p>The public endpoint needs no account or API key. It accepts model metadata, not task or prompt text.</p>
       <p><a href="/#live-demo">Run the example in your browser</a>, or send the same published payload with curl:</p>
-      <pre><code>curl -sS https://nymrel-agent.vercel.app/v1/route \
+      <pre><code>curl -fsSL https://nymrel-agent.vercel.app/examples/route-request.json \
+  | curl -fsS https://nymrel-agent.vercel.app/v1/route \
   -H "content-type: application/json" \
-  --data-binary @examples/route-request.json</code></pre>
+  --data-binary @-</code></pre>
       <p>Download the example at <a href="/examples/route-request.json"><code>/examples/route-request.json</code></a>. A successful response includes <code>selectedModelId</code>, the ranked eligible set, every rejected candidate with reason codes, and the score components.</p>
 
       <h2 id="contract">Request contract</h2>

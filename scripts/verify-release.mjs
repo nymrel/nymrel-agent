@@ -10,7 +10,7 @@ const read = (relative) => readFileSync(path.join(root, relative), "utf8");
 const json = (relative) => JSON.parse(read(relative));
 const required = [
   "README.md", "LICENSE", "SECURITY.md", "CHANGELOG.md", "CONTRIBUTING.md", "AGENTS.md",
-  "authz-allowlist.json", "wrangler.jsonc", "vercel.json", ".vercelignore", "server.ts", "homepage.json", "tsconfig.package.json", "public/index.html", "public/docs.html", "public/demo.js", "public/sitemap.xml",
+  "authz-allowlist.json", "wrangler.jsonc", "vercel.json", ".vercelignore", "server.ts", "homepage.json", "tsconfig.package.json", "public/index.html", "public/docs.html", "public/demo.js", "public/sitemap.xml", "public/og-image.svg", "public/og-image.png", "public/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt",
   "public/downloads/nymrel-agent-0.1.0.tgz", "public/downloads/nymrel-agent-v0.1.0-source.tar.gz", "public/downloads/v0.1.0.json",
   "public/openapi.json", "public/llms.txt", "examples/route-request.json",
   "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md", "docs/FIRST_USER_ACTIVATION.md",
@@ -106,6 +106,26 @@ const llmsText = read("public/llms.txt");
 const demoScript = read("public/demo.js");
 const sitemap = read("public/sitemap.xml");
 const robots = read("public/robots.txt");
+const indexNowKey = "0e2a8eae9dfa779ba2f3282c3c6e3d2d";
+const socialImageUrl = `${packageJson.homepage}/og-image.png`;
+for (const [document, canonical, title] of [
+  [indexHtml, `${packageJson.homepage}/`, "Nymrel Agent"],
+  [docsHtml, `${packageJson.homepage}/docs`, "Nymrel Agent documentation"],
+]) {
+  assert.ok(document.includes(`<meta property="og:title" content="${title}">`));
+  assert.ok(document.includes(`<meta property="og:url" content="${canonical}">`));
+  assert.ok(document.includes(`<meta property="og:image" content="${socialImageUrl}">`));
+  assert.ok(document.includes('<meta property="og:image:width" content="1200">'));
+  assert.ok(document.includes('<meta property="og:image:height" content="630">'));
+  assert.ok(document.includes('<meta name="twitter:card" content="summary_large_image">'));
+  assert.ok(document.includes(`<meta name="twitter:title" content="${title}">`));
+  assert.ok(document.includes(`<meta name="twitter:image" content="${socialImageUrl}">`));
+}
+assert.equal(read(`public/${indexNowKey}.txt`).trim(), indexNowKey, "IndexNow key proof drifted");
+const socialPng = readFileSync(path.join(root, "public", "og-image.png"));
+assert.deepEqual([...socialPng.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], "social image is not PNG");
+assert.equal(socialPng.readUInt32BE(16), 1200, "social image width drifted");
+assert.equal(socialPng.readUInt32BE(20), 630, "social image height drifted");
 assert.ok(indexHtml.includes('src="/demo.js"'));
 assert.ok(indexHtml.includes("data-live-demo"));
 assert.ok(indexHtml.includes("utm_campaign=nymrel-agent-first-user"));
@@ -116,6 +136,9 @@ assert.equal(/api[_-]?key|provider credential/i.test(demoScript), false, "activa
 assert.ok(sitemap.includes(`<loc>${packageJson.homepage}/</loc>`));
 assert.ok(sitemap.includes(`<loc>${packageJson.homepage}/docs</loc>`));
 assert.ok(robots.includes(`Sitemap: ${packageJson.homepage}/sitemap.xml`));
+for (const crawler of ["GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "Claude-User", "Claude-SearchBot", "PerplexityBot", "Perplexity-User"]) {
+  assert.ok(robots.includes(`User-agent: ${crawler}\nAllow: /`) || robots.includes(`User-agent: ${crawler}\r\nAllow: /`), `robots.txt omits explicit ${crawler} posture`);
+}
 for (const publicDocument of [indexHtml, docsHtml, llmsText]) {
   assert.equal(publicDocument.includes("github.com/JalenBuildsHub/nymrel-agent"), false, "public launch document links to the account-gated GitHub mirror");
 }
@@ -187,6 +210,18 @@ assert.ok(vercel.headers?.some((entry) => entry.source === "/sitemap.xml"
   && entry.headers?.some((header) => header.key === "Cache-Control" && header.value === "public, max-age=3600")
   && entry.headers?.some((header) => header.key === "Cross-Origin-Resource-Policy" && header.value === "same-origin")
   && entry.headers?.some((header) => header.key === "X-Content-Type-Options" && header.value === "nosniff")), "Vercel sitemap header contract is missing");
+for (const [source, contentType, cacheControl, resourcePolicy] of [
+  ["/og-image.png", "image/png", "public, max-age=86400, stale-while-revalidate=604800", "cross-origin"],
+  ["/og-image.svg", "image/svg+xml", "public, max-age=86400, stale-while-revalidate=604800", "cross-origin"],
+  [`/${indexNowKey}.txt`, "text/plain; charset=utf-8", "public, max-age=3600", "same-origin"],
+]) {
+  const headerEntry = vercel.headers?.find((entry) => entry.source === source);
+  assert.ok(headerEntry, `Vercel header contract is missing for ${source}`);
+  assert.ok(headerEntry.headers?.some((header) => header.key === "Content-Type" && header.value === contentType), `${source} content-type contract is missing`);
+  assert.ok(headerEntry.headers?.some((header) => header.key === "Cache-Control" && header.value === cacheControl), `${source} cache contract is missing`);
+  assert.ok(headerEntry.headers?.some((header) => header.key === "Cross-Origin-Resource-Policy" && header.value === resourcePolicy), `${source} resource-policy contract is missing`);
+  assert.ok(headerEntry.headers?.some((header) => header.key === "X-Content-Type-Options" && header.value === "nosniff"), `${source} nosniff contract is missing`);
+}
 assert.ok(vercel.headers?.some((entry) => entry.source === "/downloads/:path*" && entry.headers?.some((header) => header.key === "Cache-Control" && header.value.includes("immutable"))), "Vercel download cache contract is missing");
 const vercelIgnore = read(".vercelignore");
 for (const requiredIgnore of [

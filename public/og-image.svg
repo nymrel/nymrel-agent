@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Nymrel Agent — route with evidence</title>
+  <desc id="desc">A social preview card for Nymrel Agent, an explainable multi-model router with no prompt custody.</desc>
+  <rect width="1200" height="630" fill="#f4f1e9"/>
+  <path d="M0 0h1200v18H0z" fill="#11100e"/>
+  <path d="M0 612h1200v18H0z" fill="#c8ff35"/>
+  <circle cx="1080" cy="108" r="194" fill="#c8ff35" opacity="0.88"/>
+  <circle cx="1110" cy="520" r="132" fill="#ff6b35" opacity="0.94"/>
+  <path d="M830 88h232M830 124h176M830 160h210" stroke="#11100e" stroke-width="5" opacity="0.16"/>
+  <rect x="76" y="64" width="84" height="84" rx="22" fill="#11100e"/>
+  <path d="M98 125V87h14l26 38V87h14v38h-14l-26-38v38z" fill="#c8ff35"/>
+  <text x="184" y="121" fill="#11100e" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700" letter-spacing="-1">Nymrel Agent</text>
+  <text x="76" y="278" fill="#11100e" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="800" letter-spacing="-4">Route with evidence.</text>
+  <text x="80" y="344" fill="#3b3934" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="500">Explainable multi-model routing · No prompt custody</text>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">
+    <rect x="76" y="420" width="190" height="58" rx="29" fill="#11100e"/>
+    <text x="110" y="457" fill="#f4f1e9">Deterministic</text>
+    <rect x="282" y="420" width="188" height="58" rx="29" fill="#c8ff35"/>
+    <text x="323" y="457" fill="#11100e">Open core</text>
+    <rect x="486" y="420" width="218" height="58" rx="29" fill="#ff6b35"/>
+    <text x="522" y="457" fill="#11100e">Account-free API</text>
+  </g>
+  <text x="78" y="558" fill="#5c5952" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="600">nymrel-agent.vercel.app</text>
+</svg>
