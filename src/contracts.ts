@@ -1,5 +1,5 @@
 export const CONTRACT_VERSION = "nymrel.agent.route/v1" as const;
-export const PRODUCT_VERSION = "0.1.0" as const;
+export const PRODUCT_VERSION = "0.1.1" as const;
 
 export type TaskPhase = "research" | "plan" | "implement" | "review";
 export type RiskClass = "read" | "workspace_write" | "external_side_effect";

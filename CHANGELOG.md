@@ -2,6 +2,11 @@
 
 All notable product changes are documented here.
 
+## 0.1.1 — 2026-08-26
+
+- Moved package repository and issue metadata from the suspended personal mirror to the public Nymrel organization.
+- Added a release-archive export boundary so future source archives do not recursively include hosted release artifacts.
+
 ## 0.1.0 — 2026-08-25
 
 - Promoted the independently accepted Phase 0 router into the Nymrel-owned product contract `nymrel.agent.route/v1`.

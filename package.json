@@ -1,16 +1,16 @@
 {
   "name": "@nymrel/agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Explainable multi-model routing with a stateless API, local CLI, MCP server, and low-custody execution harness.",
   "type": "module",
   "license": "MIT",
   "homepage": "https://nymrel-agent.vercel.app",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JalenBuildsHub/nymrel-agent.git"
+    "url": "git+https://github.com/Nymrel/nymrel-agent.git"
   },
   "bugs": {
-    "url": "https://github.com/JalenBuildsHub/nymrel-agent/issues"
+    "url": "https://github.com/Nymrel/nymrel-agent/issues"
   },
   "keywords": [
     "ai",

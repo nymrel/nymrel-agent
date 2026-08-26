@@ -82,7 +82,7 @@ async function verifyModernHandshake(): Promise<void> {
     assert.equal(discovered.result?.resultType, "complete");
     assert.deepEqual(discovered.result?.supportedVersions, ["2026-07-28"]);
     const discoveryMeta = discovered.result?._meta as Record<string, unknown>;
-    assert.deepEqual(discoveryMeta["io.modelcontextprotocol/serverInfo"], { name: "nymrel-agent", version: "0.1.0" });
+    assert.deepEqual(discoveryMeta["io.modelcontextprotocol/serverInfo"], { name: "nymrel-agent", version: "0.1.1" });
 
     const listed = await rpc.request("tools/list", { _meta: modernMeta });
     assert.equal(listed.error, undefined);
