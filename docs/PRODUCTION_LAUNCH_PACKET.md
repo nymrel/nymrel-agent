@@ -122,14 +122,16 @@ Every registered dynamic route is checked against the production alias:
 | POST | `/v1/route` | 200 for canonical fixture; same selected model as local CLI |
 | GET | `/v1/route` | 405 JSON; `Allow: POST, OPTIONS` |
 
-Static checks cover `/`, `/docs`, `/openapi.json`, `/llms.txt`, `/robots.txt`, and `/examples/route-request.json`, including security and content headers.
+Static checks cover `/`, `/docs`, `/demo.js`, `/sitemap.xml`, `/openapi.json`, `/llms.txt`, `/robots.txt`, and `/examples/route-request.json`, including exact uploaded bytes plus content type, cache, and security headers.
+
+Browser activation checks load the staged homepage at desktop and mobile viewports, run the published example through the visible control, require the expected `provider-b/fast` result and feedback link, and confirm zero console errors, cookies, local storage, or session storage. The feedback link must remain hidden until a successful route.
 
 Negative checks cover malformed `Content-Length`, invalid JSON, unknown prompt fields, wrong media type, streamed payload overflow, platform rate denial, missing WAF configuration in a preview harness, and disabled fallback behavior. Errors must be JSON, include a request ID, and never echo bodies or unknown field names.
 
 Source and install checks:
 
 - `releaseSourceCommit` identifies the immutable v0.1.0 package and source release. The public Vercel release manifest binds those artifacts to that commit plus exact SHA-256 digests. The authenticated GitHub tag and release target the same source, but no public GitHub availability or source-immutability badge is claimed while the account gate remains.
-- `deploymentSourceCommit` identifies the accepted hosting carrier. It may add versioned distribution assets, customer-facing download paths, and bounded post-release corrections to the hosted surface, such as accessibility fixes. Those carrier-only changes do not alter the immutable v0.1.0 package or source artifacts, or the package/router semantics. Provider metadata, the uploaded-source inventory, `/healthz`, and `/readyz` bind the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
+- `deploymentSourceCommit` identifies the accepted hosting carrier. It may add versioned distribution assets, customer-facing download paths, and bounded hosted interaction or correction layers, such as a metadata-only browser example, sitemap, or accessibility fix. The live browser activation and sitemap are carrier-only and absent from the immutable v0.1.0 package and source archives. Those carrier-only changes do not alter the package/router semantics. Provider metadata, the uploaded-source inventory, `/healthz`, and `/readyz` bind the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
 - Vercel inspection identifies the exact organization, project, deployment, source mode, and `deploymentSourceCommit`. `provider_git` requires the connected repository and provider `gitSource`; `verified_cli_bundle` requires authenticated remote `main`, local `HEAD`, provider metadata, runtime probes, and the accepted hosting commit to agree, plus an exact allowlist and SHA-1 proof for every uploaded source file.
 - An unauthenticated download and install from the Vercel-hosted package passes the public quickstart; the Vercel-hosted source archive expands to the recorded release source.
 - The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass on Windows plus an independent remote Linux verification build. GitHub Actions remains separately blocked at the account layer and is not claimed as CI proof.

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -105,6 +106,13 @@ try {
   const packed = JSON.parse(run(npm, ["pack", "--ignore-scripts", "--json", "--pack-destination", temporaryRoot]));
   assert.equal(packed.length, 1);
   const tarball = path.join(temporaryRoot, packed[0].filename);
+  const generatedBytes = readFileSync(tarball);
+  const canonicalBytes = readFileSync(path.join(root, "public", "downloads", "nymrel-agent-0.1.0.tgz"));
+  const releaseManifest = JSON.parse(readFileSync(path.join(root, "public", "downloads", "v0.1.0.json"), "utf8"));
+  const generatedSha256 = createHash("sha256").update(generatedBytes).digest("hex");
+  assert.equal(generatedBytes.length, releaseManifest.package.bytes, "generated package byte count drifted from the canonical release manifest");
+  assert.equal(generatedSha256, releaseManifest.package.sha256, "generated package digest drifted from the canonical release manifest");
+  assert.deepEqual(generatedBytes, canonicalBytes, "generated package bytes drifted from the canonical hosted artifact");
   run(npm, ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], { cwd: installRoot });
 
   const contract = JSON.parse(run(bin("nymrel-agent"), ["contract"], { cwd: installRoot }));

@@ -178,6 +178,15 @@ assert.equal(json("homepage.json").html, homepage, "Vercel homepage payload drif
 assert.equal(homepage.includes('aria-label="Nymrel Agent home"'), false, "visible brand text must remain part of the accessible link name");
 assert.equal(homepage.includes('class="number"'), false, "landing-page step labels must not reuse the low-contrast decorative number style");
 assert.ok(vercel.headers?.some((entry) => entry.source === "/" && entry.headers?.some((header) => header.key === "Content-Security-Policy" && header.value.includes(cspHash))), "Vercel CSP does not authorize the exact JSON-LD block");
+assert.ok(vercel.headers?.some((entry) => entry.source === "/" && entry.headers?.some((header) => header.key === "Content-Security-Policy" && header.value.includes("script-src 'self'"))), "Vercel CSP must permit the same-origin activation script");
+assert.ok(vercel.headers?.some((entry) => entry.source === "/demo.js"
+  && entry.headers?.some((header) => header.key === "Cache-Control" && header.value === "public, max-age=300")
+  && entry.headers?.some((header) => header.key === "Cross-Origin-Resource-Policy" && header.value === "same-origin")
+  && entry.headers?.some((header) => header.key === "X-Content-Type-Options" && header.value === "nosniff")), "Vercel activation-script header contract is missing");
+assert.ok(vercel.headers?.some((entry) => entry.source === "/sitemap.xml"
+  && entry.headers?.some((header) => header.key === "Cache-Control" && header.value === "public, max-age=3600")
+  && entry.headers?.some((header) => header.key === "Cross-Origin-Resource-Policy" && header.value === "same-origin")
+  && entry.headers?.some((header) => header.key === "X-Content-Type-Options" && header.value === "nosniff")), "Vercel sitemap header contract is missing");
 assert.ok(vercel.headers?.some((entry) => entry.source === "/downloads/:path*" && entry.headers?.some((header) => header.key === "Cache-Control" && header.value.includes("immutable"))), "Vercel download cache contract is missing");
 const vercelIgnore = read(".vercelignore");
 for (const requiredIgnore of [
