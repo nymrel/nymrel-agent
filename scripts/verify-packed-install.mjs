@@ -107,8 +107,8 @@ try {
   assert.equal(packed.length, 1);
   const tarball = path.join(temporaryRoot, packed[0].filename);
   const generatedBytes = readFileSync(tarball);
-  const canonicalBytes = readFileSync(path.join(root, "public", "downloads", "nymrel-agent-0.1.1.tgz"));
-  const releaseManifest = JSON.parse(readFileSync(path.join(root, "public", "downloads", "v0.1.1.json"), "utf8"));
+  const canonicalBytes = readFileSync(path.join(root, "public", "downloads", "nymrel-agent-0.1.2.tgz"));
+  const releaseManifest = JSON.parse(readFileSync(path.join(root, "public", "downloads", "v0.1.2.json"), "utf8"));
   const generatedSha256 = createHash("sha256").update(generatedBytes).digest("hex");
   assert.equal(generatedBytes.length, releaseManifest.package.bytes, "generated package byte count drifted from the canonical release manifest");
   assert.equal(generatedSha256, releaseManifest.package.sha256, "generated package digest drifted from the canonical release manifest");

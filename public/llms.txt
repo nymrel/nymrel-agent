@@ -10,11 +10,11 @@
 - OpenAPI 3.1: https://nymrel-agent.vercel.app/openapi.json
 - API discovery: https://nymrel-agent.vercel.app/v1
 - Health: https://nymrel-agent.vercel.app/healthz
-- Release manifest: https://nymrel-agent.vercel.app/downloads/v0.1.1.json
-- Source archive: https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.1.1-source.tar.gz
-- Package artifact: https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.1.1.tgz
+- Release manifest: https://nymrel-agent.vercel.app/downloads/v0.1.2.json
+- Source archive: https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.1.2-source.tar.gz
+- Package artifact: https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.1.2.tgz
 - Public source repository: https://github.com/Nymrel/nymrel-agent
-- GitHub release: https://github.com/Nymrel/nymrel-agent/releases/tag/v0.1.1
+- GitHub release: https://github.com/Nymrel/nymrel-agent/releases/tag/v0.1.2
 - Company: https://nymrel.com/
 - Feedback and service brief: https://nymrel.com/brief?utm_source=nymrel-agent&utm_medium=llms-txt&utm_campaign=nymrel-agent-first-user
 
