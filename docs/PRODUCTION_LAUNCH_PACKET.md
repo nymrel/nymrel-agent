@@ -1,14 +1,27 @@
 # Nymrel Agent production launch packet
 
-Status: replacement release candidate under final acceptance
+Status: public v0.1.0 launched; first independent-user verification pending
 
-Owner: Codex production lane under claim `codex-nymrel-agent-production-20260825`
+Owner: Codex launch lane under claim `codex-app-nymrel-agent-public-distribution-20260826`
 
 Target release: `0.1.0`
 
 Public contract: `nymrel.agent.route/v1`
 
-Source branch: `codex/nymrel-agent-production-20260825`
+Source branch: `codex/nymrel-agent-public-distribution-20260826`
+
+## Launch receipt — 2026-08-26
+
+- Public source: `https://github.com/Nymrel/nymrel-agent`; unauthenticated repository, issue, release, API, artifact, and Git reads returned successfully.
+- Public release: `https://github.com/Nymrel/nymrel-agent/releases/tag/v0.1.0`; tag `v0.1.0` resolves to release source `ad8a6cc19994026de7323b074ffba8a282ee4046`.
+- Package artifact: 42,610 bytes with SHA-256 `41586801596b0f84d32fdf02049920bd6999f498b04d09ba21c3448981abe584`, matching the public release asset, Vercel-hosted package, and local manifest exactly.
+- Served carrier: commit `415b009d5462edce966d136b93140002250e6c88`, deployment `dpl_HzFzos9ikCg7jMFtDzXd2U2Xatqv`, promoted without a rebuild to `https://nymrel-agent.vercel.app`.
+- Production acceptance: Vercel reports `READY`; `/healthz`, `/readyz`, and the canonical `POST /v1/route` returned 200 with the served carrier commit and deterministic selection `provider-b/fast`.
+- Browser acceptance: the staged homepage completed the visible live example, showed the feedback path only after success, emitted no page errors or warnings, and stored no cookies, local storage, or session storage. Its Source link opened the public Nymrel repository.
+- Exact-byte acceptance: `/`, `/docs`, `/llms.txt`, the versioned package, and the versioned source archive matched the reviewed local bytes; the package digest above remained unchanged.
+- Discovery receipt: the public IndexNow key returned its exact UTF-8 body, and IndexNow returned 200 acknowledgments for `/`, `/docs`, and `/llms.txt`. These responses prove submission receipt only, not crawl, index, rank, citation, traffic, or recommendation.
+- CI status: the pinned public workflow is active, but no GitHub Actions run is claimed until both configured Node jobs pass for an exact public commit.
+- Adoption status: no independent external user is claimed until an identifiable non-studio person or organization intentionally uses the product or workflow and that use is human-verifiable.
 
 ## Decision
 

@@ -4,7 +4,7 @@
 
 - Council decision: `council-20260826-61ff97ca` — cross-family `APPROVE` with conditions.
 - Principal owner: Jalen, under the direct 2026-08-25 operator instruction to continue through the first verified user.
-- Execution owner: Codex App, claim `codex-app-nymrel-agent-first-user-20260825`.
+- Execution owner: Codex App, claim `codex-app-nymrel-agent-public-distribution-20260826`.
 - Product boundary: the public router remains stateless and metadata-only. This campaign adds no accounts, customer-data store, request telemetry, hosted model execution, credentials, billing, or autonomous side effects.
 
 ## Qualifying first-user proof
@@ -40,8 +40,9 @@ The private receipt retains the minimum identity and contact evidence needed to 
 ## Distribution gates
 
 - Available now: canonical product, live API, docs, OpenAPI, `llms.txt`, source archive, package archive, Nymrel catalog entry, and Nymrel brief.
-- Held: public GitHub discovery while the repository URL returns `404`; npm publication and provenance until the account path is restored; MCP Registry publication until its package prerequisite is satisfied.
-- Operator-held: social publishing, external-account actions, pricing publication, paid promotion, and any relationship-based outreach that needs Jalen's identity or account.
+- Available now: the public `Nymrel/nymrel-agent` repository, issue tracker, contribution path, and v0.1.0 release mirror. The GitHub and Vercel package assets match the canonical manifest bytes and SHA-256 exactly.
+- Held: npm publication and provenance until the account path is restored; MCP Registry publication until its package prerequisite is satisfied.
+- Operator-held: pricing publication, paid promotion, and any relationship-based outreach that needs Jalen's identity or account. The one @Nymrel launch canary authorized on 2026-08-26 remains separately identity-gated and does not authorize another post, reply, direct message, follow, ad, or profile change.
 
 ## Rollback truth
 
