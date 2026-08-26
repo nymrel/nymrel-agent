@@ -61,6 +61,19 @@ export interface RouteScoreComponents {
   readonly stickiness: number;
 }
 
+export type ScoreNormalizationMode = "request_ceiling" | "eligible_set_range";
+
+export interface ScoreNormalizationBasis {
+  readonly mode: ScoreNormalizationMode;
+  readonly minimum: number;
+  readonly maximum: number;
+}
+
+export interface RouteScoreNormalization {
+  readonly cost: ScoreNormalizationBasis;
+  readonly latency: ScoreNormalizationBasis;
+}
+
 export interface ScoredRouteCandidate {
   readonly modelId: string;
   readonly providerId: string;
@@ -79,6 +92,7 @@ export interface RoutePlan {
   readonly selectedModelId: string | null;
   readonly selectedProviderId: string | null;
   readonly objective: RouteObjective;
+  readonly scoreNormalization: RouteScoreNormalization;
   readonly eligible: readonly ScoredRouteCandidate[];
   readonly rejected: readonly RejectedRouteCandidate[];
   readonly decisionCodes: readonly string[];

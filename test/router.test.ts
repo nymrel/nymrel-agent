@@ -71,6 +71,11 @@ test("explicit ceilings keep cost and latency scores stable when catalog members
   const fullById = new Map(full.eligible.map((candidate) => [candidate.modelId, candidate]));
   const reducedById = new Map(reduced.eligible.map((candidate) => [candidate.modelId, candidate]));
 
+  assert.deepEqual(full.scoreNormalization, {
+    cost: { mode: "request_ceiling", minimum: 0, maximum: 100_000 },
+    latency: { mode: "request_ceiling", minimum: 0, maximum: 1_000 },
+  });
+  assert.deepEqual(reduced.scoreNormalization, full.scoreNormalization);
   assert.equal(fullById.get("lower")?.components.cost, 1_600);
   assert.equal(fullById.get("lower")?.components.latency, 1_200);
   assert.equal(fullById.get("middle")?.components.cost, 800);
@@ -89,6 +94,18 @@ test("zero ceilings give a fully compliant zero-cost zero-latency model full uti
 
   assert.equal(plan.eligible[0]?.components.cost, 2_000);
   assert.equal(plan.eligible[0]?.components.latency, 1_500);
+});
+
+test("receipts disclose eligible-set fallback bounds when ceilings are omitted", () => {
+  const plan = route(baseRequest, [
+    profile("lower", { estimatedCostMicroUsd: 20_000, estimatedLatencyMs: 200 }),
+    profile("upper", { estimatedCostMicroUsd: 90_000, estimatedLatencyMs: 900 }),
+  ]);
+
+  assert.deepEqual(plan.scoreNormalization, {
+    cost: { mode: "eligible_set_range", minimum: 20_000, maximum: 90_000 },
+    latency: { mode: "eligible_set_range", minimum: 200, maximum: 900 },
+  });
 });
 
 test("an incumbent receives a visible stickiness bonus", () => {

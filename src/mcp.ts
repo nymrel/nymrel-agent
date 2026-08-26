@@ -44,6 +44,11 @@ export function createNymrelMcpServer(): McpServer {
         contractVersion: CONTRACT_VERSION,
         objectives: ["balanced", "quality", "cost", "latency"],
         filters: ["health", "risk", "data_boundary", "tool_use", "structured_output", "context", "modality", "cost", "latency"],
+        scoring: {
+          cost: "request_ceiling_when_present_else_eligible_set_range",
+          latency: "request_ceiling_when_present_else_eligible_set_range",
+          receiptField: "scoreNormalization",
+        },
         publicService: "routing_metadata_only",
         localExecution: "read_only",
         prohibitedInputs: ["prompts", "provider_credentials", "customer_data"],

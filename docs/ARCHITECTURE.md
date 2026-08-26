@@ -40,7 +40,7 @@ Eligibility rules run before ranking:
 - context size and modalities;
 - cost and latency ceilings.
 
-Eligible candidates receive integer components. Quality and reliability use caller-supplied normalized inputs. When the caller supplies a cost or latency ceiling, that component is normalized against the matching ceiling: zero usage receives full utility and a candidate exactly at the ceiling receives zero utility. This keeps the candidate's component stable when unrelated models are added to or removed from the catalog. Without a matching ceiling, cost or latency falls back to normalization relative to the eligible set. Degraded health receives reduced utility; an incumbent receives a small visible stickiness bonus. The final tie-break uses code-unit order of model ID and provider ID.
+Eligible candidates receive integer components. Quality and reliability use caller-supplied normalized inputs. When the caller supplies a cost or latency ceiling, that component is normalized against the matching ceiling: zero usage receives full utility and a candidate exactly at the ceiling receives zero utility. This keeps the candidate's component stable when unrelated models are added to or removed from the catalog. Without a matching ceiling, cost or latency falls back to normalization relative to the eligible set. The route receipt's `scoreNormalization` object records the mode and exact numeric bounds used for both components. Degraded health receives reduced utility; an incumbent receives a small visible stickiness bonus. The final tie-break uses code-unit order of model ID and provider ID.
 
 ## Local execution
 

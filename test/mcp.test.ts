@@ -56,6 +56,13 @@ async function verifyLegacyHandshake(): Promise<void> {
     const tools = listed.result?.tools as Array<{ name: string; annotations?: { readOnlyHint?: boolean } }>;
     assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "route_models"]);
     assert.ok(tools.every((tool) => tool.annotations?.readOnlyHint === true));
+    const explained = await rpc.request("tools/call", { name: "explain_contract", arguments: {} });
+    const contract = explained.result?.structuredContent as { scoring?: Record<string, unknown> };
+    assert.deepEqual(contract.scoring, {
+      cost: "request_ceiling_when_present_else_eligible_set_range",
+      latency: "request_ceiling_when_present_else_eligible_set_range",
+      receiptField: "scoreNormalization",
+    });
     const payload = readFileSync("examples/route-request.json", "utf8");
     const called = await rpc.request("tools/call", { name: "route_models", arguments: { payload } });
     assert.equal(called.error, undefined);

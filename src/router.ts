@@ -6,6 +6,7 @@ import {
   type RoutePlan,
   type RouteRequest,
   type RouteScoreComponents,
+  type RouteScoreNormalization,
   type ScoredRouteCandidate,
 } from "./contracts.js";
 import { compareCodeUnits } from "./ordering.js";
@@ -122,6 +123,14 @@ function routeValidated(request: RouteRequest, profiles: readonly ModelProfile[]
   const eligible = acceptedProfiles.map((profile) => scoreCandidate(request, profile, range));
   eligible.sort((a, b) => b.score - a.score || compareCodeUnits(a.modelId, b.modelId) || compareCodeUnits(a.providerId, b.providerId));
   const selected = eligible[0];
+  const scoreNormalization: RouteScoreNormalization = {
+    cost: request.constraints.maxCostMicroUsd === undefined
+      ? { mode: "eligible_set_range", minimum: range.minCost, maximum: range.maxCost }
+      : { mode: "request_ceiling", minimum: 0, maximum: request.constraints.maxCostMicroUsd },
+    latency: request.constraints.maxLatencyMs === undefined
+      ? { mode: "eligible_set_range", minimum: range.minLatency, maximum: range.maxLatency }
+      : { mode: "request_ceiling", minimum: 0, maximum: request.constraints.maxLatencyMs },
+  };
   const decisionCodes = selected
     ? [`objective_${request.objective}`, "eligible_candidates_ranked", "deterministic_tie_break", "model_selected"]
     : ["no_eligible_model", "policy_blocked"];
@@ -131,6 +140,7 @@ function routeValidated(request: RouteRequest, profiles: readonly ModelProfile[]
     selectedModelId: selected?.modelId ?? null,
     selectedProviderId: selected?.providerId ?? null,
     objective: request.objective,
+    scoreNormalization,
     eligible,
     rejected,
     decisionCodes,
