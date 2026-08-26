@@ -26,6 +26,9 @@ const sourceFiles = [
   "public/downloads/nymrel-agent-0.1.0.tgz",
   "public/downloads/nymrel-agent-v0.1.0-source.tar.gz",
   "public/downloads/v0.1.0.json",
+  "public/downloads/nymrel-agent-0.1.1.tgz",
+  "public/downloads/nymrel-agent-v0.1.1-source.tar.gz",
+  "public/downloads/v0.1.1.json",
   "public/examples/route-request.json",
   "public/favicon.svg",
   "public/index.html",
@@ -79,7 +82,7 @@ function verify(inventory: InventoryNode[]) {
 test("Vercel source verifier accepts only the exact file and byte allowlist", () => {
   const result = verify(exactInventory());
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /pass \(31 exact files\)/);
+  assert.match(result.stdout, /pass \(34 exact files\)/);
 });
 
 test("Vercel source verifier rejects every unsupported provider node type", () => {

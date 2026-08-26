@@ -12,6 +12,7 @@ const required = [
   "README.md", "LICENSE", "SECURITY.md", "CHANGELOG.md", "CONTRIBUTING.md", "AGENTS.md",
   "authz-allowlist.json", "wrangler.jsonc", "vercel.json", ".vercelignore", "server.ts", "homepage.json", "tsconfig.package.json", "public/index.html", "public/docs.html", "public/demo.js", "public/sitemap.xml", "public/og-image.svg", "public/og-image.png", "public/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt",
   "public/downloads/nymrel-agent-0.1.0.tgz", "public/downloads/nymrel-agent-v0.1.0-source.tar.gz", "public/downloads/v0.1.0.json",
+  "public/downloads/nymrel-agent-0.1.1.tgz", "public/downloads/nymrel-agent-v0.1.1-source.tar.gz", "public/downloads/v0.1.1.json",
   "public/openapi.json", "public/llms.txt", "examples/route-request.json",
   "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md", "docs/FIRST_USER_ACTIVATION.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
@@ -65,14 +66,14 @@ assert.equal(openapi.components?.schemas?.RoutePayload?.additionalProperties, fa
 assert.equal(openapi.components?.schemas?.ModelProfile?.additionalProperties, false);
 assert.equal(openapi.servers?.[0]?.url, packageJson.homepage);
 
-const releaseManifest = json("public/downloads/v0.1.0.json");
+const releaseManifest = json("public/downloads/v0.1.1.json");
 assert.equal(releaseManifest.schemaVersion, "nymrel.agent.release/v1");
 assert.equal(releaseManifest.version, packageJson.version);
-assert.equal(releaseManifest.releaseSourceCommit, "ad8a6cc19994026de7323b074ffba8a282ee4046");
+assert.equal(releaseManifest.releaseSourceCommit, "c3eb03691d986ea1cb98970a90c755ccdbc0d983");
 assert.equal(releaseManifest.license, packageJson.license);
 for (const [kind, filename] of [
-  ["package", "nymrel-agent-0.1.0.tgz"],
-  ["source", "nymrel-agent-v0.1.0-source.tar.gz"],
+  ["package", "nymrel-agent-0.1.1.tgz"],
+  ["source", "nymrel-agent-v0.1.1-source.tar.gz"],
 ]) {
   const bytes = readFileSync(path.join(root, "public", "downloads", filename));
   assert.equal(releaseManifest[kind].bytes, bytes.length, `${kind} release byte count drifted`);
@@ -80,8 +81,20 @@ for (const [kind, filename] of [
   assert.equal(releaseManifest[kind].url, `${packageJson.homepage}/downloads/${filename}`);
 }
 
-const sourceArchive = path.join(root, "public", "downloads", "nymrel-agent-v0.1.0-source.tar.gz");
-const archiveRoot = "nymrel-agent-0.1.0/";
+const historicalReleaseManifest = json("public/downloads/v0.1.0.json");
+assert.equal(historicalReleaseManifest.version, "0.1.0");
+assert.equal(historicalReleaseManifest.releaseSourceCommit, "ad8a6cc19994026de7323b074ffba8a282ee4046");
+for (const [kind, filename] of [
+  ["package", "nymrel-agent-0.1.0.tgz"],
+  ["source", "nymrel-agent-v0.1.0-source.tar.gz"],
+]) {
+  const bytes = readFileSync(path.join(root, "public", "downloads", filename));
+  assert.equal(historicalReleaseManifest[kind].bytes, bytes.length, `${kind} historical release byte count drifted`);
+  assert.equal(historicalReleaseManifest[kind].sha256, createHash("sha256").update(bytes).digest("hex"), `${kind} historical release digest drifted`);
+}
+
+const sourceArchive = path.join(root, "public", "downloads", "nymrel-agent-v0.1.1-source.tar.gz");
+const archiveRoot = "nymrel-agent-0.1.1/";
 const archiveNames = execFileSync("tar", ["-tzf", sourceArchive], { encoding: "utf8" }).trimEnd().split(/\r?\n/);
 assert.ok(archiveNames.length > 1, "source archive is empty");
 assert.equal(archiveNames[0], archiveRoot, "source archive must begin with one versioned root");
@@ -143,7 +156,7 @@ for (const publicDocument of [indexHtml, docsHtml, llmsText]) {
   assert.ok(publicDocument.includes("https://github.com/Nymrel/nymrel-agent"), "public launch document omits the verified Nymrel source repository");
   assert.equal(publicDocument.includes("github.com/JalenBuildsHub/nymrel-agent"), false, "public launch document links to the suspended personal-account mirror");
 }
-for (const filename of ["nymrel-agent-0.1.0.tgz", "nymrel-agent-v0.1.0-source.tar.gz", "v0.1.0.json"]) {
+for (const filename of ["nymrel-agent-0.1.1.tgz", "nymrel-agent-v0.1.1-source.tar.gz", "v0.1.1.json"]) {
   assert.ok(`${indexHtml}\n${docsHtml}\n${llmsText}`.includes(`/downloads/${filename}`), `public launch documents omit ${filename}`);
 }
 const structuredData = indexHtml.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
