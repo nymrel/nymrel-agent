@@ -20,6 +20,7 @@ const sourceFiles = [
   "package-lock.json",
   "package.json",
   "public/404.html",
+  "public/demo.js",
   "public/docs.html",
   "public/downloads/nymrel-agent-0.1.0.tgz",
   "public/downloads/nymrel-agent-v0.1.0-source.tar.gz",
@@ -30,6 +31,7 @@ const sourceFiles = [
   "public/llms.txt",
   "public/openapi.json",
   "public/robots.txt",
+  "public/sitemap.xml",
   "public/styles.css",
   "scripts/clean.mjs",
   "server.ts",
@@ -74,7 +76,7 @@ function verify(inventory: InventoryNode[]) {
 test("Vercel source verifier accepts only the exact file and byte allowlist", () => {
   const result = verify(exactInventory());
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /pass \(26 exact files\)/);
+  assert.match(result.stdout, /pass \(28 exact files\)/);
 });
 
 test("Vercel source verifier rejects every unsupported provider node type", () => {

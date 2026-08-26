@@ -10,6 +10,8 @@ The hosted router accepts model metadata only. It does not accept prompts, provi
 
 The public routing endpoint requires no account or key:
 
+Live browser example: <https://nymrel-agent.vercel.app/#live-demo>
+
 ```bash
 curl -sS https://nymrel-agent.vercel.app/v1/route \
   -H "content-type: application/json" \
@@ -96,6 +98,14 @@ See [SECURITY.md](SECURITY.md) for reporting and supported-version policy.
 ## Nymrel implementation service
 
 Nymrel can configure evidence-backed catalogs, routing policy, evals, customer-local adapters, and operational receipts around a real workflow. Hosted execution, data retention, credentials, and write-capable tools require a separate scope and security review. Pricing is provided on request at <https://nymrel.com/brief>.
+
+## Distribution model
+
+The router, CLI, MCP server, and local harness are MIT-licensed. Anyone may inspect, use, modify, self-host, or redistribute those released bytes under the license. Nymrel separately sells implementation, evaluation, integration, and operational support under an agreed commercial scope. A managed cloud with hosted prompts, keys, or model execution is not part of v0.1.
+
+The canonical release is currently distributed from the product service as a versioned source archive and package artifact. GitHub, npm, and MCP Registry discovery remain separate publication steps; their absence does not change the MIT license on the downloadable release.
+
+Used Nymrel Agent for a real routing decision? Send feedback without prompts, provider keys, or customer data: <https://nymrel.com/brief?utm_source=nymrel-agent&utm_medium=readme&utm_campaign=nymrel-agent-first-user>.
 
 ## Development and release proof
 

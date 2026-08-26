@@ -2,6 +2,12 @@
 
 All notable product changes are documented here.
 
+## Unreleased
+
+- Added a zero-account live browser route using the published metadata example, with accessible loading, success, and failure states.
+- Added a privacy-preserving first-user feedback path, crawler directives, and a canonical sitemap.
+- Documented the MIT product and separately scoped commercial-service distribution model, first-user proof standard, stop-loss, and held publication gates.
+
 ## 0.1.0 — 2026-08-25
 
 - Promoted the independently accepted Phase 0 router into the Nymrel-owned product contract `nymrel.agent.route/v1`.

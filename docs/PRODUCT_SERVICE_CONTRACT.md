@@ -19,6 +19,14 @@ The public v0.1 endpoint:
 
 The CLI and MCP server apply the same routing contract locally. Local execution is optional and read-only in v0.1.
 
+The canonical product page includes a zero-account browser example. It loads the published metadata fixture and submits it to the same public routing endpoint. The browser code creates no cookies or local storage and sends no prompts, provider credentials, or customer data. A successful example is product proof, not evidence of an independent user unless that person separately confirms real use.
+
+## Open-source and commercial boundary
+
+The released router, CLI, MCP server, and local harness are available under the MIT license. Recipients may use, modify, self-host, and redistribute their copies under that license. Nymrel cannot recall copies or external caches after distribution.
+
+Commercial value is provided through separately scoped implementation, evaluation, integration, and operational support. Nymrel does not present the current service as exclusive access to the open-source code. A hosted execution service that handles provider keys, prompts, accounts, or retained customer data requires a new custody, security, and commercial decision.
+
 ## Managed implementation service
 
 For teams that need more than the public router, Nymrel can deliver a scoped implementation covering:
@@ -32,6 +40,8 @@ For teams that need more than the public router, Nymrel can deliver a scoped imp
 7. Adoption verification and operator documentation.
 
 The exact deliverables, schedule, support, and price are defined in a project brief. There is no public service price or default service-level agreement in v0.1.
+
+A fixed-price or fixed-scope audit is not offered until its deliverables, exclusions, schedule, engagement ceiling, and price are approved in writing.
 
 ## Customer responsibilities
 

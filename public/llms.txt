@@ -5,6 +5,7 @@
 ## Canonical resources
 
 - Product: https://nymrel-agent.vercel.app/
+- Live browser example: https://nymrel-agent.vercel.app/#live-demo
 - Documentation: https://nymrel-agent.vercel.app/docs
 - OpenAPI 3.1: https://nymrel-agent.vercel.app/openapi.json
 - API discovery: https://nymrel-agent.vercel.app/v1
@@ -13,7 +14,7 @@
 - Source archive: https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.1.0-source.tar.gz
 - Package artifact: https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.1.0.tgz
 - Company: https://nymrel.com/
-- Service brief: https://nymrel.com/brief
+- Feedback and service brief: https://nymrel.com/brief?utm_source=nymrel-agent&utm_medium=llms-txt&utm_campaign=nymrel-agent-first-user
 
 ## Core operation
 

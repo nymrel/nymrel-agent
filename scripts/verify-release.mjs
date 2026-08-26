@@ -10,10 +10,10 @@ const read = (relative) => readFileSync(path.join(root, relative), "utf8");
 const json = (relative) => JSON.parse(read(relative));
 const required = [
   "README.md", "LICENSE", "SECURITY.md", "CHANGELOG.md", "CONTRIBUTING.md", "AGENTS.md",
-  "authz-allowlist.json", "wrangler.jsonc", "vercel.json", ".vercelignore", "server.ts", "homepage.json", "tsconfig.package.json", "public/index.html", "public/docs.html",
+  "authz-allowlist.json", "wrangler.jsonc", "vercel.json", ".vercelignore", "server.ts", "homepage.json", "tsconfig.package.json", "public/index.html", "public/docs.html", "public/demo.js", "public/sitemap.xml",
   "public/downloads/nymrel-agent-0.1.0.tgz", "public/downloads/nymrel-agent-v0.1.0-source.tar.gz", "public/downloads/v0.1.0.json",
   "public/openapi.json", "public/llms.txt", "examples/route-request.json",
-  "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md",
+  "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md", "docs/FIRST_USER_ACTIVATION.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
   "src/bin/nymrel-agent.ts", "src/bin/nymrel-agent-mcp.ts", "scripts/verify-packed-install.mjs",
   "scripts/verify-vercel-source.mjs",
@@ -103,6 +103,19 @@ const indexHtml = read("public/index.html");
 assert.ok(indexHtml.includes(`<link rel="canonical" href="${packageJson.homepage}/">`));
 const docsHtml = read("public/docs.html");
 const llmsText = read("public/llms.txt");
+const demoScript = read("public/demo.js");
+const sitemap = read("public/sitemap.xml");
+const robots = read("public/robots.txt");
+assert.ok(indexHtml.includes('src="/demo.js"'));
+assert.ok(indexHtml.includes("data-live-demo"));
+assert.ok(indexHtml.includes("utm_campaign=nymrel-agent-first-user"));
+assert.ok(demoScript.includes('fetch("/examples/route-request.json"'));
+assert.ok(demoScript.includes('fetch("/v1/route"'));
+assert.equal(/localStorage|sessionStorage|document\.cookie|sendBeacon/.test(demoScript), false, "activation script must not add browser tracking state");
+assert.equal(/api[_-]?key|provider credential/i.test(demoScript), false, "activation script must not handle provider credentials");
+assert.ok(sitemap.includes(`<loc>${packageJson.homepage}/</loc>`));
+assert.ok(sitemap.includes(`<loc>${packageJson.homepage}/docs</loc>`));
+assert.ok(robots.includes(`Sitemap: ${packageJson.homepage}/sitemap.xml`));
 for (const publicDocument of [indexHtml, docsHtml, llmsText]) {
   assert.equal(publicDocument.includes("github.com/JalenBuildsHub/nymrel-agent"), false, "public launch document links to the account-gated GitHub mirror");
 }

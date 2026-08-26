@@ -1,2 +1,7 @@
 User-agent: *
 Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+Sitemap: https://nymrel-agent.vercel.app/sitemap.xml

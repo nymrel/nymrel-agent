@@ -18,6 +18,7 @@
 
       <h2 id="quickstart">Quickstart</h2>
       <p>The public endpoint needs no account or API key. It accepts model metadata, not task or prompt text.</p>
+      <p><a href="/#live-demo">Run the example in your browser</a>, or send the same published payload with curl:</p>
       <pre><code>curl -sS https://nymrel-agent.vercel.app/v1/route \
   -H "content-type: application/json" \
   --data-binary @examples/route-request.json</code></pre>
@@ -78,7 +79,8 @@ npx nymrel-agent contract</code></pre>
 
       <h2 id="service">Managed implementation service</h2>
       <p>Nymrel can configure a model catalog, evidence collection, routing policy, evals, local adapters, and operational receipts for a real workflow. Hosted provider execution, credentials, data retention, and write-capable tools require a separate scope and security review. Pricing is provided on request.</p>
-      <p><a class="button" href="https://nymrel.com/brief">Start a project brief</a></p>
+      <div class="callout"><strong>Already used Nymrel Agent?</strong> Tell us what you routed and what should improve. Do not send prompts, provider keys, or customer data.</div>
+      <p><a class="button" href="https://nymrel.com/brief?utm_source=nymrel-agent&amp;utm_medium=docs&amp;utm_campaign=nymrel-agent-first-user">Send feedback or start a brief</a></p>
     </article>
   </main>
   <footer class="footer shell"><div><a class="brand" href="https://nymrel.com"><span class="mark" aria-hidden="true">N</span><span>Nymrel</span></a><p>Products and services built to hold up under real use.</p></div><div class="footer-links"><a href="/llms.txt">llms.txt</a><a href="/healthz">Status</a><a href="https://nymrel.com/privacy">Privacy</a></div></footer>
