@@ -4,7 +4,7 @@
 
 - Council decision: `council-20260826-61ff97ca` — cross-family `APPROVE` with conditions.
 - Principal owner: Jalen, under the direct 2026-08-25 operator instruction to continue through the first verified user.
-- Execution owner: Codex App, claim `codex-app-nymrel-agent-patch-release-20260826`.
+- Execution owner: Codex App, claim `codex-app-nymrel-agent-dogfood-v012-release-20260826`.
 - Product boundary: the public router remains stateless and metadata-only. This campaign adds no accounts, customer-data store, request telemetry, hosted model execution, credentials, billing, or autonomous side effects.
 
 ## Qualifying first-user proof
@@ -28,6 +28,7 @@ The private receipt retains the minimum identity and contact evidence needed to 
 - Measurement: successful live/product probes plus an attributable confirmation through the Nymrel brief or another user-authored artifact. Request IPs, user agents, bodies, prompts, and keys are not campaign measurement.
 - Start: the production adoption timestamp for this activation slice.
 - Stop-loss: 14 calendar days after production adoption. If no qualifying receipt exists, close this experiment as `LOSS`, preserve the result, and choose a different single channel. Do not leave it open or silently extend it.
+- Maintenance state: v0.1.2 superseded v0.1.1 on 2026-08-26 after internal dogfood found and closed endpoint-classification defects. This patch does not restart or extend the original experiment or its September 8 stop-loss, and studio dogfood remains diagnostic rather than first-user proof.
 
 ## Buyer and offer map
 
@@ -40,7 +41,7 @@ The private receipt retains the minimum identity and contact evidence needed to 
 ## Distribution gates
 
 - Available now: canonical product, live API, docs, OpenAPI, `llms.txt`, source archive, package archive, Nymrel catalog entry, and Nymrel brief.
-- Available now: the public `Nymrel/nymrel-agent` repository, issue tracker, contribution path, and v0.1.1 release. The GitHub and Vercel package and source assets match the canonical manifest bytes and SHA-256 exactly; historical v0.1.0 artifacts remain available and byte-stable.
+- Available now: the public `Nymrel/nymrel-agent` repository, issue tracker, contribution path, and v0.1.2 release. The GitHub and Vercel package and source assets match the canonical manifest bytes and SHA-256 exactly; historical v0.1.0 and v0.1.1 artifacts remain available and byte-stable.
 - Held: npm publication and provenance until an authenticated Nymrel npm account or organization path exists and the trusted-publisher CI path can run; MCP Registry publication remains held until its package prerequisite is satisfied.
 - Operator-held: pricing publication, paid promotion, and any relationship-based outreach that needs Jalen's identity or account. The one @Nymrel launch canary authorized on 2026-08-26 remains separately identity-gated and does not authorize another post, reply, direct message, follow, ad, or profile change.
 

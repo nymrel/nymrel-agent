@@ -1,10 +1,10 @@
 # Nymrel Agent production launch packet
 
-Status: public v0.1.1 launched; first independent-user verification pending
+Status: public v0.1.2 launched; first independent-user verification pending
 
-Owner: Codex launch lane under claim `codex-app-nymrel-agent-patch-release-20260826`
+Owner: Codex launch lane under claim `codex-app-nymrel-agent-dogfood-v012-release-20260826`
 
-Target release: `0.1.1`
+Target release: `0.1.2`
 
 Public contract: `nymrel.agent.route/v1`
 
@@ -13,13 +13,15 @@ Source branch: `codex/nymrel-agent-public-distribution-20260826`
 ## Launch receipt — 2026-08-26
 
 - Public source: `https://github.com/Nymrel/nymrel-agent`; unauthenticated repository, issue, release, API, artifact, and Git reads returned successfully.
-- Public release: `https://github.com/Nymrel/nymrel-agent/releases/tag/v0.1.1`; tag `v0.1.1` peels to release source `c3eb03691d986ea1cb98970a90c755ccdbc0d983`.
-- Package artifact: 42,701 bytes with SHA-256 `5f01a74f8a172e36b9b084abdaedd96da8f6709e6b32edf948e0f34557f6e39f`; source archive: 153,423 bytes with SHA-256 `0e321667ac1d9ebbfdcba7e73eb97745b6f3f07c584c9588181efd959a993939`. GitHub, Vercel, manifest, and local bytes agree exactly.
-- Served carrier: commit `89e92e1b3932b79f17baf47d14ea09b7cf21bfa8`, deployment `dpl_EF78FZWmx1VR2xuTyuFGXub6umRQ`, promoted without a rebuild to `https://nymrel-agent.vercel.app`.
+- Public release: `https://github.com/Nymrel/nymrel-agent/releases/tag/v0.1.2`; annotated tag `v0.1.2` peels to release source `c960dc34523790a34497df3f2ac222d6f7a74894`.
+- Package artifact: 42,893 bytes with SHA-256 `9516c4815e0ca4daaa09cc34da7bb703e4caccf80d9e3101f065bf17a3cf513b`; source archive: 154,534 bytes with SHA-256 `bf48100858819a53df17626f12a3c3d4ae666daec6c43186155ba3b24bffe175`. GitHub, Vercel, manifest, and local bytes agree exactly.
+- Served carrier: commit `0983be694e3c147baf88a4d35acc7656876e5a44`, deployment `dpl_9zeX6bkHHTknqYmEq56JMS6ZfGB3`, staged with `--prod --skip-domain` and promoted without a rebuild to `https://nymrel-agent.vercel.app`.
 - Production acceptance: Vercel reports `READY`; `/healthz`, `/readyz`, and the canonical `POST /v1/route` returned 200 with the served carrier commit and deterministic selection `provider-b/fast`.
-- Browser acceptance: the staged homepage completed the visible live example, showed the feedback path only after success, emitted no page errors or warnings, and stored no cookies, local storage, or session storage. Its Source link opened the public Nymrel repository.
-- Exact-byte acceptance: `/`, `/docs`, `/llms.txt`, both v0.1.1 artifacts, the v0.1.1 manifest, and all retained v0.1.0 artifacts matched the reviewed local bytes. The v0.1.0 package and source digests remain `41586801596b0f84d32fdf02049920bd6999f498b04d09ba21c3448981abe584` and `d7d2d99f61d2ad59ea65c048662cfc7f50b6d7663abe0bb916f682d546eb19e2`.
-- Discovery receipt: the public IndexNow key returned its exact UTF-8 body, and IndexNow returned a 200 acknowledgment for the v0.1.1 `/`, `/docs`, `/llms.txt`, and release-manifest submission. This response proves submission receipt only, not crawl, index, rank, citation, traffic, or recommendation.
+- Independent acceptance: separate security and package/runtime council lanes accepted the exact release source and carrier after reproducing the endpoint guards, deterministic source archive, historical artifact pins, package contents, CLI, and MCP contracts.
+- Browser acceptance: both the staged deployment and production alias completed the visible example at desktop and mobile sizes, showed the feedback path only after success, emitted no page errors or warnings, and stored no cookies, local storage, or session storage. The Source link resolves to the public Nymrel repository.
+- Exact-byte acceptance: all 23 Vercel-served public assets matched the reviewed local bytes on staging and production. The Cloudflare-only `public/_headers` control file is explicitly excluded from the Vercel bundle and returns 404 there. All retained v0.1.0 and v0.1.1 artifacts plus the new v0.1.2 package, source, and manifest remain byte-bound to their recorded digests.
+- Public-byte dogfood: a fresh project installed the package downloaded from production, produced one plan across 20 repeated routes, matched local and hosted plans, rejected five unsafe endpoint classes with exit 64 before transport, emitted a body-free demo receipt, and completed MCP 2026-07-28 discovery, tool listing, and `route_models` invocation.
+- Discovery status: the prior v0.1.1 IndexNow acknowledgment remains a historical submission receipt only. No v0.1.2 crawl, index, rank, citation, traffic, or recommendation claim is made.
 - CI status: the pinned public workflow remains present, but GitHub returned `Actions has been disabled for this user` when manual dispatch was attempted. No GitHub Actions pass is claimed until both configured Node jobs pass for an exact public commit.
 - Adoption status: no independent external user is claimed until an identifiable non-studio person or organization intentionally uses the product or workflow and that use is human-verifiable.
 
@@ -127,7 +129,7 @@ Every registered dynamic route is checked against the production alias:
 
 | Method | Path | Expected proof |
 | --- | --- | --- |
-| GET | `/healthz` | 200 JSON; version `0.1.1`; `sourceCommit` equals accepted SHA |
+| GET | `/healthz` | 200 JSON; version `0.1.2`; `sourceCommit` equals accepted SHA |
 | GET | `/readyz` | 200 JSON; routing enabled; source SHA bound; WAF `platform_ready`; scope `deployment` |
 | GET | `/v1` | 200 JSON; contract `nymrel.agent.route/v1`; route and OpenAPI links |
 | GET | `/v1/openapi.json` | 200 JSON; OpenAPI `3.1.0` |
@@ -143,8 +145,8 @@ Negative checks cover malformed `Content-Length`, invalid JSON, unknown prompt f
 
 Source and install checks:
 
-- `releaseSourceCommit` identifies the v0.1.1 package and source release. The public Vercel release manifest binds those artifacts to that commit plus exact SHA-256 digests. The public GitHub tag peels to the same source, and all three downloaded GitHub release assets match the manifest or their recorded exact bytes. No source-immutability badge is claimed because the GitHub release is not marked immutable.
-- `deploymentSourceCommit` identifies the accepted hosting carrier. The cumulative v0.1.1 source archive includes the product, hosted activation source, and release tooling but excludes `public/downloads/` through the committed export boundary, preventing recursive archive inclusion. The later carrier adds the generated v0.1.1 artifacts and switches customer-facing download pointers without changing router semantics. Provider metadata, authenticated remote `main`, clean local `HEAD`, the uploaded-source inventory, `/healthz`, and `/readyz` all bind the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
+- `releaseSourceCommit` identifies the v0.1.2 package and source release. The public Vercel release manifest binds those artifacts to that commit plus exact SHA-256 digests. The public GitHub tag peels to the same source, and all three downloaded GitHub release assets match the manifest or their recorded exact bytes. No source-immutability badge is claimed because the GitHub release is not marked immutable.
+- `deploymentSourceCommit` identifies the accepted hosting carrier. The cumulative v0.1.2 source archive includes the product, hosted activation source, and release tooling but excludes `public/downloads/` through the committed export boundary, preventing recursive archive inclusion. The later carrier adds the generated v0.1.2 artifacts and switches customer-facing download pointers without changing router semantics. At deployment time, provider metadata, authenticated remote `main`, clean local `HEAD`, the uploaded-source inventory, `/healthz`, and `/readyz` all bound the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
 - Vercel inspection identifies the exact organization, project, deployment, source mode, and `deploymentSourceCommit`. `provider_git` requires the connected repository and provider `gitSource`; `verified_cli_bundle` requires authenticated remote `main`, local `HEAD`, provider metadata, runtime probes, and the accepted hosting commit to agree, plus an exact allowlist and SHA-1 proof for every uploaded source file.
 - An unauthenticated download and install from the Vercel-hosted package passes the public quickstart; the Vercel-hosted source archive expands to the recorded release source.
 - The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass the Windows packed-install gate. The public repository carries the pinned Linux/Windows GitHub Actions workflow, but no public CI proof is claimed while the provider-level Actions gate remains closed.
