@@ -14,6 +14,7 @@ const required = [
   "public/downloads/nymrel-agent-0.1.0.tgz", "public/downloads/nymrel-agent-v0.1.0-source.tar.gz", "public/downloads/v0.1.0.json",
   "public/downloads/nymrel-agent-0.1.1.tgz", "public/downloads/nymrel-agent-v0.1.1-source.tar.gz", "public/downloads/v0.1.1.json",
   "public/downloads/nymrel-agent-0.1.2.tgz", "public/downloads/nymrel-agent-v0.1.2-source.tar.gz", "public/downloads/v0.1.2.json",
+  "public/downloads/nymrel-agent-0.1.3.tgz", "public/downloads/nymrel-agent-v0.1.3-source.tar.gz", "public/downloads/v0.1.3.json",
   "public/openapi.json", "public/llms.txt", "examples/route-request.json",
   "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md", "docs/FIRST_USER_ACTIVATION.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
@@ -67,14 +68,14 @@ assert.equal(openapi.components?.schemas?.RoutePayload?.additionalProperties, fa
 assert.equal(openapi.components?.schemas?.ModelProfile?.additionalProperties, false);
 assert.equal(openapi.servers?.[0]?.url, packageJson.homepage);
 
-const releaseManifest = json("public/downloads/v0.1.2.json");
+const releaseManifest = json("public/downloads/v0.1.3.json");
 assert.equal(releaseManifest.schemaVersion, "nymrel.agent.release/v1");
 assert.equal(releaseManifest.version, packageJson.version);
-assert.equal(releaseManifest.releaseSourceCommit, "c960dc34523790a34497df3f2ac222d6f7a74894");
+assert.equal(releaseManifest.releaseSourceCommit, "02963d50f0a5bb9f080bfec783aa8436e17a400d");
 assert.equal(releaseManifest.license, packageJson.license);
 for (const [kind, filename] of [
-  ["package", "nymrel-agent-0.1.2.tgz"],
-  ["source", "nymrel-agent-v0.1.2-source.tar.gz"],
+  ["package", "nymrel-agent-0.1.3.tgz"],
+  ["source", "nymrel-agent-v0.1.3-source.tar.gz"],
 ]) {
   const bytes = readFileSync(path.join(root, "public", "downloads", filename));
   assert.equal(releaseManifest[kind].bytes, bytes.length, `${kind} release byte count drifted`);
@@ -83,6 +84,14 @@ for (const [kind, filename] of [
 }
 
 for (const historical of [
+  {
+    version: "0.1.2",
+    sourceCommit: "c960dc34523790a34497df3f2ac222d6f7a74894",
+    artifacts: {
+      package: { filename: "nymrel-agent-0.1.2.tgz", bytes: 42893, sha256: "9516c4815e0ca4daaa09cc34da7bb703e4caccf80d9e3101f065bf17a3cf513b" },
+      source: { filename: "nymrel-agent-v0.1.2-source.tar.gz", bytes: 154534, sha256: "bf48100858819a53df17626f12a3c3d4ae666daec6c43186155ba3b24bffe175" },
+    },
+  },
   {
     version: "0.1.1",
     sourceCommit: "c3eb03691d986ea1cb98970a90c755ccdbc0d983",
@@ -118,8 +127,8 @@ for (const historical of [
 
 assert.match(read(".gitattributes"), /^public\/downloads\/ export-ignore\r?$/m, "release archives must exclude hosted release artifacts");
 
-const sourceArchive = path.join(root, "public", "downloads", "nymrel-agent-v0.1.2-source.tar.gz");
-const archiveRoot = "nymrel-agent-0.1.2/";
+const sourceArchive = path.join(root, "public", "downloads", "nymrel-agent-v0.1.3-source.tar.gz");
+const archiveRoot = "nymrel-agent-0.1.3/";
 const archiveNames = execFileSync("tar", ["-tzf", sourceArchive], { encoding: "utf8" }).trimEnd().split(/\r?\n/);
 assert.ok(archiveNames.length > 1, "source archive is empty");
 assert.equal(archiveNames[0], archiveRoot, "source archive must begin with one versioned root");
@@ -181,7 +190,7 @@ for (const publicDocument of [indexHtml, docsHtml, llmsText]) {
   assert.ok(publicDocument.includes("https://github.com/Nymrel/nymrel-agent"), "public launch document omits the verified Nymrel source repository");
   assert.equal(publicDocument.includes("github.com/JalenBuildsHub/nymrel-agent"), false, "public launch document links to the suspended personal-account mirror");
 }
-for (const filename of ["nymrel-agent-0.1.2.tgz", "nymrel-agent-v0.1.2-source.tar.gz", "v0.1.2.json"]) {
+for (const filename of ["nymrel-agent-0.1.3.tgz", "nymrel-agent-v0.1.3-source.tar.gz", "v0.1.3.json"]) {
   assert.ok(`${indexHtml}\n${docsHtml}\n${llmsText}`.includes(`/downloads/${filename}`), `public launch documents omit ${filename}`);
 }
 const structuredData = indexHtml.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];

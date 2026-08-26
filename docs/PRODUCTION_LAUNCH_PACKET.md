@@ -1,14 +1,23 @@
 # Nymrel Agent production launch packet
 
-Status: public v0.1.2 launched; first independent-user verification pending
+Status: v0.1.3 carrier candidate passed the complete local gate; public v0.1.2 remains current until staged promotion; first independent-user verification pending
 
-Owner: Codex launch lane under claim `codex-app-nymrel-agent-dogfood-v012-release-20260826`
+Owner: Codex launch lane under claim `codex-app-nymrel-agent-v013-carrier-20260826`
 
-Target release: `0.1.2`
+Target release: `0.1.3`
 
 Public contract: `nymrel.agent.route/v1`
 
-Source branch: `codex/nymrel-agent-public-distribution-20260826`
+Source branch: `codex/nymrel-agent-budget-normalization-20260826`
+
+## v0.1.3 carrier candidate — 2026-08-26
+
+- Accepted release source: `02963d50f0a5bb9f080bfec783aa8436e17a400d`; annotated local tag `v0.1.3` peels to that exact commit. Public tag and release publication remain pending.
+- Package artifact: 44,032 bytes with SHA-256 `66145b09576323f667c7f76e36bb91bd09f8d251a089355c5e458a867d676385`; source archive: 159,368 bytes with SHA-256 `55760fe1be6eeffac73de4bd734ea0dd434ec88b5a48a44669bb74a36471eb2c`. Each artifact reproduced byte-for-byte in a second build.
+- Product change: explicit cost and latency ceilings anchor their matching components; requests without a ceiling retain eligible-set normalization. The closed v1 response shape remains exact, while existing `decisionCodes` and `explanation` fields disclose the selected modes and bounds.
+- Source acceptance: separate security and package/runtime reviewers accepted the exact release-source SHA after the first candidate was rejected and replaced for closed-v1 compatibility and homepage-score parity.
+- Local carrier gate: both TypeScript configurations, 62 tests, historical artifact pins, source-archive safety, packed-install CLI and MCP probes, production dependency audit, Vercel source allowlist tests, and Cloudflare dry-run pass. Publication, staged Vercel proof, promotion, GitHub asset parity, and production-alias proof remain pending.
+- Experiment hold: this maintenance patch does not restart or extend the original September 8 stop-loss and does not convert solicited or studio use into independent first-user proof.
 
 ## Launch receipt — 2026-08-26
 
@@ -129,7 +138,7 @@ Every registered dynamic route is checked against the production alias:
 
 | Method | Path | Expected proof |
 | --- | --- | --- |
-| GET | `/healthz` | 200 JSON; version `0.1.2`; `sourceCommit` equals accepted SHA |
+| GET | `/healthz` | 200 JSON; version `0.1.3`; `sourceCommit` equals accepted SHA |
 | GET | `/readyz` | 200 JSON; routing enabled; source SHA bound; WAF `platform_ready`; scope `deployment` |
 | GET | `/v1` | 200 JSON; contract `nymrel.agent.route/v1`; route and OpenAPI links |
 | GET | `/v1/openapi.json` | 200 JSON; OpenAPI `3.1.0` |
@@ -145,8 +154,8 @@ Negative checks cover malformed `Content-Length`, invalid JSON, unknown prompt f
 
 Source and install checks:
 
-- `releaseSourceCommit` identifies the v0.1.2 package and source release. The public Vercel release manifest binds those artifacts to that commit plus exact SHA-256 digests. The public GitHub tag peels to the same source, and all three downloaded GitHub release assets match the manifest or their recorded exact bytes. No source-immutability badge is claimed because the GitHub release is not marked immutable.
-- `deploymentSourceCommit` identifies the accepted hosting carrier. The cumulative v0.1.2 source archive includes the product, hosted activation source, and release tooling but excludes `public/downloads/` through the committed export boundary, preventing recursive archive inclusion. The later carrier adds the generated v0.1.2 artifacts and switches customer-facing download pointers without changing router semantics. At deployment time, provider metadata, authenticated remote `main`, clean local `HEAD`, the uploaded-source inventory, `/healthz`, and `/readyz` all bound the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
+- `releaseSourceCommit` identifies the v0.1.3 package and source release. The public Vercel release manifest binds those artifacts to that commit plus exact SHA-256 digests. The public GitHub tag must peel to the same source, and all three downloaded GitHub release assets must match the manifest or their recorded exact bytes. No source-immutability badge is claimed unless the provider reports one.
+- `deploymentSourceCommit` identifies the accepted hosting carrier. The cumulative v0.1.3 source archive includes the product, hosted activation source, and release tooling but excludes `public/downloads/` through the committed export boundary, preventing recursive archive inclusion. The later carrier adds the generated v0.1.3 artifacts and switches customer-facing download pointers without changing the accepted route contract. At deployment time, provider metadata, authenticated remote `main`, clean local `HEAD`, the uploaded-source inventory, `/healthz`, and `/readyz` must all bind the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
 - Vercel inspection identifies the exact organization, project, deployment, source mode, and `deploymentSourceCommit`. `provider_git` requires the connected repository and provider `gitSource`; `verified_cli_bundle` requires authenticated remote `main`, local `HEAD`, provider metadata, runtime probes, and the accepted hosting commit to agree, plus an exact allowlist and SHA-1 proof for every uploaded source file.
 - An unauthenticated download and install from the Vercel-hosted package passes the public quickstart; the Vercel-hosted source archive expands to the recorded release source.
 - The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass the Windows packed-install gate. The public repository carries the pinned Linux/Windows GitHub Actions workflow, but no public CI proof is claimed while the provider-level Actions gate remains closed.
