@@ -81,8 +81,10 @@ test("CLI rejects missing, duplicate, and unknown option values", () => {
 
 test("CLI preserves endpoint validation errors before transport", () => {
   for (const endpoint of [
+    "not a url",
     "http://example.com",
     "https://example.com?source=dogfood",
+    "https://example.com#dogfood",
     "https://user:password@example.com",
   ]) {
     const result = runCli(["route", "--file", "examples/route-request.json", "--endpoint", endpoint]);

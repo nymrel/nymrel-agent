@@ -4,8 +4,8 @@ All notable product changes are documented here.
 
 ## 0.1.2 — 2026-08-26
 
-- Preserved local endpoint-policy validation errors instead of misclassifying them as remote transport outages.
-- Added regression coverage for insecure, query-bearing, and credential-bearing hosted endpoint URLs.
+- Preserved local endpoint-policy validation errors instead of misclassifying them as remote transport outages or internal failures.
+- Added regression coverage for malformed, insecure, query-bearing, fragment-bearing, and credential-bearing hosted endpoint URLs.
 
 ## 0.1.1 — 2026-08-26
 

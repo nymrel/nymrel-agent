@@ -53,7 +53,9 @@ function printJson(value: unknown): void {
 }
 
 function endpointUrl(value: string): string {
-  const url = new URL(value);
+  let url: URL;
+  try { url = new URL(value); }
+  catch { throw new NymrelError("endpoint_invalid", "The endpoint must be a valid URL.", 64); }
   const local = isLoopbackHostname(url.hostname);
   if (url.username || url.password || url.search || url.hash || (url.protocol !== "https:" && !(local && url.protocol === "http:"))) {
     throw new NymrelError("endpoint_invalid", "The endpoint must use HTTPS (or HTTP localhost) and contain no credentials, query, or fragment.", 64);

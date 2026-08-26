@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (relative) => readFileSync(path.join(root, relative), "utf8");
 const json = (relative) => JSON.parse(read(relative));
 const required = [
-  "README.md", "LICENSE", "SECURITY.md", "CHANGELOG.md", "CONTRIBUTING.md", "AGENTS.md",
+  "README.md", "LICENSE", "SECURITY.md", "CHANGELOG.md", "CONTRIBUTING.md", "AGENTS.md", ".gitattributes",
   "authz-allowlist.json", "wrangler.jsonc", "vercel.json", ".vercelignore", "server.ts", "homepage.json", "tsconfig.package.json", "public/index.html", "public/docs.html", "public/demo.js", "public/sitemap.xml", "public/og-image.svg", "public/og-image.png", "public/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt",
   "public/downloads/nymrel-agent-0.1.0.tgz", "public/downloads/nymrel-agent-v0.1.0-source.tar.gz", "public/downloads/v0.1.0.json",
   "public/downloads/nymrel-agent-0.1.1.tgz", "public/downloads/nymrel-agent-v0.1.1-source.tar.gz", "public/downloads/v0.1.1.json",
@@ -86,14 +86,18 @@ for (const historical of [
   {
     version: "0.1.1",
     sourceCommit: "c3eb03691d986ea1cb98970a90c755ccdbc0d983",
-    package: "nymrel-agent-0.1.1.tgz",
-    source: "nymrel-agent-v0.1.1-source.tar.gz",
+    artifacts: {
+      package: { filename: "nymrel-agent-0.1.1.tgz", bytes: 42701, sha256: "5f01a74f8a172e36b9b084abdaedd96da8f6709e6b32edf948e0f34557f6e39f" },
+      source: { filename: "nymrel-agent-v0.1.1-source.tar.gz", bytes: 153423, sha256: "0e321667ac1d9ebbfdcba7e73eb97745b6f3f07c584c9588181efd959a993939" },
+    },
   },
   {
     version: "0.1.0",
     sourceCommit: "ad8a6cc19994026de7323b074ffba8a282ee4046",
-    package: "nymrel-agent-0.1.0.tgz",
-    source: "nymrel-agent-v0.1.0-source.tar.gz",
+    artifacts: {
+      package: { filename: "nymrel-agent-0.1.0.tgz", bytes: 42610, sha256: "41586801596b0f84d32fdf02049920bd6999f498b04d09ba21c3448981abe584" },
+      source: { filename: "nymrel-agent-v0.1.0-source.tar.gz", bytes: 85552, sha256: "d7d2d99f61d2ad59ea65c048662cfc7f50b6d7663abe0bb916f682d546eb19e2" },
+    },
   },
 ]) {
   const historicalReleaseManifest = json(`public/downloads/v${historical.version}.json`);
@@ -101,14 +105,18 @@ for (const historical of [
   assert.equal(historicalReleaseManifest.version, historical.version);
   assert.equal(historicalReleaseManifest.releaseSourceCommit, historical.sourceCommit);
   assert.equal(historicalReleaseManifest.license, packageJson.license);
-  for (const kind of ["package", "source"]) {
-    const filename = historical[kind];
-    const bytes = readFileSync(path.join(root, "public", "downloads", filename));
-    assert.equal(historicalReleaseManifest[kind].bytes, bytes.length, `${kind} v${historical.version} historical byte count drifted`);
-    assert.equal(historicalReleaseManifest[kind].sha256, createHash("sha256").update(bytes).digest("hex"), `${kind} v${historical.version} historical digest drifted`);
-    assert.equal(historicalReleaseManifest[kind].url, `${packageJson.homepage}/downloads/${filename}`);
+  for (const [kind, artifact] of Object.entries(historical.artifacts)) {
+    const bytes = readFileSync(path.join(root, "public", "downloads", artifact.filename));
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    assert.equal(bytes.length, artifact.bytes, `${kind} v${historical.version} immutable byte count drifted`);
+    assert.equal(sha256, artifact.sha256, `${kind} v${historical.version} immutable digest drifted`);
+    assert.equal(historicalReleaseManifest[kind].bytes, artifact.bytes, `${kind} v${historical.version} manifest byte count drifted`);
+    assert.equal(historicalReleaseManifest[kind].sha256, artifact.sha256, `${kind} v${historical.version} manifest digest drifted`);
+    assert.equal(historicalReleaseManifest[kind].url, `${packageJson.homepage}/downloads/${artifact.filename}`);
   }
 }
+
+assert.match(read(".gitattributes"), /^public\/downloads\/ export-ignore\r?$/m, "release archives must exclude hosted release artifacts");
 
 const sourceArchive = path.join(root, "public", "downloads", "nymrel-agent-v0.1.2-source.tar.gz");
 const archiveRoot = "nymrel-agent-0.1.2/";
