@@ -1,6 +1,6 @@
 # Nymrel Agent production launch packet
 
-Status: v0.1.3 carrier candidate passed the complete local gate; public v0.1.2 remains current until staged promotion; first independent-user verification pending
+Status: v0.1.3 is current in production at `https://nymrel-agent.vercel.app`; verified external use exists; first-user independence classification remains pending
 
 Owner: Codex launch lane under claim `codex-app-nymrel-agent-v013-carrier-20260826`
 
@@ -10,13 +10,20 @@ Public contract: `nymrel.agent.route/v1`
 
 Source branch: `codex/nymrel-agent-budget-normalization-20260826`
 
-## v0.1.3 carrier candidate — 2026-08-26
+## v0.1.3 production receipt — 2026-08-26
 
-- Accepted release source: `02963d50f0a5bb9f080bfec783aa8436e17a400d`; annotated local tag `v0.1.3` peels to that exact commit. Public tag and release publication remain pending.
-- Package artifact: 44,032 bytes with SHA-256 `66145b09576323f667c7f76e36bb91bd09f8d251a089355c5e458a867d676385`; source archive: 159,368 bytes with SHA-256 `55760fe1be6eeffac73de4bd734ea0dd434ec88b5a48a44669bb74a36471eb2c`. Each artifact reproduced byte-for-byte in a second build.
-- Product change: explicit cost and latency ceilings anchor their matching components; requests without a ceiling retain eligible-set normalization. The closed v1 response shape remains exact, while existing `decisionCodes` and `explanation` fields disclose the selected modes and bounds.
-- Source acceptance: separate security and package/runtime reviewers accepted the exact release-source SHA after the first candidate was rejected and replaced for closed-v1 compatibility and homepage-score parity.
-- Local carrier gate: both TypeScript configurations, 62 tests, historical artifact pins, source-archive safety, packed-install CLI and MCP probes, production dependency audit, Vercel source allowlist tests, and Cloudflare dry-run pass. Publication, staged Vercel proof, promotion, GitHub asset parity, and production-alias proof remain pending.
+- Accepted release source: `02963d50f0a5bb9f080bfec783aa8436e17a400d`; the public annotated tag `v0.1.3` peels to that exact commit. Accepted deployment carrier: `54eed0f8858aa6a0f3a4e2db4f7ada8371223d86`, tree `7c8f9041180f0aba16f847957da7e34f4952ea3b`, with the release source as its direct parent.
+- Public release: `https://github.com/Nymrel/nymrel-agent/releases/tag/v0.1.3`. GitHub `main`, tag, release metadata, and all three downloaded release assets were verified through unauthenticated public paths; the package, source archive, and manifest matched the accepted local bytes exactly.
+- Package artifact: 44,032 bytes with SHA-256 `66145b09576323f667c7f76e36bb91bd09f8d251a089355c5e458a867d676385`; source archive: 159,368 bytes with SHA-256 `55760fe1be6eeffac73de4bd734ea0dd434ec88b5a48a44669bb74a36471eb2c`; manifest: 571 bytes with SHA-256 `12539566efc3597e71934314a3bd69de090267790d9a9149e14b10029da45744`. The package and source archive each reproduced byte-for-byte in a second build.
+- Product change: explicit cost and latency ceilings now anchor their matching score components; requests without a ceiling retain eligible-set normalization. The closed v1 response shape remains exact, while existing `decisionCodes` and `explanation` fields disclose the selected modes and numeric bounds.
+- Independent acceptance: separate security and package/runtime reviewers accepted both the exact release-source SHA and the exact carrier SHA after the first source candidate was rejected and replaced for closed-v1 compatibility and homepage-score parity.
+- Local carrier gate: both TypeScript configurations, 62 tests, historical artifact pins, source-archive safety, packed-install CLI and MCP probes, production dependency audit with zero vulnerabilities, Vercel source allowlist tests, and Cloudflare dry-run passed.
+- Fail-closed stage: deployment `dpl_5XGBqF1Fq7iCcdXfS9kSGhHXqQdM` returned a blank runtime source commit and `/readyz` 503. It was never promoted, and the stable alias remained on v0.1.2.
+- Accepted stage and production deployment: `dpl_3WM4Byq4QKmVbyhZiqWjU1LKi7iC` at `https://nymrel-agent-jhjrx2hfg-jalens-projects-0ade4450.vercel.app`, deployed through the `verified_cli_bundle` contingency and promoted without a rebuild. Authenticated remote `main`, clean local `HEAD`, provider metadata, runtime health, readiness, and the authenticated 40-file upload inventory all bind the deployment carrier exactly.
+- Abuse protection: Vercel reports one enabled custom rule, `rule_nymrel_agent_route_sdk_wUzADh`, matching rate-limit API ID `nymrel-agent-route-v1`, fixed-window 120 requests per 60 seconds keyed by IP. No unpublished firewall changes remain.
+- Staged and production acceptance: all 26 Vercel-served public files matched reviewed bytes; the seven-route dynamic matrix and four negative request classes passed; the canonical route selected `provider-b/fast` with scores `8810` and `7373` and disclosed request-ceiling normalization. The production alias resolves to the accepted deployment and reports v0.1.3 with the exact carrier SHA.
+- Browser acceptance: desktop and 390x844 mobile runs completed the visible route, exposed the exact UTM feedback link only after success, produced zero console errors or warnings, stored no cookies/local storage/session storage, and showed no horizontal overflow.
+- External-use evidence: an identifiable external tester confirmed using the product with a real model list and independently reported the catalog-relative scoring defect that this patch closes. The private receipt is retained outside the public repository. First-user closeout remains pending confirmation that the tester has no ownership, employment, contract, or personal-favor relationship to Nymrel; the direct-message receipt does not prove the experiment's exact UTM attribution.
 - Experiment hold: this maintenance patch does not restart or extend the original September 8 stop-loss and does not convert solicited or studio use into independent first-user proof.
 
 ## Launch receipt — 2026-08-26
