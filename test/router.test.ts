@@ -57,6 +57,40 @@ test("quality and cost objectives produce explainably different winners", () => 
   assert.equal(route({ ...baseRequest, objective: "cost" }, [quality, economy]).selectedModelId, "economy");
 });
 
+test("explicit ceilings keep cost and latency scores stable when catalog membership changes", () => {
+  const request: RouteRequest = {
+    ...baseRequest,
+    constraints: { dataBoundary: "approved_provider", maxCostMicroUsd: 100_000, maxLatencyMs: 1_000 },
+  };
+  const lower = profile("lower", { estimatedCostMicroUsd: 20_000, estimatedLatencyMs: 200 });
+  const middle = profile("middle", { estimatedCostMicroUsd: 60_000, estimatedLatencyMs: 600 });
+  const upper = profile("upper", { estimatedCostMicroUsd: 90_000, estimatedLatencyMs: 900 });
+
+  const full = route(request, [lower, middle, upper]);
+  const reduced = route(request, [lower, middle]);
+  const fullById = new Map(full.eligible.map((candidate) => [candidate.modelId, candidate]));
+  const reducedById = new Map(reduced.eligible.map((candidate) => [candidate.modelId, candidate]));
+
+  assert.equal(fullById.get("lower")?.components.cost, 1_600);
+  assert.equal(fullById.get("lower")?.components.latency, 1_200);
+  assert.equal(fullById.get("middle")?.components.cost, 800);
+  assert.equal(fullById.get("middle")?.components.latency, 600);
+  assert.ok((fullById.get("middle")?.components.cost ?? 0) > 0);
+  assert.deepEqual(reducedById.get("lower")?.components, fullById.get("lower")?.components);
+  assert.deepEqual(reducedById.get("middle")?.components, fullById.get("middle")?.components);
+  assert.deepEqual(reduced.eligible.map((candidate) => candidate.modelId), ["lower", "middle"]);
+});
+
+test("zero ceilings give a fully compliant zero-cost zero-latency model full utility", () => {
+  const plan = route({
+    ...baseRequest,
+    constraints: { dataBoundary: "approved_provider", maxCostMicroUsd: 0, maxLatencyMs: 0 },
+  }, [profile("zero", { estimatedCostMicroUsd: 0, estimatedLatencyMs: 0 })]);
+
+  assert.equal(plan.eligible[0]?.components.cost, 2_000);
+  assert.equal(plan.eligible[0]?.components.latency, 1_500);
+});
+
 test("an incumbent receives a visible stickiness bonus", () => {
   const plan = route({ ...baseRequest, incumbentModelId: "z.model" }, [profile("a.model"), profile("z.model")]);
   assert.equal(plan.selectedModelId, "z.model");

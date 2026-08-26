@@ -103,8 +103,8 @@
         "type": "object", "additionalProperties": false, "required": ["dataBoundary"],
         "properties": {
           "dataBoundary": { "$ref": "#/components/schemas/DataBoundary" },
-          "maxCostMicroUsd": { "type": "integer", "minimum": 0, "maximum": 1000000000, "description": "Maximum estimated cost for one run, in millionths of a US dollar." },
-          "maxLatencyMs": { "type": "integer", "minimum": 0, "maximum": 600000 }
+          "maxCostMicroUsd": { "type": "integer", "minimum": 0, "maximum": 1000000000, "description": "Maximum estimated cost for one run, in millionths of a US dollar. When present, this ceiling also anchors the cost score component." },
+          "maxLatencyMs": { "type": "integer", "minimum": 0, "maximum": 600000, "description": "Maximum estimated latency for one run. When present, this ceiling also anchors the latency score component." }
         }
       },
       "RouteRequest": {

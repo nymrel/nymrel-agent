@@ -20,7 +20,7 @@
 
 ## Core operation
 
-POST /v1/route accepts exactly `request` and `models`. It filters models by health, risk class, data boundary, tool use, structured output, context size, modality, cost, and latency. Eligible models are ranked under `balanced`, `quality`, `cost`, or `latency` objectives. Responses include the selection, ranked candidates, rejected candidates, stable reason codes, score components, and a request ID.
+POST /v1/route accepts exactly `request` and `models`. It filters models by health, risk class, data boundary, tool use, structured output, context size, modality, cost, and latency. Eligible models are ranked under `balanced`, `quality`, `cost`, or `latency` objectives. An explicit cost or latency ceiling anchors its matching score component, preventing unrelated catalog changes from changing that component; an omitted ceiling uses eligible-set normalization. Responses include the selection, ranked candidates, rejected candidates, stable reason codes, score components, and a request ID.
 
 ## Important boundaries
 

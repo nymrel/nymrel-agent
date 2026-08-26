@@ -66,6 +66,11 @@ function relativeUtility(value: number, minimum: number, maximum: number): numbe
   return Math.round(((maximum - value) / (maximum - minimum)) * 10_000);
 }
 
+function ceilingUtility(value: number, maximum: number): number {
+  if (maximum === 0) return 10_000;
+  return Math.max(0, Math.min(10_000, Math.round(((maximum - value) / maximum) * 10_000)));
+}
+
 interface CandidateRange { readonly minCost: number; readonly maxCost: number; readonly minLatency: number; readonly maxLatency: number }
 
 function scoreCandidate(request: RouteRequest, profile: ModelProfile, range: CandidateRange): ScoredRouteCandidate {
@@ -73,8 +78,12 @@ function scoreCandidate(request: RouteRequest, profile: ModelProfile, range: Can
   const utility = {
     quality: profile.qualityScore * 100,
     reliability: profile.reliabilityBasisPoints,
-    cost: relativeUtility(profile.estimatedCostMicroUsd, range.minCost, range.maxCost),
-    latency: relativeUtility(profile.estimatedLatencyMs, range.minLatency, range.maxLatency),
+    cost: request.constraints.maxCostMicroUsd === undefined
+      ? relativeUtility(profile.estimatedCostMicroUsd, range.minCost, range.maxCost)
+      : ceilingUtility(profile.estimatedCostMicroUsd, request.constraints.maxCostMicroUsd),
+    latency: request.constraints.maxLatencyMs === undefined
+      ? relativeUtility(profile.estimatedLatencyMs, range.minLatency, range.maxLatency)
+      : ceilingUtility(profile.estimatedLatencyMs, request.constraints.maxLatencyMs),
     health: profile.health === "healthy" ? 10_000 : 4_000,
   };
   const components: RouteScoreComponents = {

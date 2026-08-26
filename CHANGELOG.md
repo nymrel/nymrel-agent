@@ -2,6 +2,10 @@
 
 All notable product changes are documented here.
 
+## Unreleased
+
+- Normalize cost and latency components against explicit caller ceilings when present, preventing unrelated catalog additions or removals from changing the remaining candidates' scores. Requests without a matching ceiling retain the documented eligible-set fallback.
+
 ## 0.1.2 — 2026-08-26
 
 - Preserved local endpoint-policy validation errors instead of misclassifying them as remote transport outages or internal failures.
