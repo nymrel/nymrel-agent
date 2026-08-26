@@ -70,7 +70,7 @@ assert.equal(openapi.servers?.[0]?.url, packageJson.homepage);
 const releaseManifest = json("public/downloads/v0.1.2.json");
 assert.equal(releaseManifest.schemaVersion, "nymrel.agent.release/v1");
 assert.equal(releaseManifest.version, packageJson.version);
-assert.equal(releaseManifest.releaseSourceCommit, "923da77356de289e9e59a400fb2af42602f9a33c");
+assert.equal(releaseManifest.releaseSourceCommit, "c960dc34523790a34497df3f2ac222d6f7a74894");
 assert.equal(releaseManifest.license, packageJson.license);
 for (const [kind, filename] of [
   ["package", "nymrel-agent-0.1.2.tgz"],
