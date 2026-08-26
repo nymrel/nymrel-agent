@@ -79,6 +79,19 @@ test("CLI rejects missing, duplicate, and unknown option values", () => {
   assert.equal(unknown.status, 64);
 });
 
+test("CLI preserves endpoint validation errors before transport", () => {
+  for (const endpoint of [
+    "http://example.com",
+    "https://example.com?source=dogfood",
+    "https://user:password@example.com",
+  ]) {
+    const result = runCli(["route", "--file", "examples/route-request.json", "--endpoint", endpoint]);
+    assert.equal(result.status, 64, `${endpoint}: ${result.stderr}`);
+    assert.match(result.stderr, /endpoint_invalid/);
+    assert.doesNotMatch(result.stderr, /endpoint_unavailable/);
+  }
+});
+
 test("CLI loopback transport policy rejects attacker-controlled 127-prefixed hosts", () => {
   assert.equal(isLoopbackHostname("localhost"), true);
   assert.equal(isLoopbackHostname("::1"), true);

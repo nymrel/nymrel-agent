@@ -2,6 +2,11 @@
 
 All notable product changes are documented here.
 
+## 0.1.2 — 2026-08-26
+
+- Preserved local endpoint-policy validation errors instead of misclassifying them as remote transport outages.
+- Added regression coverage for insecure, query-bearing, and credential-bearing hosted endpoint URLs.
+
 ## 0.1.1 — 2026-08-26
 
 - Moved package repository and issue metadata from the suspended personal mirror to the public Nymrel organization.

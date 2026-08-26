@@ -1,6 +1,6 @@
 {
   "name": "@nymrel/agent",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Explainable multi-model routing with a stateless API, local CLI, MCP server, and low-custody execution harness.",
   "type": "module",
   "license": "MIT",

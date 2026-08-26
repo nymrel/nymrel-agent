@@ -99,9 +99,10 @@ export async function boundedResponseBody(response: Response, maximum: number): 
 }
 
 async function remoteRoute(endpoint: string, payload: unknown): Promise<number> {
+  const url = endpointUrl(endpoint);
   let response: Response;
   try {
-    response = await fetch(endpointUrl(endpoint), {
+    response = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
