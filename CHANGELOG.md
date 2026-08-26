@@ -4,7 +4,7 @@ All notable product changes are documented here.
 
 ## 0.1.3 — 2026-08-26
 
-- Normalize cost and latency components against explicit caller ceilings when present, preventing unrelated catalog additions or removals from changing the remaining candidates' scores. Requests without a matching ceiling retain the documented eligible-set fallback, and route receipts now disclose each normalization mode and its numeric bounds.
+- Normalize cost and latency components against explicit caller ceilings when present, preventing unrelated catalog additions or removals from changing the remaining candidates' scores. Requests without a matching ceiling retain the documented eligible-set fallback. The unchanged v1 response shape discloses modes through `decisionCodes` and numeric bounds through `explanation`.
 
 ## 0.1.2 — 2026-08-26
 

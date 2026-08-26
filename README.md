@@ -37,7 +37,7 @@ Routing has two stages:
 1. Fail-closed eligibility filters reject incompatible profiles with stable reason codes.
 2. Eligible profiles receive visible, integer score components and a deterministic tie-break.
 
-The selected objective changes explicit weights. Explicit cost and latency ceilings also anchor their matching score components, so changing unrelated catalog membership cannot change an anchored component merely by moving the normalization range. When a ceiling is omitted, that component falls back to eligible-set normalization. Every route receipt reports the chosen mode and numeric bounds in `scoreNormalization`. Model quality, reliability, cost, latency, boundary, and capability facts are caller-supplied evidence; Nymrel Agent explains how it used them but does not certify them.
+The selected objective changes explicit weights. Explicit cost and latency ceilings also anchor their matching score components, so changing unrelated catalog membership cannot change an anchored component merely by moving the normalization range. When a ceiling is omitted, that component falls back to eligible-set normalization. Without changing the closed v1 response shape, each route receipt reports the chosen modes in `decisionCodes` and the numeric bounds in `explanation`. Model quality, reliability, cost, latency, boundary, and capability facts are caller-supplied evidence; Nymrel Agent explains how it used them but does not certify them.
 
 ## CLI
 

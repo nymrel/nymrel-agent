@@ -6,7 +6,6 @@ import {
   type RoutePlan,
   type RouteRequest,
   type RouteScoreComponents,
-  type RouteScoreNormalization,
   type ScoredRouteCandidate,
 } from "./contracts.js";
 import { compareCodeUnits } from "./ordering.js";
@@ -74,6 +73,12 @@ function ceilingUtility(value: number, maximum: number): number {
 
 interface CandidateRange { readonly minCost: number; readonly maxCost: number; readonly minLatency: number; readonly maxLatency: number }
 
+interface ScoreNormalizationBasis {
+  readonly mode: "request_ceiling" | "eligible_set_range";
+  readonly minimum: number;
+  readonly maximum: number;
+}
+
 function scoreCandidate(request: RouteRequest, profile: ModelProfile, range: CandidateRange): ScoredRouteCandidate {
   const weights = OBJECTIVE_WEIGHTS[request.objective];
   const utility = {
@@ -123,7 +128,7 @@ function routeValidated(request: RouteRequest, profiles: readonly ModelProfile[]
   const eligible = acceptedProfiles.map((profile) => scoreCandidate(request, profile, range));
   eligible.sort((a, b) => b.score - a.score || compareCodeUnits(a.modelId, b.modelId) || compareCodeUnits(a.providerId, b.providerId));
   const selected = eligible[0];
-  const scoreNormalization: RouteScoreNormalization = {
+  const scoreNormalization: { readonly cost: ScoreNormalizationBasis; readonly latency: ScoreNormalizationBasis } = {
     cost: request.constraints.maxCostMicroUsd === undefined
       ? { mode: "eligible_set_range", minimum: range.minCost, maximum: range.maxCost }
       : { mode: "request_ceiling", minimum: 0, maximum: request.constraints.maxCostMicroUsd },
@@ -132,7 +137,14 @@ function routeValidated(request: RouteRequest, profiles: readonly ModelProfile[]
       : { mode: "request_ceiling", minimum: 0, maximum: request.constraints.maxLatencyMs },
   };
   const decisionCodes = selected
-    ? [`objective_${request.objective}`, "eligible_candidates_ranked", "deterministic_tie_break", "model_selected"]
+    ? [
+        `objective_${request.objective}`,
+        `cost_normalized_to_${scoreNormalization.cost.mode}`,
+        `latency_normalized_to_${scoreNormalization.latency.mode}`,
+        "eligible_candidates_ranked",
+        "deterministic_tie_break",
+        "model_selected",
+      ]
     : ["no_eligible_model", "policy_blocked"];
 
   return {
@@ -140,12 +152,11 @@ function routeValidated(request: RouteRequest, profiles: readonly ModelProfile[]
     selectedModelId: selected?.modelId ?? null,
     selectedProviderId: selected?.providerId ?? null,
     objective: request.objective,
-    scoreNormalization,
     eligible,
     rejected,
     decisionCodes,
     explanation: selected
-      ? `Selected ${selected.modelId} from ${eligible.length} eligible model(s) for the ${request.objective} objective; ${rejected.length} model(s) were rejected by explicit constraints.`
+      ? `Selected ${selected.modelId} from ${eligible.length} eligible model(s) for the ${request.objective} objective; ${rejected.length} model(s) were rejected by explicit constraints. Cost normalization used ${scoreNormalization.cost.mode} bounds [${scoreNormalization.cost.minimum}, ${scoreNormalization.cost.maximum}] micro-USD; latency normalization used ${scoreNormalization.latency.mode} bounds [${scoreNormalization.latency.minimum}, ${scoreNormalization.latency.maximum}] ms.`
       : "No model satisfied the explicit health, risk, capability, data-boundary, cost, and latency constraints.",
   };
 }

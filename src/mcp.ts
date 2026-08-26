@@ -47,7 +47,8 @@ export function createNymrelMcpServer(): McpServer {
         scoring: {
           cost: "request_ceiling_when_present_else_eligible_set_range",
           latency: "request_ceiling_when_present_else_eligible_set_range",
-          receiptField: "scoreNormalization",
+          receiptModeField: "decisionCodes",
+          receiptBoundsField: "explanation",
         },
         publicService: "routing_metadata_only",
         localExecution: "read_only",

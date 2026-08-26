@@ -61,7 +61,8 @@ async function verifyLegacyHandshake(): Promise<void> {
     assert.deepEqual(contract.scoring, {
       cost: "request_ceiling_when_present_else_eligible_set_range",
       latency: "request_ceiling_when_present_else_eligible_set_range",
-      receiptField: "scoreNormalization",
+      receiptModeField: "decisionCodes",
+      receiptBoundsField: "explanation",
     });
     const payload = readFileSync("examples/route-request.json", "utf8");
     const called = await rpc.request("tools/call", { name: "route_models", arguments: { payload } });

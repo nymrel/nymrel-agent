@@ -71,11 +71,14 @@ test("explicit ceilings keep cost and latency scores stable when catalog members
   const fullById = new Map(full.eligible.map((candidate) => [candidate.modelId, candidate]));
   const reducedById = new Map(reduced.eligible.map((candidate) => [candidate.modelId, candidate]));
 
-  assert.deepEqual(full.scoreNormalization, {
-    cost: { mode: "request_ceiling", minimum: 0, maximum: 100_000 },
-    latency: { mode: "request_ceiling", minimum: 0, maximum: 1_000 },
-  });
-  assert.deepEqual(reduced.scoreNormalization, full.scoreNormalization);
+  assert.ok(full.decisionCodes.includes("cost_normalized_to_request_ceiling"));
+  assert.ok(full.decisionCodes.includes("latency_normalized_to_request_ceiling"));
+  assert.match(full.explanation, /Cost normalization used request_ceiling bounds \[0, 100000\] micro-USD/);
+  assert.match(full.explanation, /latency normalization used request_ceiling bounds \[0, 1000\] ms/);
+  assert.equal(
+    reduced.explanation.slice(reduced.explanation.indexOf("Cost normalization")),
+    full.explanation.slice(full.explanation.indexOf("Cost normalization")),
+  );
   assert.equal(fullById.get("lower")?.components.cost, 1_600);
   assert.equal(fullById.get("lower")?.components.latency, 1_200);
   assert.equal(fullById.get("middle")?.components.cost, 800);
@@ -96,16 +99,19 @@ test("zero ceilings give a fully compliant zero-cost zero-latency model full uti
   assert.equal(plan.eligible[0]?.components.latency, 1_500);
 });
 
-test("receipts disclose eligible-set fallback bounds when ceilings are omitted", () => {
+test("v1 receipts disclose eligible-set fallback modes and bounds without changing shape", () => {
   const plan = route(baseRequest, [
     profile("lower", { estimatedCostMicroUsd: 20_000, estimatedLatencyMs: 200 }),
     profile("upper", { estimatedCostMicroUsd: 90_000, estimatedLatencyMs: 900 }),
   ]);
 
-  assert.deepEqual(plan.scoreNormalization, {
-    cost: { mode: "eligible_set_range", minimum: 20_000, maximum: 90_000 },
-    latency: { mode: "eligible_set_range", minimum: 200, maximum: 900 },
-  });
+  assert.ok(plan.decisionCodes.includes("cost_normalized_to_eligible_set_range"));
+  assert.ok(plan.decisionCodes.includes("latency_normalized_to_eligible_set_range"));
+  assert.match(plan.explanation, /Cost normalization used eligible_set_range bounds \[20000, 90000\] micro-USD/);
+  assert.match(plan.explanation, /latency normalization used eligible_set_range bounds \[200, 900\] ms/);
+  assert.deepEqual(Object.keys(plan).sort(), [
+    "contractVersion", "decisionCodes", "eligible", "explanation", "objective", "rejected", "selectedModelId", "selectedProviderId",
+  ]);
 });
 
 test("an incumbent receives a visible stickiness bonus", () => {

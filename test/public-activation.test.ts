@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import type { PublicRoutePayload } from "../src/contracts.js";
+import { route } from "../src/router.js";
 
 const read = (relative: string) => readFileSync(relative, "utf8");
 
 test("the public activation path runs only the metadata example and exposes attributable feedback", () => {
   const homepage = read("public/index.html");
   const script = read("public/demo.js");
+  const mirror = JSON.parse(read("homepage.json")) as { html?: string };
+  const fixture = JSON.parse(read("examples/route-request.json")) as PublicRoutePayload;
+  const plan = route(fixture.request, fixture.models);
 
   assert.match(homepage, /data-live-demo/);
   assert.match(homepage, /data-run-demo/);
@@ -23,6 +28,13 @@ test("the public activation path runs only the metadata example and exposes attr
   assert.doesNotMatch(homepage, /provider execution stays local|Execute locally|execute locally/);
   assert.match(homepage, /context_too_small · data_boundary_unsupported/);
   assert.match(homepage, /Need this fitted to your model stack/);
+  assert.equal(mirror.html, homepage, "homepage mirror must match the exact public HTML");
+  const rankedStart = homepage.indexOf("RANKED\n");
+  const rankedEnd = homepage.indexOf("\n\nTRADEOFF", rankedStart);
+  assert.ok(rankedStart >= 0 && rankedEnd > rankedStart, "homepage must expose a bounded ranked preview");
+  const visibleRanking = [...homepage.slice(rankedStart, rankedEnd).matchAll(/^\s+([\d,]+)\s+(\S+?)(?:\s+WINNER)?$/gm)]
+    .map((match) => ({ score: Number(match[1]!.replaceAll(",", "")), modelId: match[2]! }));
+  assert.deepEqual(visibleRanking, plan.eligible.map(({ score, modelId }) => ({ score, modelId })));
   const heroStart = homepage.indexOf('<section class="hero shell"');
   const heroEnd = homepage.indexOf("</section>", heroStart);
   const liveDemo = homepage.indexOf('id="live-demo"');

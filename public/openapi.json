@@ -165,38 +165,22 @@
         "type": "object", "additionalProperties": false, "required": ["modelId", "providerId", "score", "components"],
         "properties": { "modelId": { "type": "string" }, "providerId": { "type": "string" }, "score": { "type": "integer" }, "components": { "$ref": "#/components/schemas/ScoreComponents" } }
       },
-      "ScoreNormalizationBasis": {
-        "type": "object", "additionalProperties": false, "required": ["mode", "minimum", "maximum"],
-        "properties": {
-          "mode": { "type": "string", "enum": ["request_ceiling", "eligible_set_range"] },
-          "minimum": { "type": "integer", "minimum": 0 },
-          "maximum": { "type": "integer", "minimum": 0 }
-        }
-      },
-      "ScoreNormalization": {
-        "type": "object", "additionalProperties": false, "required": ["cost", "latency"],
-        "properties": {
-          "cost": { "$ref": "#/components/schemas/ScoreNormalizationBasis", "description": "Cost bounds in millionths of a US dollar." },
-          "latency": { "$ref": "#/components/schemas/ScoreNormalizationBasis", "description": "Latency bounds in milliseconds." }
-        }
-      },
       "RejectedCandidate": {
         "type": "object", "additionalProperties": false, "required": ["modelId", "providerId", "reasonCodes"],
         "properties": { "modelId": { "type": "string" }, "providerId": { "type": "string" }, "reasonCodes": { "type": "array", "items": { "type": "string" } } }
       },
       "RoutePlan": {
         "type": "object", "additionalProperties": false,
-        "required": ["contractVersion", "selectedModelId", "selectedProviderId", "objective", "scoreNormalization", "eligible", "rejected", "decisionCodes", "explanation"],
+        "required": ["contractVersion", "selectedModelId", "selectedProviderId", "objective", "eligible", "rejected", "decisionCodes", "explanation"],
         "properties": {
           "contractVersion": { "type": "string", "const": "nymrel.agent.route/v1" },
           "selectedModelId": { "type": ["string", "null"] },
           "selectedProviderId": { "type": ["string", "null"] },
           "objective": { "$ref": "#/components/schemas/Objective" },
-          "scoreNormalization": { "$ref": "#/components/schemas/ScoreNormalization" },
           "eligible": { "type": "array", "items": { "$ref": "#/components/schemas/EligibleCandidate" } },
           "rejected": { "type": "array", "items": { "$ref": "#/components/schemas/RejectedCandidate" } },
-          "decisionCodes": { "type": "array", "items": { "type": "string" } },
-          "explanation": { "type": "string" }
+          "decisionCodes": { "type": "array", "items": { "type": "string" }, "description": "Stable decision codes, including the cost and latency normalization modes used when a model is selected." },
+          "explanation": { "type": "string", "description": "Human-readable decision summary, including the exact cost and latency normalization bounds when scoring occurs." }
         }
       },
       "RouteResponse": {
