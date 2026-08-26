@@ -33,3 +33,4 @@ SECURITY.md
 authz-allowlist.json
 wrangler.jsonc
 /*.tgz
+.gitattributes
