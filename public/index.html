@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Nymrel Agent — explainable multi-model routing</title>
-  <meta name="description" content="Route work across models with explicit constraints, deterministic scoring, and no prompt custody. Use the free API, CLI, or MCP server.">
+  <title>Nymrel Agent — model routing for strict data boundaries</title>
+  <meta name="description" content="For teams using multiple model providers and strict data boundaries. See which model wins under your constraints, why the others do not, without sending prompts or provider credentials to Nymrel’s hosted router.">
   <link rel="canonical" href="https://nymrel-agent.vercel.app/">
   <meta property="og:title" content="Nymrel Agent">
-  <meta property="og:description" content="Explainable multi-model routing. Your catalog, your policies, your keys.">
+  <meta property="og:description" content="Nymrel’s hosted router receives routing metadata—not prompts, provider keys, or output bodies.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://nymrel-agent.vercel.app/">
   <meta property="og:image" content="https://nymrel-agent.vercel.app/og-image.png">
@@ -16,7 +16,7 @@
   <meta property="og:image:alt" content="Nymrel Agent — route with evidence">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Nymrel Agent">
-  <meta name="twitter:description" content="Explainable multi-model routing. Your catalog, your policies, your keys.">
+  <meta name="twitter:description" content="Nymrel’s hosted router receives routing metadata—not prompts, provider keys, or output bodies.">
   <meta name="twitter:image" content="https://nymrel-agent.vercel.app/og-image.png">
   <meta name="twitter:image:alt" content="Nymrel Agent — route with evidence">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -33,65 +33,67 @@
       <a href="/openapi.json">OpenAPI</a>
       <a href="/downloads/v0.1.2.json">Downloads</a>
       <a href="https://github.com/Nymrel/nymrel-agent">Source</a>
-      <a class="button small" href="https://nymrel.com/brief">Work with Nymrel</a>
+      <a class="button small" href="#live-demo" data-run-demo>Run example</a>
     </nav>
   </header>
 
   <main>
-    <section class="hero shell">
-      <p class="eyebrow">EXPLAINABLE MULTI-MODEL ROUTING</p>
-      <h1>Route with evidence.<br><span>Run where your keys already live.</span></h1>
-      <p class="lede">Nymrel Agent selects a model from your catalog using explicit health, risk, capability, data-boundary, cost, and latency constraints. The public router never receives prompts or provider credentials.</p>
-      <div class="actions">
-        <a class="button" href="#live-demo">Run the live example</a>
-        <a class="text-link" href="/docs#quickstart">Read the quickstart <span aria-hidden="true">→</span></a>
-        <a class="text-link" href="/downloads/nymrel-agent-v0.1.2-source.tar.gz">Download the v0.1.2 source <span aria-hidden="true">↓</span></a>
+    <section class="hero shell" aria-labelledby="hero-title">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">FOR MULTI-PROVIDER TEAMS</p>
+          <h1 id="hero-title">See which model wins under your constraints.<br><span>Keep prompts and keys out of the hosted router.</span></h1>
+          <p class="lede">For teams using multiple model providers and strict data boundaries. Send request constraints and caller-supplied catalog metadata; get a deterministic route plan with rejection reasons and a visible tradeoff. Use the customer-local harness when you want to call a configured provider.</p>
+          <div class="actions">
+            <a class="button" href="#live-demo" data-run-demo>Run the live route</a>
+            <a class="text-link" href="/docs#quickstart">Use the API, CLI, or MCP <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+
+        <div class="terminal live-terminal hero-terminal" id="live-demo" data-live-demo data-state="idle" aria-label="Live routing example">
+          <div class="terminal-bar"><span></span><span></span><span></span><strong>route-decision.txt</strong></div>
+          <div class="terminal-controls">
+            <div>
+              <p class="terminal-kicker">LIVE ROUTE · METADATA ONLY</p>
+              <p data-demo-status aria-live="polite">This exact request is ready to run against the public router.</p>
+            </div>
+            <button class="button demo-run" type="button" data-run-demo>Run this route</button>
+          </div>
+          <pre><code data-demo-output>REQUEST
+  workspace_write · tool_use · structured_output
+  ≥32k context · approved_provider · ≤50,000 µUSD · ≤10,000ms
+
+REJECTED  local/text-small
+  context_too_small · data_boundary_unsupported
+  risk_class_unsupported · tool_use_unsupported
+
+RANKED
+  9,425  provider-b/fast             WINNER
+  6,183  provider-a/reasoning-large
+
+TRADEOFF · CALLER-SUPPLIED CATALOG EVIDENCE
+  8 fewer catalog quality points for 30,000 µUSD lower catalog cost,
+  3,300ms lower catalog latency, and 90 bp higher catalog reliability.</code></pre>
+          <div class="terminal-result-actions">
+            <span class="terminal-boundary">Quality, reliability, cost, and latency are caller-supplied catalog facts—not Nymrel benchmarks. No prompt, provider key, or output body is sent to Nymrel’s hosted router.</span>
+            <button class="terminal-link" type="button" data-copy-demo hidden>Copy result</button>
+            <a class="terminal-link" data-demo-feedback hidden href="https://nymrel.com/brief?utm_source=nymrel-agent&amp;utm_medium=product&amp;utm_campaign=nymrel-agent-first-user">I used this — send feedback <span aria-hidden="true">→</span></a>
+          </div>
+          <noscript><p class="terminal-noscript">JavaScript is disabled. Use the <a href="/docs#quickstart">curl quickstart</a> to run the same public example.</p></noscript>
+        </div>
       </div>
       <div class="proof-row" aria-label="Product boundaries">
         <span>No account</span><span>No prompt custody</span><span>Deterministic result</span><span>Open contract</span>
       </div>
     </section>
 
-    <section class="demo shell" aria-labelledby="demo-title">
-      <div class="demo-copy">
-        <p class="eyebrow">ONE CORE, THREE SURFACES</p>
-        <h2 id="demo-title">Start with an API call.<br>Keep the same decision everywhere.</h2>
-        <p>The hosted endpoint routes metadata only. The CLI can route locally. The MCP server lets compatible agents ask Nymrel Agent for the same explainable decision.</p>
-        <ul class="check-list">
-          <li>Every rejected model carries stable reason codes.</li>
-          <li>Equal scores break deterministically by model and provider ID.</li>
-          <li>Your quality and reliability inputs remain your evidence—not our marketing claims.</li>
-        </ul>
-      </div>
-      <div class="terminal live-terminal" id="live-demo" data-live-demo data-state="idle" aria-label="Live routing example">
-        <div class="terminal-bar"><span></span><span></span><span></span><strong>live-route.json</strong></div>
-        <div class="terminal-controls">
-          <div>
-            <p class="terminal-kicker">ZERO-ACCOUNT PUBLIC ROUTE</p>
-            <p data-demo-status aria-live="polite">Run the published metadata example against the live router.</p>
-          </div>
-          <button class="button demo-run" type="button" data-run-demo>Run example</button>
-        </div>
-        <pre><code data-demo-output>{
-  "ready": true,
-  "input": "/examples/route-request.json",
-  "endpoint": "/v1/route"
-}</code></pre>
-        <div class="terminal-result-actions">
-          <button class="terminal-link" type="button" data-copy-demo hidden>Copy result</button>
-          <a class="terminal-link" data-demo-feedback hidden href="https://nymrel.com/brief?utm_source=nymrel-agent&amp;utm_medium=product&amp;utm_campaign=nymrel-agent-first-user">I used this — send feedback <span aria-hidden="true">→</span></a>
-        </div>
-        <noscript><p class="terminal-noscript">JavaScript is disabled. Use the <a href="/docs#quickstart">curl quickstart</a> to run the same public example.</p></noscript>
-      </div>
-    </section>
-
     <section class="section shell" aria-labelledby="why-title">
-      <p class="eyebrow">DESIGNED FOR OPERATORS</p>
-      <h2 id="why-title">A router you can disagree with.</h2>
+      <p class="eyebrow">BUILT FOR MULTI-PROVIDER TEAMS</p>
+      <h2 id="why-title">A routing decision your team can inspect.</h2>
       <div class="card-grid">
         <article><p class="eyebrow">01</p><h3>Constraints before scores</h3><p>Models that violate risk, boundary, modality, context, cost, or latency requirements are rejected before ranking.</p></article>
         <article><p class="eyebrow">02</p><h3>Visible tradeoffs</h3><p>Choose balanced, quality, cost, or latency. Component scores show exactly why the winner moved.</p></article>
-        <article><p class="eyebrow">03</p><h3>Low-custody by default</h3><p>The hosted service accepts routing metadata only. Optional live execution runs locally with your own provider account.</p></article>
+        <article><p class="eyebrow">03</p><h3>Low-custody by default</h3><p>The hosted service accepts routing metadata only. The optional customer-local harness makes provider calls in your environment with your provider account.</p></article>
         <article><p class="eyebrow">04</p><h3>Receipts without bodies</h3><p>Local runs produce correlation digests, events, route facts, and usage without placing task or output text in receipts.</p></article>
       </div>
     </section>
@@ -105,12 +107,12 @@
 
     <section class="service shell" aria-labelledby="service-title">
       <div>
-        <p class="eyebrow">NYMREL IMPLEMENTATION SERVICE</p>
-        <h2 id="service-title">Need the router fitted to a real model stack?</h2>
+        <p class="eyebrow">OPTIONAL IMPLEMENTATION HELP</p>
+        <h2 id="service-title">Need this fitted to your model stack?</h2>
       </div>
       <div>
-        <p>We configure evidence-backed model catalogs, routing policies, evals, local provider adapters, and operational receipts around your workflow. Scope and pricing are provided on request.</p>
-        <a class="button dark" href="https://nymrel.com/brief">Start a brief</a>
+        <p>Nymrel can configure your catalog, routing policy, evals, local adapters, and body-free receipts. Scope and pricing are provided on request.</p>
+        <a class="text-link" href="https://nymrel.com/brief">Tell us about your setup <span aria-hidden="true">→</span></a>
       </div>
     </section>
   </main>
