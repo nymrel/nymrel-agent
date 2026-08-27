@@ -4,7 +4,7 @@
 
 - Council decision: `council-20260826-61ff97ca` — cross-family `APPROVE` with conditions.
 - Principal owner: Jalen, under the direct 2026-08-25 operator instruction to continue through the first verified user.
-- Execution owner: Codex App, claim `codex-app-nymrel-agent-v013-carrier-20260826`.
+- Execution owner: Codex App; release claim `codex-app-nymrel-agent-v013-carrier-20260826` is complete, and the sanitized first-user classification is recorded under claim `codex-app-nymrel-agent-first-user-closeout-20260826`.
 - Product boundary: the public router remains stateless and metadata-only. This campaign adds no accounts, customer-data store, request telemetry, hosted model execution, credentials, billing, or autonomous side effects.
 
 ## Qualifying first-user proof
@@ -18,6 +18,8 @@ A qualifying first user is one person or organization with no ownership, employm
 Internal agents, operator or studio accounts, CI runners, crawlers, mirrors, synthetic probes, uptime checks, load tests, and favor-installs do not count. Downloads, visits, clones, and unattributed route calls are diagnostic signals only. One qualifying receipt proves a first user, not product-market fit.
 
 The private receipt retains the minimum identity and contact evidence needed to verify independence. Public closeout material must redact personal data and link only to a public artifact when the user published it themselves or gave permission.
+
+Status: **ACHIEVED on 2026-08-26.** This proves one operator-recruited independent user and useful product feedback. It does not prove organic acquisition, a campaign conversion, a testimonial, product-market fit, or a repeatable distribution channel.
 
 ## Finite activation experiment
 
@@ -35,8 +37,8 @@ The private receipt retains the minimum identity and contact evidence needed to 
 - An identifiable external tester confirmed using Nymrel Agent against a real model list and receiving different selections for different tasks.
 - The tester independently identified that v0.1.2 normalized cost within the eligible catalog, so the most expensive eligible model received zero cost utility and removing a model could re-rank the rest. That report directly produced the v0.1.3 correction.
 - The private, user-authored receipt satisfies real-use and attributable-confirmation evidence. It is not copied into the public repository and contains no prompt, project, provider credential, or customer-content payload.
-- First-user closeout remains pending one relationship fact: whether the tester has any ownership, employment, contract, or personal-favor relationship to Nymrel. Until that is confirmed absent, the receipt is classified as verified external use rather than qualifying independent first-user proof.
-- The direct-message receipt does not demonstrate the exact product-feedback UTM tuple, so the owned-surface activation experiment remains open under its original September 8 stop-loss.
+- The operator confirmed that the tester has no connection to Nymrel; the only prior context was interaction with Jalen on X. Combined with the verified real use and user-authored direct-message receipt, that closes the global first-independent-user milestone.
+- The direct-message receipt does not demonstrate the exact product-feedback UTM tuple, so Growth Experiment #3 remains open with zero qualifying product-attributed receipts under its original September 8 stop-loss.
 
 ## Buyer and offer map
 

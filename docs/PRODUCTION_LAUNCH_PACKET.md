@@ -1,6 +1,6 @@
 # Nymrel Agent production launch packet
 
-Status: v0.1.3 is current in production at `https://nymrel-agent.vercel.app`; verified external use exists; first-user independence classification remains pending
+Status: v0.1.3 is current in production at `https://nymrel-agent.vercel.app`; the first independent user was verified on 2026-08-26; Growth Experiment #3 remains open pending its exact product-attribution receipt
 
 Owner: Codex launch lane under claim `codex-app-nymrel-agent-v013-carrier-20260826`
 
@@ -23,8 +23,8 @@ Source branch: `codex/nymrel-agent-budget-normalization-20260826`
 - Abuse protection: Vercel reports one enabled custom rule, `rule_nymrel_agent_route_sdk_wUzADh`, matching rate-limit API ID `nymrel-agent-route-v1`, fixed-window 120 requests per 60 seconds keyed by IP. No unpublished firewall changes remain.
 - Staged and production acceptance: all 26 Vercel-served public files matched reviewed bytes; the seven-route dynamic matrix and four negative request classes passed; the canonical route selected `provider-b/fast` with scores `8810` and `7373` and disclosed request-ceiling normalization. The production alias resolves to the accepted deployment and reports v0.1.3 with the exact carrier SHA.
 - Browser acceptance: desktop and 390x844 mobile runs completed the visible route, exposed the exact UTM feedback link only after success, produced zero console errors or warnings, stored no cookies/local storage/session storage, and showed no horizontal overflow.
-- External-use evidence: an identifiable external tester confirmed using the product with a real model list and independently reported the catalog-relative scoring defect that this patch closes. The private receipt is retained outside the public repository. First-user closeout remains pending confirmation that the tester has no ownership, employment, contract, or personal-favor relationship to Nymrel; the direct-message receipt does not prove the experiment's exact UTM attribution.
-- Experiment hold: this maintenance patch does not restart or extend the original September 8 stop-loss and does not convert solicited or studio use into independent first-user proof.
+- First-independent-user evidence: an identifiable external tester confirmed using the product with a real model list and independently reported the catalog-relative scoring defect that this patch closes. The operator confirmed the tester has no connection to Nymrel and that their only prior context was interaction with Jalen on X. The private identity and user-authored receipt remain outside the public repository. This closes the global first-independent-user milestone, but the direct-message receipt does not prove Growth Experiment #3's exact product UTM attribution.
+- Experiment hold: the product-attributed experiment remains open with zero qualifying receipts through its original September 8 stop-loss. The independent-user proof is not claimed as organic acquisition, a campaign conversion, a testimonial, product-market fit, or a repeatable distribution channel.
 
 ## Launch receipt — 2026-08-26
 
@@ -39,7 +39,7 @@ Source branch: `codex/nymrel-agent-budget-normalization-20260826`
 - Public-byte dogfood: a fresh project installed the package downloaded from production, produced one plan across 20 repeated routes, matched local and hosted plans, rejected five unsafe endpoint classes with exit 64 before transport, emitted a body-free demo receipt, and completed MCP 2026-07-28 discovery, tool listing, and `route_models` invocation.
 - Discovery status: the prior v0.1.1 IndexNow acknowledgment remains a historical submission receipt only. No v0.1.2 crawl, index, rank, citation, traffic, or recommendation claim is made.
 - CI status: the pinned public workflow remains present, but GitHub returned `Actions has been disabled for this user` when manual dispatch was attempted. No GitHub Actions pass is claimed until both configured Node jobs pass for an exact public commit.
-- Adoption status: no independent external user is claimed until an identifiable non-studio person or organization intentionally uses the product or workflow and that use is human-verifiable.
+- Adoption status: one identifiable independent external user is verified as of 2026-08-26 through intentional use against a real model list and a human-verifiable user-authored receipt. The identity and private message remain unpublished, and no broader adoption claim is made.
 
 ## Decision
 
