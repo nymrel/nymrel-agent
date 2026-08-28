@@ -1,21 +1,29 @@
 # Nymrel Agent production launch packet
 
-Status: v0.2.0 remains current in production at `https://nymrel-agent.vercel.app`; v0.3.0 Job Mode has an independently accepted release-source commit and reproducible local carrier artifacts but is not yet published, deployed, or promoted
+Status: v0.2.0 remains current in production at `https://nymrel-agent.vercel.app`; v0.3.0 Job Mode is published on GitHub but its staged deployment was not promoted after the mobile browser gate found documentation overflow; v0.3.1 has independently accepted patch source and reproducible local artifacts but no accepted carrier, public release, deployment, or promotion yet
 
-Owner: Codex Job Mode release-integration lane under claim `codex-nymrel-agent-job-mode-20260828`
+Owner: Codex Job Mode patch release-integration lane under claim `codex-nymrel-agent-job-mode-v031-source-20260828`
 
-Target release: `0.3.0`
+Target release: `0.3.1`
 
 Public contracts: `nymrel.agent.route/v1` and opt-in `nymrel.agent.route/v2`
 
-Source branch: `codex/nymrel-agent-job-mode-20260828`
+Source branch: `codex/nymrel-agent-job-mode-v031-20260828`
 
-## v0.3.0 local carrier-preparation receipt — 2026-08-28
+## v0.3.1 local carrier-preparation receipt — 2026-08-28
+
+- Independently accepted patch source: `efcc9482ed0a7add39e2f7946564d5aa1f9d57f0`. Separate runtime and security/custody reviews confirmed the direct-child patch changes only mobile documentation CSS, version surfaces, the changelog, and regression assertions. Job Mode, receipts, routing, MCP, provider adapters, authorization, and custody boundaries remain unchanged.
+- Mobile fix: the single-column documentation grid now uses `minmax(0, 1fr)`, `.prose` may shrink, and long inline code tokens wrap without clipping or changing the existing scrollable `<pre>` behavior. An independent local Playwright check at 390x844 measured document and body scroll widths of exactly 390 pixels.
+- Reproducible artifacts: package `nymrel-agent-0.3.1.tgz` is 54,227 bytes with SHA-256 `974b6b27036c09d680405100fdd1d2a8e4a93b507f4627e8108e2de2f2be4332`; source archive `nymrel-agent-v0.3.1-source.tar.gz` is 182,934 bytes with SHA-256 `fad20538ef62ab42196bd78ced700e6752573a7e5b987e97f5e71a4f27274fc7`; manifest `v0.3.1.json` is 571 bytes with SHA-256 `b2b18236dc87bfeb10e7484c6ab2837b960a0c38a0696d5505367f2917b87003`.
+- Release hold: these local artifacts are not publication or deployment proof. The exact carrier must pass canonical verification, artifact reproduction, independent carrier acceptance, GitHub exact-byte publication, and a new staged browser/source/runtime gate before production promotion.
+
+## v0.3.0 public release and held staging receipt — 2026-08-28
 
 - Independently accepted release source: `4357722ae581203e9a560a777979d07ad8257de6`. The source review passed type checking, all 83 tests, candidate packed-install CLI/MCP/Job Mode probes, a Cloudflare deployment dry-run, npm audit with zero reported vulnerabilities, and committed-tree checks.
 - Product change: additive local plan-only Job Mode accepts a bounded body-free ordered manifest, reuses the v2 router for each step, emits a body-free correlation receipt, and labels non-read steps as external handoffs. It does not schedule, persist, resume, call a provider, execute a tool, or widen the hosted API or MCP surface.
 - Reproducible artifacts: package `nymrel-agent-0.3.0.tgz` is 54,070 bytes with SHA-256 `b86d8ba19fa753585be344b1f5b7bf10b6d9fb17dbe2308c8eb7feb67c3b1785`; source archive `nymrel-agent-v0.3.0-source.tar.gz` is 181,502 bytes with SHA-256 `84a1e6275c9a98ad323f0bf4eff3debba75c9c0308d3cf0a5b44c08304c7a3b8`; manifest `v0.3.0.json` is 571 bytes with SHA-256 `59afa6910d2ca5dc284bd97818facdd861cdd9454a67748d41cd0953c4e6ebe6`. A second local build reproduced both binary artifacts byte-for-byte.
-- Release hold: these local bytes are not a publication or deployment receipt. The carrier commit still requires full canonical verification and independent exact-SHA acceptance before remote `main`, tag, GitHub release assets, staging, or production promotion.
+- Public release: canonical GitHub `main` reached carrier `4e0eef5b67dde8ed3785327e96eb86a63666ea9d`; annotated tag `v0.3.0` peels to the accepted source; `https://github.com/nymrel/nymrel-agent/releases/tag/v0.3.0` serves all three reviewed assets with GitHub-reported sizes and SHA-256 digests matching the local manifest.
+- Held stage: verified CLI deployment `dpl_CH2tSuzKM4guMnUVLQgpoGDtsc1H` at `https://nymrel-agent-3pp78x1rq-jalens-projects-0ade4450.vercel.app` bound carrier `4e0eef5b67dde8ed3785327e96eb86a63666ea9d`, passed the authenticated 49-file inventory, health, readiness, both route contracts, prompt non-echo, and 32 contracted exact public-file checks. The homepage passed 1440x1000 and 390x844 browser checks, but `/docs` measured a 605-pixel scroll width at a 390-pixel viewport. The stage was never promoted; `nymrel-agent.vercel.app` remained on ready v0.2.0 throughout.
 
 ## v0.2.0 production receipt — 2026-08-28
 
@@ -184,7 +192,7 @@ Every registered dynamic route is checked against the production alias:
 
 | Method | Path | Expected proof |
 | --- | --- | --- |
-| GET | `/healthz` | 200 JSON; version `0.3.0`; `sourceCommit` equals the accepted `deploymentSourceCommit` |
+| GET | `/healthz` | 200 JSON; version `0.3.1`; `sourceCommit` equals the accepted `deploymentSourceCommit` |
 | GET | `/readyz` | 200 JSON; routing enabled; source SHA bound; WAF `platform_ready`; scope `deployment` |
 | GET | `/v1` | 200 JSON; unchanged contract `nymrel.agent.route/v1`; route and OpenAPI links |
 | GET | `/v1/openapi.json` | 200 JSON; OpenAPI `3.1.0` |
@@ -205,8 +213,8 @@ Negative checks cover malformed `Content-Length`, invalid JSON, unknown prompt f
 
 Source and install checks:
 
-- `releaseSourceCommit` must equal `4357722ae581203e9a560a777979d07ad8257de6`, the v0.3.0 package and source release. The public Vercel release manifest must bind that commit to the canonical package (54,070 bytes, SHA-256 `b86d8ba19fa753585be344b1f5b7bf10b6d9fb17dbe2308c8eb7feb67c3b1785`), source archive (181,502 bytes, SHA-256 `84a1e6275c9a98ad323f0bf4eff3debba75c9c0308d3cf0a5b44c08304c7a3b8`), and manifest (571 bytes, SHA-256 `59afa6910d2ca5dc284bd97818facdd861cdd9454a67748d41cd0953c4e6ebe6`). The public GitHub tag must peel to the same source, and all three downloaded GitHub release assets must match the manifest or their recorded exact bytes. No source-immutability badge is claimed unless the provider reports one.
-- `deploymentSourceCommit` identifies the accepted hosting carrier. The v0.3.0 source archive contains the product, hosted activation source, and release tooling from `releaseSourceCommit`, while the committed export boundary excludes `public/downloads/` and prevents recursive archive inclusion. The later carrier adds the generated v0.3.0 artifacts and switches customer-facing download pointers without changing the accepted v1 or v2 route contracts. At deployment time, provider metadata, authenticated remote `main`, clean local `HEAD`, the uploaded-source inventory, `/healthz`, and `/readyz` must all bind the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
+- `releaseSourceCommit` must equal `efcc9482ed0a7add39e2f7946564d5aa1f9d57f0`, the v0.3.1 package and source release. The public Vercel release manifest must bind that commit to the canonical package (54,227 bytes, SHA-256 `974b6b27036c09d680405100fdd1d2a8e4a93b507f4627e8108e2de2f2be4332`), source archive (182,934 bytes, SHA-256 `fad20538ef62ab42196bd78ced700e6752573a7e5b987e97f5e71a4f27274fc7`), and manifest (571 bytes, SHA-256 `b2b18236dc87bfeb10e7484c6ab2837b960a0c38a0696d5505367f2917b87003`). The public GitHub tag must peel to the same source, and all three downloaded GitHub release assets must match the manifest or their recorded exact bytes. No source-immutability badge is claimed unless the provider reports one.
+- `deploymentSourceCommit` identifies the accepted hosting carrier. The v0.3.1 source archive contains the product, hosted activation source, and release tooling from `releaseSourceCommit`, while the committed export boundary excludes `public/downloads/` and prevents recursive archive inclusion. The later carrier adds the generated v0.3.1 artifacts and switches customer-facing download pointers without changing the accepted v1 or v2 route contracts. At deployment time, provider metadata, authenticated remote `main`, clean local `HEAD`, the uploaded-source inventory, `/healthz`, and `/readyz` must all bind the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
 - Vercel inspection identifies the exact organization, project, deployment, source mode, and `deploymentSourceCommit`. `provider_git` requires the connected repository and provider `gitSource`; `verified_cli_bundle` requires authenticated remote `main`, local `HEAD`, provider metadata, runtime probes, and the accepted hosting commit to agree, plus an exact allowlist and SHA-1 proof for every uploaded source file.
 - An unauthenticated download and install from the Vercel-hosted package passes the public quickstart; the Vercel-hosted source archive expands to the recorded release source.
 - The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass the Windows packed-install gate. The public repository carries the pinned Linux/Windows GitHub Actions workflow, but no public CI proof is claimed while the provider-level Actions gate remains closed.
