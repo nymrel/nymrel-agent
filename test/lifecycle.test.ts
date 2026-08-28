@@ -84,6 +84,25 @@ test("lifecycle detects state and receipt tampering even after state hash recomp
   assert.throws(() => parseLifecycleState(rehashTerminal(ordinalForgery)), /integrity check failed/);
 });
 
+test("lifecycle binds retained idempotency input hashes to their signed receipts", () => {
+  const first = checkpointJobLifecycle(state(), checkpoint());
+  const checkpointForge = structuredClone(first.state) as unknown as Record<string, unknown>;
+  ((checkpointForge.checkpointHistory as Array<{ inputSha256: string }>)[0]!).inputSha256 = "b".repeat(64);
+  assert.throws(() => parseLifecycleState(rehash(checkpointForge)), (error: unknown) => {
+    assert.match(String(error), /integrity check failed/);
+    assert.doesNotMatch(String(error), /b{64}/);
+    return true;
+  });
+  const terminalState = completeJobLifecycle(first.state, terminal({ status: "failed", reasonCode: "execution_error", validationStatus: "not_run" }));
+  const terminalForge = structuredClone(terminalState.state) as unknown as Record<string, unknown>;
+  (terminalForge.terminal as { inputSha256: string }).inputSha256 = "b".repeat(64);
+  assert.throws(() => parseLifecycleState(rehash(terminalForge)), (error: unknown) => {
+    assert.match(String(error), /integrity check failed/);
+    assert.doesNotMatch(String(error), /b{64}/);
+    return true;
+  });
+});
+
 test("lifecycle rejects receipt transplants, oversized history, secret fields, and ordinal regression", () => {
   const first = checkpointJobLifecycle(state(), checkpoint());
   const otherManifest = structuredClone(manifest) as { jobId: string };
