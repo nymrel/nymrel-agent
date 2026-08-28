@@ -8,6 +8,8 @@ import {
   ACTIVE_RELEASE_FILES,
   ACTIVE_RELEASE_VERSION,
   CANONICAL_ORIGIN,
+  hasCanonicalVercelContextProbe,
+  hasCanonicalVerifiedCliBundleBlock,
   LEGACY_MIRROR_ORIGIN,
   PUBLIC_ROUTE_MATRIX,
   PUBLIC_STATIC_MATRIX,
@@ -368,15 +370,15 @@ const onboarding = read("docs/ONBOARDING.md");
 for (const requiredOnboardingText of [
   CANONICAL_ORIGIN,
   "legacy-jalenbuildshub",
-  "VERCEL_GIT_COMMIT_SHA",
-  "--project nymrel-agent",
-  "--skip-domain",
   "releaseSourceCommit",
   "deploymentSourceCommit",
   "private handoff",
 ]) {
   assert.ok(onboarding.includes(requiredOnboardingText), `onboarding is missing release-boundary instruction: ${requiredOnboardingText}`);
 }
+assert.ok(hasCanonicalVercelContextProbe(onboarding), "onboarding must contain the exact read-only Vercel context probe commands");
+assert.ok(hasCanonicalVerifiedCliBundleBlock(onboarding), "onboarding must contain the exact verified CLI-bundle command block");
+assert.ok(hasCanonicalVerifiedCliBundleBlock(launchPacket), "production launch packet must contain the exact verified CLI-bundle command block");
 for (const route of PUBLIC_ROUTE_MATRIX) {
   assert.ok(launchPacket.includes(`| ${route.method} | \`${route.path}\` |`), `production launch packet omits reviewed route matrix entry: ${route.method} ${route.path}`);
 }
@@ -404,8 +406,8 @@ for (const requiredLaunchHold of [
   "06a4a89f36bbe6b4ae4858a48a7c770c1b3780d235e0cd9036cdbfc1fab5244b",
   "29fc8b59a828fd7ef168dc388cb821a27b6afc2a3bcb221e94d1d23a63377727",
   "separate security and package/runtime reviewers accepted both the exact release-source SHA and the exact carrier SHA",
-  "VERCEL_GIT_COMMIT_SHA",
-  "verified_cli_bundle",
+  "In `provider_git` mode, require Vercel's provider-supplied `VERCEL_GIT_COMMIT_SHA` and `gitSource` to agree with the carrier.",
+  "In `verified_cli_bundle` mode, `--env` is the explicit runtime input and `--meta githubCommitSha` is metadata only;",
 ]) {
   assert.ok(launchPacket.includes(requiredLaunchHold), `production launch packet is missing staged-promotion hold: ${requiredLaunchHold}`);
 }

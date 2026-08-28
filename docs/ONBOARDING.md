@@ -47,7 +47,7 @@ This read-only context probe is safe when authenticated; it must not be replaced
 
 ```powershell
 npx vercel project inspect nymrel-agent
-npx vercel ls --project nymrel-agent
+npx vercel list nymrel-agent --limit 1 --format json
 ```
 
 The project is `nymrel-agent`. Do **not** pass the personal account as `--scope`; that scope form has errored. `--project nymrel-agent` selects the known project.
@@ -56,15 +56,14 @@ The project is `nymrel-agent`. Do **not** pass the personal account as `--scope`
 
 `verified_cli_bundle` is a contingency source mode, not permission to deploy an arbitrary local directory. It requires a clean checkout of authenticated canonical `main`, exact uploaded-file hashes, provider metadata, the runtime source SHA, health/readiness, and a separately reviewed carrier verdict.
 
-For a future staged CLI bundle, bind the carrier SHA explicitly before the command and preserve it through Vercel metadata and the runtime probe:
+For a future staged CLI bundle, pass the carrier SHA to the deployment runtime explicitly and preserve the same value in Vercel metadata. The local shell assignment alone does **not** bind the deployed runtime. In `provider_git` mode, Vercel supplies `VERCEL_GIT_COMMIT_SHA` from the connected Git source; in `verified_cli_bundle` mode, `--env` is the explicit runtime input and `--meta githubCommitSha` is separately checked deployment metadata.
 
 ```powershell
 $carrier = git rev-parse HEAD
-$env:VERCEL_GIT_COMMIT_SHA = $carrier
-npx vercel deploy --prod --skip-domain --project nymrel-agent --meta githubCommitSha=$carrier
+npx vercel deploy --prod --skip-domain --project nymrel-agent --env "VERCEL_GIT_COMMIT_SHA=$carrier" --meta "githubCommitSha=$carrier"
 ```
 
-`--skip-domain` prevents automatic stable-domain assignment during staging. It does **not** prove, change, or promote the stable alias. The stable alias is `nymrel-agent.vercel.app` and changes only through the recorded staged-promotion/rollback gate.
+`--skip-domain` prevents automatic stable-domain assignment during staging. It does **not** prove, change, or promote the stable alias. The stable alias is `nymrel-agent.vercel.app` and changes only through the recorded staged-promotion/rollback gate. Before any promotion, require the runtime `/healthz` source value and provider metadata to both equal `$carrier`; if either is absent or different, stop rather than treating the CLI environment input as proof.
 
 ## First safe task
 

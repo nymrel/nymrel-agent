@@ -86,3 +86,23 @@ export const PUBLIC_STATIC_MATRIX = Object.freeze([
   "/og-image.svg",
   "/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt",
 ]);
+
+export const VERCEL_READ_ONLY_CONTEXT_PROBE = Object.freeze([
+  "npx vercel project inspect nymrel-agent",
+  "npx vercel list nymrel-agent --limit 1 --format json",
+]);
+
+export const VERIFIED_CLI_BUNDLE_BLOCK = Object.freeze([
+  "```powershell",
+  "$carrier = git rev-parse HEAD",
+  "npx vercel deploy --prod --skip-domain --project nymrel-agent --env \"VERCEL_GIT_COMMIT_SHA=$carrier\" --meta \"githubCommitSha=$carrier\"",
+  "```",
+].join("\n"));
+
+export function hasCanonicalVercelContextProbe(document) {
+  return VERCEL_READ_ONLY_CONTEXT_PROBE.every((command) => document.includes(command));
+}
+
+export function hasCanonicalVerifiedCliBundleBlock(document) {
+  return document.includes(VERIFIED_CLI_BUNDLE_BLOCK);
+}
