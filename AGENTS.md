@@ -8,6 +8,10 @@ This repository is the Nymrel-owned composition root for the Nymrel Agent produc
 - Read-only local provider adapters that obtain credentials from environment-variable names in customer-owned configuration.
 - Release packaging, public source publication, and deployment through the recorded production launch packet.
 
+## Five-minute release orientation
+
+Before any release, deployment, or public-claim work, read [`docs/ONBOARDING.md`](docs/ONBOARDING.md) and run its fail-before-work origin check. The only authoritative remote is `https://github.com/Nymrel/nymrel-agent.git`; `legacy-jalenbuildshub` is a retained historical reference and is never a release or deployment authority. Do not continue if the check fails.
+
 ## Non-negotiable boundaries
 
 - Never commit, print, transmit to the public router, or place in receipts any provider credential, prompt, task body, output body, customer data, or private studio artifact.
@@ -26,4 +30,4 @@ npm pack --dry-run
 git diff --check
 ```
 
-Production claims require an exact-commit independent review, a deployed health/readiness/API probe, and a rollback path. Provider, npm, DNS, billing, legal-acceptance, secret, and customer-data steps retain their recorded principal gates.
+Production claims require separate exact-SHA independent verdicts for the release source and deployment carrier, a deployed health/readiness/API probe, and a rollback path. Provider, npm, DNS, billing, legal-acceptance, secret, and customer-data steps retain their recorded principal gates.

@@ -14,53 +14,22 @@ type InventoryNode = {
 
 const root = process.cwd();
 const verifier = path.join(root, "scripts", "verify-vercel-source.mjs");
-const sourceFiles = [
-  ".vercelignore",
-  "homepage.json",
-  "package-lock.json",
-  "package.json",
-  "public/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt",
-  "public/404.html",
-  "public/demo.js",
-  "public/docs.html",
-  "public/downloads/nymrel-agent-0.1.0.tgz",
-  "public/downloads/nymrel-agent-v0.1.0-source.tar.gz",
-  "public/downloads/v0.1.0.json",
-  "public/downloads/nymrel-agent-0.1.1.tgz",
-  "public/downloads/nymrel-agent-v0.1.1-source.tar.gz",
-  "public/downloads/v0.1.1.json",
-  "public/downloads/nymrel-agent-0.1.2.tgz",
-  "public/downloads/nymrel-agent-v0.1.2-source.tar.gz",
-  "public/downloads/v0.1.2.json",
-  "public/downloads/nymrel-agent-0.1.3.tgz",
-  "public/downloads/nymrel-agent-v0.1.3-source.tar.gz",
-  "public/downloads/v0.1.3.json",
+const registryLoad = spawnSync(process.execPath, [
+  "--input-type=module",
+  "--eval",
+  "import { VERCEL_SOURCE_FILES } from './scripts/release-public-registry.mjs'; process.stdout.write(JSON.stringify(VERCEL_SOURCE_FILES));",
+], { cwd: root, encoding: "utf8" });
+assert.equal(registryLoad.status, 0, registryLoad.stderr);
+const sourceFiles = JSON.parse(registryLoad.stdout) as string[];
+assert.ok(sourceFiles.includes("public/examples/route-request.json"), "registry must include the v1 public fixture");
+assert.ok(sourceFiles.includes("public/examples/route-request-v2.json"), "registry must include the v2 public fixture");
+for (const artifact of [
   "public/downloads/nymrel-agent-0.2.0.tgz",
   "public/downloads/nymrel-agent-v0.2.0-source.tar.gz",
   "public/downloads/v0.2.0.json",
-  "public/examples/route-request.json",
-  "public/examples/route-request-v2.json",
-  "public/favicon.svg",
-  "public/index.html",
-  "public/llms.txt",
-  "public/openapi.json",
-  "public/og-image.png",
-  "public/og-image.svg",
-  "public/robots.txt",
-  "public/sitemap.xml",
-  "public/styles.css",
-  "scripts/clean.mjs",
-  "server.ts",
-  "src/contracts.ts",
-  "src/errors.ts",
-  "src/ordering.ts",
-  "src/router.ts",
-  "src/scoring.ts",
-  "src/validation.ts",
-  "src/worker.ts",
-  "tsconfig.json",
-  "vercel.json",
-];
+]) {
+  assert.ok(sourceFiles.includes(artifact), `registry must include active release artifact: ${artifact}`);
+}
 
 function exactInventory(): InventoryNode[] {
   const sourceRoot: InventoryNode = { name: "src", type: "directory", children: [] };

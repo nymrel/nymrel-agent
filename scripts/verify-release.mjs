@@ -4,6 +4,16 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  ACTIVE_RELEASE_FILES,
+  ACTIVE_RELEASE_VERSION,
+  CANONICAL_ORIGIN,
+  LEGACY_MIRROR_ORIGIN,
+  PUBLIC_ROUTE_MATRIX,
+  PUBLIC_STATIC_MATRIX,
+  RELEASE_ARCHIVE_FILES,
+  VERCEL_SOURCE_FILES,
+} from "./release-public-registry.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (relative) => readFileSync(path.join(root, relative), "utf8");
@@ -17,19 +27,28 @@ const required = [
   "public/downloads/nymrel-agent-0.1.3.tgz", "public/downloads/nymrel-agent-v0.1.3-source.tar.gz", "public/downloads/v0.1.3.json",
   "public/downloads/nymrel-agent-0.2.0.tgz", "public/downloads/nymrel-agent-v0.2.0-source.tar.gz", "public/downloads/v0.2.0.json",
   "public/openapi.json", "public/llms.txt", "examples/route-request.json", "examples/route-request-v2.json", "public/examples/route-request-v2.json",
-  "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md", "docs/FIRST_USER_ACTIVATION.md",
+  "examples/openai-local-config.example.json", "docs/ONBOARDING.md", "docs/PRODUCTION_LAUNCH_PACKET.md", "docs/FIRST_USER_ACTIVATION.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
   "src/bin/nymrel-agent.ts", "src/bin/nymrel-agent-mcp.ts", "scripts/verify-packed-install.mjs",
-  "scripts/verify-vercel-source.mjs",
+  "scripts/release-public-registry.mjs", "scripts/verify-vercel-source.mjs",
   "src/url-security.ts",
   ".github/workflows/ci.yml",
 ];
 for (const relative of required) assert.ok(existsSync(path.join(root, relative)), `missing release file: ${relative}`);
 
+const origin = execFileSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" }).trim();
+assert.equal(origin, CANONICAL_ORIGIN, "release verification must run from the canonical Nymrel origin");
+const remotes = execFileSync("git", ["remote"], { cwd: root, encoding: "utf8" }).split(/\r?\n/).filter(Boolean);
+if (remotes.includes("legacy-jalenbuildshub")) {
+  const legacyOrigin = execFileSync("git", ["remote", "get-url", "legacy-jalenbuildshub"], { cwd: root, encoding: "utf8" }).trim();
+  assert.equal(legacyOrigin, LEGACY_MIRROR_ORIGIN, "legacy remote must remain an explicitly named historical mirror");
+}
+
 const packageJson = json("package.json");
 const packageLock = json("package-lock.json");
 assert.equal(packageJson.name, "@nymrel/agent");
 assert.match(packageJson.version, /^\d+\.\d+\.\d+$/);
+assert.equal(packageJson.version, ACTIVE_RELEASE_VERSION, "active release registry version drifted");
 assert.notEqual(packageJson.private, true);
 assert.equal(packageJson.license, "MIT");
 assert.equal(packageJson.publishConfig?.access, "public");
@@ -51,6 +70,7 @@ assert.equal(packageJson.dependencies?.zod, "4.4.3");
 const contracts = read("src/contracts.ts");
 assert.ok(contracts.includes(`PRODUCT_VERSION = "${packageJson.version}"`), "source product version must match package version");
 assert.ok(contracts.includes('CONTRACT_VERSION = "nymrel.agent.route/v1"'), "stable route contract is missing");
+assert.ok(contracts.includes('CONTRACT_VERSION_V2 = "nymrel.agent.route/v2"'), "active v2 route contract is missing");
 
 assert.equal(read("examples/route-request.json"), read("public/examples/route-request.json"), "source and hosted examples drifted");
 assert.equal(read("examples/route-request-v2.json"), read("public/examples/route-request-v2.json"), "source and hosted v2 examples drifted");
@@ -78,14 +98,23 @@ assert.equal(openapi.components?.schemas?.ModelProfile?.additionalProperties, fa
 assert.equal(openapi.components?.schemas?.RoutePayloadV2?.additionalProperties, false);
 assert.equal(openapi.servers?.[0]?.url, packageJson.homepage);
 
-const releaseManifest = json("public/downloads/v0.2.0.json");
+assert.deepEqual(ACTIVE_RELEASE_FILES, [
+  "public/downloads/nymrel-agent-0.2.0.tgz",
+  "public/downloads/nymrel-agent-v0.2.0-source.tar.gz",
+  "public/downloads/v0.2.0.json",
+], "active release registry must contain the full 0.2.0 artifact set");
+assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/route-request.json"), "Vercel registry omits the v1 example");
+assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/route-request-v2.json"), "Vercel registry omits the v2 example");
+for (const relative of RELEASE_ARCHIVE_FILES) assert.ok(VERCEL_SOURCE_FILES.includes(relative), `Vercel registry omits release artifact: ${relative}`);
+
+const releaseManifest = json(`public/downloads/v${ACTIVE_RELEASE_VERSION}.json`);
 assert.equal(releaseManifest.schemaVersion, "nymrel.agent.release/v1");
 assert.equal(releaseManifest.version, packageJson.version);
 assert.equal(releaseManifest.releaseSourceCommit, "c5850361b19f72315b22bbe2794530d9415897ff");
 assert.equal(releaseManifest.license, packageJson.license);
 for (const [kind, filename] of [
-  ["package", "nymrel-agent-0.2.0.tgz"],
-  ["source", "nymrel-agent-v0.2.0-source.tar.gz"],
+  ["package", `nymrel-agent-${ACTIVE_RELEASE_VERSION}.tgz`],
+  ["source", `nymrel-agent-v${ACTIVE_RELEASE_VERSION}-source.tar.gz`],
 ]) {
   const bytes = readFileSync(path.join(root, "public", "downloads", filename));
   assert.equal(releaseManifest[kind].bytes, bytes.length, `${kind} release byte count drifted`);
@@ -145,8 +174,8 @@ for (const historical of [
 
 assert.match(read(".gitattributes"), /^public\/downloads\/ export-ignore\r?$/m, "release archives must exclude hosted release artifacts");
 
-const sourceArchive = path.join(root, "public", "downloads", "nymrel-agent-v0.2.0-source.tar.gz");
-const archiveRoot = "nymrel-agent-0.2.0/";
+const sourceArchive = path.join(root, "public", "downloads", `nymrel-agent-v${ACTIVE_RELEASE_VERSION}-source.tar.gz`);
+const archiveRoot = `nymrel-agent-${ACTIVE_RELEASE_VERSION}/`;
 const archiveNames = execFileSync("tar", ["-tzf", sourceArchive], { encoding: "utf8" }).trimEnd().split(/\r?\n/);
 assert.ok(archiveNames.length > 1, "source archive is empty");
 assert.equal(archiveNames[0], archiveRoot, "source archive must begin with one versioned root");
@@ -218,6 +247,15 @@ const cspHash = `sha256-${createHash("sha256").update(structuredData).digest("ba
 const workerModule = await import(`${pathToFileURL(path.join(root, "dist", "src", "worker.js")).href}?verify=${Date.now()}`);
 const expectedRoutes = [...workerModule.PUBLIC_ROUTES, ...workerModule.STATIC_ASSET_POLICY]
   .map((entry) => `${entry.method} ${entry.path}`).sort();
+assert.deepEqual(
+  workerModule.PUBLIC_ROUTES.map((entry) => `${entry.method} ${entry.path}`).sort(),
+  PUBLIC_ROUTE_MATRIX.map((entry) => `${entry.method} ${entry.path}`).sort(),
+  "active public v1/v2 route matrix drifted from the reviewed registry",
+);
+for (const publicPath of PUBLIC_STATIC_MATRIX) {
+  const relative = publicPath === "/" ? "public/index.html" : publicPath === "/docs" ? "public/docs.html" : `public${publicPath}`;
+  assert.ok(existsSync(path.join(root, relative)), `reviewed static matrix path is missing its source file: ${publicPath}`);
+}
 const authz = json("authz-allowlist.json");
 assert.equal(authz.defaultPolicy, "deny-unregistered-dynamic-route");
 assert.deepEqual(authz.guardedRoutes, []);
@@ -326,6 +364,25 @@ assert.doesNotMatch(ciWorkflow, /uses:\s+\S+@v\d+/i, "CI actions must use immuta
 assert.ok(ciWorkflow.includes("persist-credentials: false"), "CI checkout must not persist its token");
 
 const launchPacket = read("docs/PRODUCTION_LAUNCH_PACKET.md");
+const onboarding = read("docs/ONBOARDING.md");
+for (const requiredOnboardingText of [
+  CANONICAL_ORIGIN,
+  "legacy-jalenbuildshub",
+  "VERCEL_GIT_COMMIT_SHA",
+  "--project nymrel-agent",
+  "--skip-domain",
+  "releaseSourceCommit",
+  "deploymentSourceCommit",
+  "private handoff",
+]) {
+  assert.ok(onboarding.includes(requiredOnboardingText), `onboarding is missing release-boundary instruction: ${requiredOnboardingText}`);
+}
+for (const route of PUBLIC_ROUTE_MATRIX) {
+  assert.ok(launchPacket.includes(`| ${route.method} | \`${route.path}\` |`), `production launch packet omits reviewed route matrix entry: ${route.method} ${route.path}`);
+}
+for (const staticPath of PUBLIC_STATIC_MATRIX) {
+  assert.ok(launchPacket.includes(`\`${staticPath}\``), `production launch packet omits reviewed static matrix entry: ${staticPath}`);
+}
 for (const requiredLaunchHold of [
   "Auto-assign Custom Production Domains",
   "offline fallback remains `Current`",
@@ -346,6 +403,9 @@ for (const requiredLaunchHold of [
   "d0a31ea20fccc62496408ee9b52266749f1be81689fa0d8b782c13d8147327aa",
   "06a4a89f36bbe6b4ae4858a48a7c770c1b3780d235e0cd9036cdbfc1fab5244b",
   "29fc8b59a828fd7ef168dc388cb821a27b6afc2a3bcb221e94d1d23a63377727",
+  "separate security and package/runtime reviewers accepted both the exact release-source SHA and the exact carrier SHA",
+  "VERCEL_GIT_COMMIT_SHA",
+  "verified_cli_bundle",
 ]) {
   assert.ok(launchPacket.includes(requiredLaunchHold), `production launch packet is missing staged-promotion hold: ${requiredLaunchHold}`);
 }

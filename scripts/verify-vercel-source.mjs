@@ -3,55 +3,10 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { VERCEL_SOURCE_FILES } from "./release-public-registry.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const expectedFiles = [
-  ".vercelignore",
-  "homepage.json",
-  "package-lock.json",
-  "package.json",
-  "public/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt",
-  "public/404.html",
-  "public/demo.js",
-  "public/docs.html",
-  "public/downloads/nymrel-agent-0.1.0.tgz",
-  "public/downloads/nymrel-agent-v0.1.0-source.tar.gz",
-  "public/downloads/v0.1.0.json",
-  "public/downloads/nymrel-agent-0.1.1.tgz",
-  "public/downloads/nymrel-agent-v0.1.1-source.tar.gz",
-  "public/downloads/v0.1.1.json",
-  "public/downloads/nymrel-agent-0.1.2.tgz",
-  "public/downloads/nymrel-agent-v0.1.2-source.tar.gz",
-  "public/downloads/v0.1.2.json",
-  "public/downloads/nymrel-agent-0.1.3.tgz",
-  "public/downloads/nymrel-agent-v0.1.3-source.tar.gz",
-  "public/downloads/v0.1.3.json",
-  "public/downloads/nymrel-agent-0.2.0.tgz",
-  "public/downloads/nymrel-agent-v0.2.0-source.tar.gz",
-  "public/downloads/v0.2.0.json",
-  "public/examples/route-request.json",
-  "public/examples/route-request-v2.json",
-  "public/favicon.svg",
-  "public/index.html",
-  "public/llms.txt",
-  "public/openapi.json",
-  "public/og-image.png",
-  "public/og-image.svg",
-  "public/robots.txt",
-  "public/sitemap.xml",
-  "public/styles.css",
-  "scripts/clean.mjs",
-  "server.ts",
-  "src/contracts.ts",
-  "src/errors.ts",
-  "src/ordering.ts",
-  "src/router.ts",
-  "src/scoring.ts",
-  "src/validation.ts",
-  "src/worker.ts",
-  "tsconfig.json",
-  "vercel.json",
-].sort();
+const expectedFiles = VERCEL_SOURCE_FILES;
 
 let input = "";
 for await (const chunk of process.stdin) {

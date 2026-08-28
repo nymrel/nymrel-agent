@@ -130,6 +130,7 @@ Independent gate:
 
 - Review one immutable candidate commit with no concurrent writes.
 - Cover public contract, streamed bounds, hosted custody, local transport custody, provider response status, rate-limit scope, source binding, bins after packed installation, authorization register, package contents, claims, and rollback.
+- Record two independent verdicts before production status changes: one names the exact `releaseSourceCommit` SHA and verifies the release artifacts; the other names the exact `deploymentSourceCommit` SHA and verifies provider metadata, runtime `VERCEL_GIT_COMMIT_SHA`, uploaded inventory, and the route/static matrix. A single combined review or one SHA is insufficient.
 - Fix every accepted correctness, security, compatibility, or launch-truth finding and rerun review against the replacement commit.
 
 ## Pre-promotion gate
@@ -138,6 +139,16 @@ This sequence uses Vercel's documented [staged production deployment](https://ve
 
 1. Verify the public GitHub mirror and its exact refs. Provider Git is preferred only after the existing Vercel project is explicitly connected to that repository. Until that connection is proven, use only the `verified_cli_bundle` contingency below.
 2. Configure `ROUTING_API_ENABLED=false` for production, push the accepted commit to authenticated remote `main`, and publish the exact versioned source and package artifacts plus their digest manifest on the Vercel service. An ordinary local-directory deployment is not an eligible release source. The contingency is eligible only from a clean checkout of that exact remote commit when every uploaded source file and byte passes `scripts/verify-vercel-source.mjs` against Vercel's deployment inventory.
+
+   For a `verified_cli_bundle` stage, explicitly bind the hosting carrier before uploading. Use the project selector, not the personal-account `--scope` form (which errors in this account context):
+
+   ```powershell
+   $carrier = git rev-parse HEAD
+   $env:VERCEL_GIT_COMMIT_SHA = $carrier
+   npx vercel deploy --prod --skip-domain --project nymrel-agent --meta githubCommitSha=$carrier
+   ```
+
+   `--skip-domain` holds the stable alias away from the staged CLI deployment; it does not promote, prove, or mutate `nymrel-agent.vercel.app`. Require the runtime `VERCEL_GIT_COMMIT_SHA` to equal `$carrier` during the source-binding check below.
 3. Inspect the resulting fallback deployment. In `provider_git` mode, require provider `gitSource`, runtime `VERCEL_GIT_COMMIT_SHA`, `/healthz`, and the accepted commit to agree. In `verified_cli_bundle` mode, require remote `main`, local `HEAD`, provider `meta.githubCommitSha`, runtime `VERCEL_GIT_COMMIT_SHA`, and `/healthz` to agree; require `meta.gitDirty` to be absent or false; and pipe the authenticated deployment inventory through the exact-byte verifier:
 
 ```powershell
