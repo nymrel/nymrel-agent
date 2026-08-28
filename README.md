@@ -30,6 +30,14 @@ node dist/src/bin/nymrel-agent.js route --file examples/route-request.json
 node dist/src/bin/nymrel-agent.js route --contract-version v2 --file examples/route-request-v2.json
 ```
 
+Plan a multi-step workflow locally without sending task bodies or executing any provider:
+
+```bash
+node dist/src/bin/nymrel-agent.js job plan --file examples/job-48h-game-builder.json
+```
+
+Job Mode accepts only a bounded, body-free manifest with a shared model catalog and ordered v2 route requests. It makes deterministic selections for each step, emits a body-free correlation receipt, and marks any non-read step as an external handoff; it does not run the workflow. See [Job Mode](docs/JOB_MODE.md).
+
 Full documentation: <https://nymrel-agent.vercel.app/docs>
 
 OpenAPI 3.1: <https://nymrel-agent.vercel.app/openapi.json>
@@ -51,6 +59,7 @@ The opt-in v2 contract leaves v1 unchanged. Its required `normalization` object 
 
 ```text
 nymrel-agent route --file PAYLOAD.json [--contract-version v2] [--endpoint https://host]
+nymrel-agent job plan --file MANIFEST.json
 nymrel-agent models doctor [--config CONFIG.json]
 nymrel-agent run --config CONFIG.json (--task TEXT | --task-file FILE|-)
 nymrel-agent contract

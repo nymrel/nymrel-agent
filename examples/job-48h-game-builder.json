@@ -1,0 +1,94 @@
+{
+  "contractVersion": "nymrel.agent.job/v1",
+  "jobId": "game-builder-48h",
+  "models": [
+    {
+      "modelId": "provider-a/reasoning-large",
+      "providerId": "provider-a",
+      "health": "healthy",
+      "qualityScore": 92,
+      "reliabilityBasisPoints": 9850,
+      "estimatedCostMicroUsd": 42000,
+      "estimatedLatencyMs": 4200,
+      "dataBoundaries": ["approved_provider"],
+      "riskClasses": ["read", "workspace_write", "external_side_effect"],
+      "capabilities": { "toolUse": true, "structuredOutput": true, "contextTokens": 200000, "modalities": ["text"] }
+    },
+    {
+      "modelId": "provider-b/fast",
+      "providerId": "provider-b",
+      "health": "healthy",
+      "qualityScore": 84,
+      "reliabilityBasisPoints": 9940,
+      "estimatedCostMicroUsd": 12000,
+      "estimatedLatencyMs": 900,
+      "dataBoundaries": ["approved_provider"],
+      "riskClasses": ["read", "workspace_write"],
+      "capabilities": { "toolUse": true, "structuredOutput": true, "contextTokens": 128000, "modalities": ["text"] }
+    },
+    {
+      "modelId": "local/text-small",
+      "providerId": "local",
+      "health": "healthy",
+      "qualityScore": 68,
+      "reliabilityBasisPoints": 9700,
+      "estimatedCostMicroUsd": 0,
+      "estimatedLatencyMs": 300,
+      "dataBoundaries": ["local_only"],
+      "riskClasses": ["read"],
+      "capabilities": { "toolUse": false, "structuredOutput": true, "contextTokens": 16000, "modalities": ["text"] }
+    }
+  ],
+  "steps": [
+    {
+      "stepId": "research-scope",
+      "dependsOn": [],
+      "request": {
+        "phase": "research", "risk": "read", "objective": "quality",
+        "requirements": { "toolUse": false, "structuredOutput": true, "minContextTokens": 32000, "modalities": ["text"] },
+        "constraints": { "dataBoundary": "approved_provider", "maxCostMicroUsd": 50000, "maxLatencyMs": 10000 },
+        "normalization": { "basis": "request_budget", "costAnchorMicroUsd": 50000, "latencyAnchorMs": 10000 }
+      }
+    },
+    {
+      "stepId": "plan-slice",
+      "dependsOn": ["research-scope"],
+      "request": {
+        "phase": "plan", "risk": "read", "objective": "balanced",
+        "requirements": { "toolUse": false, "structuredOutput": true, "minContextTokens": 32000, "modalities": ["text"] },
+        "constraints": { "dataBoundary": "approved_provider", "maxCostMicroUsd": 50000, "maxLatencyMs": 10000 },
+        "normalization": { "basis": "request_budget", "costAnchorMicroUsd": 50000, "latencyAnchorMs": 10000 }
+      }
+    },
+    {
+      "stepId": "build-prototype",
+      "dependsOn": ["plan-slice"],
+      "request": {
+        "phase": "implement", "risk": "workspace_write", "objective": "balanced",
+        "requirements": { "toolUse": true, "structuredOutput": true, "minContextTokens": 32000, "modalities": ["text"] },
+        "constraints": { "dataBoundary": "approved_provider", "maxCostMicroUsd": 50000, "maxLatencyMs": 10000 },
+        "normalization": { "basis": "request_budget", "costAnchorMicroUsd": 50000, "latencyAnchorMs": 10000 }
+      }
+    },
+    {
+      "stepId": "review-build",
+      "dependsOn": ["build-prototype"],
+      "request": {
+        "phase": "review", "risk": "read", "objective": "quality",
+        "requirements": { "toolUse": false, "structuredOutput": true, "minContextTokens": 32000, "modalities": ["text"] },
+        "constraints": { "dataBoundary": "approved_provider", "maxCostMicroUsd": 50000, "maxLatencyMs": 10000 },
+        "normalization": { "basis": "request_budget", "costAnchorMicroUsd": 50000, "latencyAnchorMs": 10000 }
+      }
+    },
+    {
+      "stepId": "release-handoff",
+      "dependsOn": ["review-build"],
+      "request": {
+        "phase": "review", "risk": "external_side_effect", "objective": "quality",
+        "requirements": { "toolUse": false, "structuredOutput": true, "minContextTokens": 32000, "modalities": ["text"] },
+        "constraints": { "dataBoundary": "approved_provider", "maxCostMicroUsd": 50000, "maxLatencyMs": 10000 },
+        "normalization": { "basis": "request_budget", "costAnchorMicroUsd": 50000, "latencyAnchorMs": 10000 }
+      }
+    }
+  ]
+}

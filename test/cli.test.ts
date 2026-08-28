@@ -35,6 +35,31 @@ test("CLI defaults to v1 and requires an explicit v2 contract version", () => {
   assert.equal(invalidVersion.status, 64);
 });
 
+test("CLI produces a local-only Job Mode plan", () => {
+  const result = runCli(["job", "plan", "--file", "examples/job-48h-game-builder.json"]);
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout) as { ok: boolean; plan: { profile: string; status: string; summary: { externalHandoffRequiredSteps: number } }; receipt: { status: string } };
+  assert.equal(payload.ok, true);
+  assert.equal(payload.plan.profile, "plan-only");
+  assert.equal(payload.plan.status, "ready_with_handoffs");
+  assert.equal(payload.plan.summary.externalHandoffRequiredSteps, 2);
+  assert.equal(payload.receipt.status, "planned");
+});
+
+test("CLI rejects an oversized Job Mode manifest before parsing", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "nymrel-agent-job-"));
+  try {
+    const manifestPath = path.join(directory, "oversized.json");
+    writeFileSync(manifestPath, " ".repeat((256 * 1024) + 1), "utf8");
+    const result = runCli(["job", "plan", "--file", manifestPath]);
+    assert.equal(result.status, 65);
+    assert.match(result.stderr, /invalid_request/);
+    assert.doesNotMatch(result.stderr, new RegExp(manifestPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("CLI doctor and demo are offline and truthful", () => {
   const doctor = runCli(["models", "doctor"]);
   assert.equal(doctor.status, 0, doctor.stderr);

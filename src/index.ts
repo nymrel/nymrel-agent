@@ -3,6 +3,7 @@ export * from "./defaults.js";
 export * from "./doctor.js";
 export * from "./errors.js";
 export * from "./fake-provider.js";
+export * from "./job.js";
 export * from "./local-config.js";
 export * from "./openai-responses-provider.js";
 export * from "./ordering.js";

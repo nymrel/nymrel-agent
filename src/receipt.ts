@@ -1,5 +1,14 @@
 import { createHash } from "node:crypto";
-import { CONTRACT_VERSION, type RunEvent, type RunReceipt, type RunStatus } from "./contracts.js";
+import {
+  CONTRACT_VERSION,
+  JOB_CONTRACT_VERSION,
+  type JobManifest,
+  type JobPlan,
+  type JobPlanReceipt,
+  type RunEvent,
+  type RunReceipt,
+  type RunStatus,
+} from "./contracts.js";
 import { compareCodeUnits } from "./ordering.js";
 
 function normalize(value: unknown): unknown {
@@ -30,5 +39,34 @@ export function createRunReceipt(input: ReceiptInput): RunReceipt {
     selectedProviderId: input.selectedProviderId, reasonCodes: [...input.reasonCodes],
     usage: { inputTokens: input.inputTokens, outputTokens: input.outputTokens },
     startedAt: input.startedAt, endedAt: input.endedAt,
+  };
+}
+
+/**
+ * Build a body-free local correlation receipt. Digests are integrity handles,
+ * not encryption; callers should retain the manifest and full plan locally.
+ */
+export function createJobPlanReceipt(manifest: JobManifest, plan: JobPlan, createdAt = new Date().toISOString()): JobPlanReceipt {
+  return {
+    contractVersion: JOB_CONTRACT_VERSION,
+    receiptType: "job_plan",
+    profile: "plan-only",
+    status: plan.status === "blocked" ? "blocked" : "planned",
+    jobIdSha256: sha256Text(manifest.jobId),
+    manifestSha256: sha256Text(canonicalJson(manifest)),
+    planSha256: sha256Text(canonicalJson(plan)),
+    counts: {
+      totalSteps: plan.summary.totalSteps,
+      routableSteps: plan.summary.routableSteps,
+      blockedSteps: plan.summary.blockedSteps,
+    },
+    steps: plan.steps.map((step) => ({
+      ordinal: step.ordinal,
+      routePlanSha256: sha256Text(canonicalJson(step.routePlan)),
+      selectedModelId: step.routePlan.selectedModelId,
+      selectedProviderId: step.routePlan.selectedProviderId,
+    })),
+    reasonCodes: [...plan.decisionCodes],
+    createdAt,
   };
 }

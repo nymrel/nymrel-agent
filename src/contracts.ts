@@ -1,5 +1,6 @@
 export const CONTRACT_VERSION = "nymrel.agent.route/v1" as const;
 export const CONTRACT_VERSION_V2 = "nymrel.agent.route/v2" as const;
+export const JOB_CONTRACT_VERSION = "nymrel.agent.job/v1" as const;
 export const PRODUCT_VERSION = "0.2.0" as const;
 
 export type TaskPhase = "research" | "plan" | "implement" | "review";
@@ -133,6 +134,78 @@ export interface PublicRoutePayload {
 export interface PublicRoutePayloadV2 {
   readonly request: RouteRequestV2;
   readonly models: readonly ModelProfile[];
+}
+
+/** A prompt-free, local-only multi-step plan. It is never accepted by the hosted router. */
+export interface JobStep {
+  readonly stepId: string;
+  readonly dependsOn: readonly string[];
+  readonly request: RouteRequestV2;
+}
+
+export interface JobManifest {
+  readonly contractVersion: typeof JOB_CONTRACT_VERSION;
+  readonly jobId: string;
+  readonly models: readonly ModelProfile[];
+  readonly steps: readonly JobStep[];
+}
+
+export type JobPlanStatus = "ready" | "ready_with_handoffs" | "blocked";
+export type JobStepExecution = "local_read_only_eligible" | "external_handoff_required";
+
+export interface JobStepPlan {
+  readonly ordinal: number;
+  readonly stepId: string;
+  readonly dependsOn: readonly string[];
+  readonly phase: TaskPhase;
+  readonly executionDisposition: JobStepExecution;
+  readonly routePlan: RoutePlanV2;
+  readonly reasonCodes: readonly string[];
+}
+
+export interface JobPlan {
+  readonly contractVersion: typeof JOB_CONTRACT_VERSION;
+  readonly jobId: string;
+  readonly profile: "plan-only";
+  readonly status: JobPlanStatus;
+  readonly executionStatus: "not_started";
+  readonly steps: readonly JobStepPlan[];
+  readonly summary: {
+    readonly totalSteps: number;
+    readonly routableSteps: number;
+    readonly blockedSteps: number;
+    readonly localReadOnlyEligibleSteps: number;
+    readonly externalHandoffRequiredSteps: number;
+    readonly selectionsByModel: readonly {
+      readonly modelId: string;
+      readonly providerId: string;
+      readonly stepCount: number;
+    }[];
+  };
+  readonly decisionCodes: readonly string[];
+}
+
+export interface JobPlanReceipt {
+  readonly contractVersion: typeof JOB_CONTRACT_VERSION;
+  readonly receiptType: "job_plan";
+  readonly profile: "plan-only";
+  readonly status: "planned" | "blocked";
+  readonly jobIdSha256: string;
+  readonly manifestSha256: string;
+  readonly planSha256: string;
+  readonly counts: {
+    readonly totalSteps: number;
+    readonly routableSteps: number;
+    readonly blockedSteps: number;
+  };
+  readonly steps: readonly {
+    readonly ordinal: number;
+    readonly routePlanSha256: string;
+    readonly selectedModelId: string | null;
+    readonly selectedProviderId: string | null;
+  }[];
+  readonly reasonCodes: readonly string[];
+  readonly createdAt: string;
 }
 
 export interface PublicRouteResponse {

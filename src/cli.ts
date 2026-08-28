@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { CONTRACT_VERSION, CONTRACT_VERSION_V2, PRODUCT_VERSION } from "./contracts.js";
 import { createDefaultRouteRequest, createDemoRuntime } from "./defaults.js";
 import { NymrelError, publicError } from "./errors.js";
 import { createConfiguredAdapters, parseLocalAgentConfig } from "./local-config.js";
 import { route, routeV2 } from "./router.js";
 import { AgentRuntime } from "./runtime.js";
+import { parseJobManifest, planJob } from "./job.js";
+import { createJobPlanReceipt } from "./receipt.js";
 import { isLoopbackHostname } from "./url-security.js";
 import { parsePublicRoutePayload, parsePublicRoutePayloadV2 } from "./validation.js";
 
@@ -43,9 +45,21 @@ function parseJson(text: string, label: string): unknown {
   catch { throw new NymrelError("invalid_json", `${label} does not contain valid JSON.`, 65); }
 }
 
-function readText(path: string): string {
-  try { return readFileSync(path === "-" ? 0 : path, "utf8"); }
-  catch { throw new NymrelError("input_unreadable", `Could not read ${path === "-" ? "stdin" : "the requested file"}.`, 66); }
+function readText(path: string, maximumBytes?: number): string {
+  try {
+    if (maximumBytes !== undefined && path !== "-" && statSync(path).size > maximumBytes) {
+      throw new NymrelError("invalid_request", "The requested input exceeds the allowed size.", 65);
+    }
+    const text = readFileSync(path === "-" ? 0 : path, "utf8");
+    if (maximumBytes !== undefined && Buffer.byteLength(text, "utf8") > maximumBytes) {
+      throw new NymrelError("invalid_request", "The requested input exceeds the allowed size.", 65);
+    }
+    return text;
+  }
+  catch (caught) {
+    if (caught instanceof NymrelError) throw caught;
+    throw new NymrelError("input_unreadable", `Could not read ${path === "-" ? "stdin" : "the requested file"}.`, 66);
+  }
 }
 
 function printJson(value: unknown): void {
@@ -143,6 +157,7 @@ function help(): void {
   process.stdout.write(`Nymrel Agent ${PRODUCT_VERSION}\n\n` +
     "Usage:\n" +
     "  nymrel-agent route --file PAYLOAD.json [--contract-version v2] [--endpoint https://host]\n" +
+    "  nymrel-agent job plan --file MANIFEST.json\n" +
     "  nymrel-agent models doctor [--config CONFIG.json]\n" +
     "  nymrel-agent run --config CONFIG.json (--task TEXT | --task-file FILE|-) [--max-output-tokens N]\n" +
     "  nymrel-agent contract\n" +
@@ -178,6 +193,13 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
       : routeV2(payload.request, payload.models);
     printJson({ ok: true, requestId: "local", plan });
     return 0;
+  }
+  if (command === "job" && args[1] === "plan") {
+    validateOptions(args, 2, ["--file"]);
+    const manifest = parseJobManifest(parseJson(readText(requireFlag(args.slice(2), "--file"), 256 * 1024), "The job manifest"));
+    const plan = planJob(manifest);
+    printJson({ ok: true, plan, receipt: createJobPlanReceipt(manifest, plan) });
+    return plan.status === "blocked" ? 2 : 0;
   }
   if (command === "models" && args[1] === "doctor") {
     validateOptions(args, 2, ["--config"]);

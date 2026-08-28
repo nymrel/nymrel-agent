@@ -16,6 +16,7 @@ src/defaults.ts
 src/doctor.ts
 src/fake-provider.ts
 src/index.ts
+src/job.ts
 src/local-config.ts
 src/mcp.ts
 src/openai-responses-provider.ts
