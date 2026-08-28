@@ -281,6 +281,8 @@ for (const publicDocument of [indexHtml, docsHtml, llmsText]) {
   assert.equal(publicDocument.includes("github.com/JalenBuildsHub/nymrel-agent"), false, "public launch document links to the suspended personal-account mirror");
 }
 const publicLaunchDocuments = `${indexHtml}\n${docsHtml}\n${llmsText}`;
+assert.ok(docsHtml.includes("https://github.com/nymrel/nymrel-agent/releases/tag/v0.4.0"), "public docs must link the public active GitHub Release");
+assert.ok(docsHtml.includes("published assets match those values exactly"), "public docs must retain the active GitHub asset-integrity statement");
 for (const filename of ["nymrel-agent-0.4.0.tgz", "nymrel-agent-v0.4.0-source.tar.gz", "v0.4.0.json"]) {
   assert.ok(publicLaunchDocuments.includes(`/downloads/${filename}`), `public launch documents omit active artifact ${filename}`);
 }
@@ -450,6 +452,8 @@ for (const requiredLaunchHold of [
   "25c3c377986564afefe39ce039a8171401eaef71a0f4965fd5b0c423972bf6ae",
   "77a1e034b3c209db79442daaf4ead30adc782358d064e6f635c540fe64110fa4",
   "51475953ac447baa4b8cc0fb570a40540976267341fe363c539bb2f04d67e1e9",
+  "https://github.com/nymrel/nymrel-agent/releases/tag/v0.4.0",
+  "Public-asset proof: the GitHub Release package, source archive, and manifest match those approved byte counts and SHA-256 digests exactly.",
   "separate security and package/runtime reviewers accepted both the exact release-source SHA and the exact carrier SHA",
   "In `provider_git` mode, require Vercel's provider-supplied `VERCEL_GIT_COMMIT_SHA` and `gitSource` to agree with the carrier.",
   "In `verified_cli_bundle` mode, `--env` is the explicit runtime input and `--meta githubCommitSha` is metadata only;",
