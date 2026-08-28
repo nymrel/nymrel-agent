@@ -219,6 +219,28 @@ Source and install checks:
 - An unauthenticated download and install from the Vercel-hosted package passes the public quickstart; the Vercel-hosted source archive expands to the recorded release source.
 - The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass the Windows packed-install gate. The public repository carries the pinned Linux/Windows GitHub Actions workflow, but no public CI proof is claimed while the provider-level Actions gate remains closed.
 
+## v0.3.1 production receipt — 2026-08-28
+
+Status: **live and current** at `https://nymrel-agent.vercel.app`.
+
+- Release source: `efcc9482ed0a7add39e2f7946564d5aa1f9d57f0`; annotated tag `v0.3.1` peels to that commit.
+- Deployment carrier: `b0ad954a8b31570da3a860f5a1ca615c86f70402`; authenticated `origin/main` and the clean deployment checkout equaled that carrier at deployment time.
+- GitHub release: `https://github.com/Nymrel/nymrel-agent/releases/tag/v0.3.1`.
+- Package: `nymrel-agent-0.3.1.tgz`, 54,227 bytes, SHA-256 `974b6b27036c09d680405100fdd1d2a8e4a93b507f4627e8108e2de2f2be4332`.
+- Source archive: `nymrel-agent-v0.3.1-source.tar.gz`, 182,934 bytes, SHA-256 `fad20538ef62ab42196bd78ced700e6752573a7e5b987e97f5e71a4f27274fc7`.
+- Manifest: `v0.3.1.json`, 571 bytes, SHA-256 `b2b18236dc87bfeb10e7484c6ab2837b960a0c38a0696d5505367f2917b87003`.
+- Production deployment: `dpl_E4SWb4hgeVjJok14wsGptAkX5drJ`, immutable URL `https://nymrel-agent-be84tkaee-jalens-projects-0ade4450.vercel.app`.
+- Vercel binding: project `prj_1DFbyuPG9W0ZNOrgZTZ88R79L34F`, owner `team_MkEJAArMiAM6dAEnF96D5GLE`, `verified_cli_bundle`, exact carrier metadata and runtime SHA, `READY`, and 52 uploaded source files accepted by the authenticated exact-byte inventory verifier.
+- Rollback target captured before promotion: deployment `dpl_87a26L8xqx5KeGBS1JDsB8Nup8ia`, immutable URL `https://nymrel-agent-pb9mm63u7-jalens-projects-0ade4450.vercel.app`; it served v0.2.0 from source `7a0ccf87953d1ea7c8d95789dacba35c872b4970` before the alias move.
+- Independent verdicts: exact source, carrier, carrier security/custody, and staged provider acceptance all returned `APPROVE_PATCH_*` against the named immutable commits and deployment.
+- Local gates: typecheck, 83 tests, release verification, installed-tarball CLI/MCP probes, Cloudflare dry run, dependency audit with zero vulnerabilities, archive safety, and clean committed scope passed.
+- Staged and production route proof: all 10 registered dynamic route classes passed; the canonical v1/v2 fixtures selected `provider-b/fast`; v2 preserved both accepted Pareto-frontier members; prompt-bearing input failed without echo; wrong media returned 415; unknown route returned 404; method guards and preflight passed.
+- Staged and production static proof: 35 contracted public files matched the reviewed local bytes exactly; the active package is immutable-cacheable.
+- Browser proof on both staged and stable production URLs: 1440px and 390px homepage layouts had no page overflow; the live control returned `provider-b/fast` and exposed the feedback link; `/docs` stayed 390px wide while its code block retained internal horizontal scrolling; cookies, local storage, session storage, console errors, and console warnings were all empty.
+- v0.3.0 remains immutable published history but was never promoted: its staged browser gate found the mobile docs overflow. v0.3.1 superseded it by changing only the docs layout and matching release pointers/artifacts; routing, Job Mode, MCP, provider, receipt, API, and custody behavior stayed unchanged.
+
+This post-promotion documentation receipt is not the deployed source. Production continues to identify carrier `b0ad954a8b31570da3a860f5a1ca615c86f70402` through `/healthz` and `/readyz`. npm publication, custom-domain changes, Cloudflare production, hosted Job Mode execution, provider-key custody, write-capable tools, accounts, billing, and adoption claims remain outside this receipt.
+
 ## Rollback
 
 Before promotion, record:
