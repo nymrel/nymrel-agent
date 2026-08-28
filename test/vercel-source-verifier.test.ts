@@ -28,8 +28,11 @@ for (const artifact of [
   "public/downloads/nymrel-agent-0.2.0.tgz",
   "public/downloads/nymrel-agent-v0.2.0-source.tar.gz",
   "public/downloads/v0.2.0.json",
+  "public/downloads/nymrel-agent-0.3.0.tgz",
+  "public/downloads/nymrel-agent-v0.3.0-source.tar.gz",
+  "public/downloads/v0.3.0.json",
 ]) {
-  assert.ok(sourceFiles.includes(artifact), `registry must include active release artifact: ${artifact}`);
+  assert.ok(sourceFiles.includes(artifact), `registry must include reviewed release artifact: ${artifact}`);
 }
 
 function exactInventory(): InventoryNode[] {
@@ -63,7 +66,7 @@ function verify(inventory: InventoryNode[]) {
 test("Vercel source verifier accepts only the exact file and byte allowlist", () => {
   const result = verify(exactInventory());
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /pass \(46 exact files\)/);
+  assert.match(result.stdout, /pass \(49 exact files\)/);
 });
 
 test("Vercel source verifier rejects every unsupported provider node type", () => {
