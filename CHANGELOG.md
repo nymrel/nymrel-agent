@@ -2,7 +2,7 @@
 
 All notable product changes are documented here.
 
-## Unreleased
+## 0.2.0 — 2026-08-28
 
 - Added the opt-in `nymrel.agent.route/v2` contract with required request-budget normalization, deterministic integer utilities, hard-eligibility Pareto frontiers, frontier-only selection, and exact-score-only incumbent tie resolution.
 - Added v2 API discovery and route surfaces, CLI and MCP opt-in entry points, examples, OpenAPI documentation, and contract-isolation coverage. `nymrel.agent.route/v1` remains unchanged.
