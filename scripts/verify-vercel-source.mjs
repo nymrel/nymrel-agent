@@ -7,6 +7,7 @@ import { VERCEL_SOURCE_FILES } from "./release-public-registry.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const expectedFiles = VERCEL_SOURCE_FILES;
+assert.ok(expectedFiles.includes("scripts/release-public-registry.mjs"), "Vercel source registry must inventory its own deployed module");
 
 let input = "";
 for await (const chunk of process.stdin) {

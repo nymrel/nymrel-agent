@@ -107,6 +107,7 @@ assert.deepEqual(ACTIVE_RELEASE_FILES, [
 ], "active release registry must contain the full 0.2.0 artifact set");
 assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/route-request.json"), "Vercel registry omits the v1 example");
 assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/route-request-v2.json"), "Vercel registry omits the v2 example");
+assert.ok(VERCEL_SOURCE_FILES.includes("scripts/release-public-registry.mjs"), "Vercel registry must inventory its own uploaded source");
 for (const relative of RELEASE_ARCHIVE_FILES) assert.ok(VERCEL_SOURCE_FILES.includes(relative), `Vercel registry omits release artifact: ${relative}`);
 
 const releaseManifest = json(`public/downloads/v${ACTIVE_RELEASE_VERSION}.json`);

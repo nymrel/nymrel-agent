@@ -47,6 +47,7 @@ export const VERCEL_SOURCE_FILES = Object.freeze([
   "public/sitemap.xml",
   "public/styles.css",
   "scripts/clean.mjs",
+  "scripts/release-public-registry.mjs",
   "server.ts",
   "src/contracts.ts",
   "src/errors.ts",
