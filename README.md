@@ -24,6 +24,12 @@ npm run compile
 node dist/src/bin/nymrel-agent.js route --file examples/route-request.json
 ```
 
+`nymrel.agent.route/v2` is an explicit opt-in. It requires request-budget anchors, computes a Pareto frontier after eligibility, and only then selects from that frontier:
+
+```bash
+node dist/src/bin/nymrel-agent.js route --contract-version v2 --file examples/route-request-v2.json
+```
+
 Full documentation: <https://nymrel-agent.vercel.app/docs>
 
 OpenAPI 3.1: <https://nymrel-agent.vercel.app/openapi.json>
@@ -39,10 +45,12 @@ Routing has two stages:
 
 The selected objective changes explicit weights. Explicit cost and latency ceilings also anchor their matching score components, so changing unrelated catalog membership cannot change an anchored component merely by moving the normalization range. When a ceiling is omitted, that component falls back to eligible-set normalization. Without changing the closed v1 response shape, each route receipt reports the chosen modes in `decisionCodes` and the numeric bounds in `explanation`. Model quality, reliability, cost, latency, boundary, and capability facts are caller-supplied evidence; Nymrel Agent explains how it used them but does not certify them.
 
+The opt-in v2 contract leaves v1 unchanged. Its required `normalization` object uses `basis: "request_budget"` plus positive cost and latency anchors. v2 normalizes cost and latency against those request anchors, returns a sorted `paretoFrontierModelIds` list, and selects only from that frontier. An incumbent can resolve an exact weighted-score tie inside the frontier; it never receives a score bonus.
+
 ## CLI
 
 ```text
-nymrel-agent route --file PAYLOAD.json [--endpoint https://host]
+nymrel-agent route --file PAYLOAD.json [--contract-version v2] [--endpoint https://host]
 nymrel-agent models doctor [--config CONFIG.json]
 nymrel-agent run --config CONFIG.json (--task TEXT | --task-file FILE|-)
 nymrel-agent contract
@@ -56,6 +64,7 @@ Local routing is the default. `--endpoint` sends the metadata-only payload to a 
 The stdio MCP server exposes two read-only tools:
 
 - `route_models` — validate and route a `nymrel.agent.route/v1` JSON payload.
+- `route_models_v2` — validate and route an explicit `nymrel.agent.route/v2` JSON payload.
 - `explain_contract` — return the stable routing and custody boundary.
 
 Example client configuration after building from source:

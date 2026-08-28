@@ -37,6 +37,7 @@
   -H "content-type: application/json" \
   --data-binary @-</code></pre>
       <p>Download the example at <a href="/examples/route-request.json"><code>/examples/route-request.json</code></a>. A successful response includes <code>selectedModelId</code>, the ranked eligible set, every rejected candidate with reason codes, and the score components.</p>
+      <p><code>/v2/route</code> is an explicit opt-in contract. Its request includes positive request-budget anchors, its response includes a sorted Pareto frontier, and selection is restricted to that frontier. Download <a href="/examples/route-request-v2.json"><code>/examples/route-request-v2.json</code></a>.</p>
 
       <h2 id="contract">Request contract</h2>
       <p>The root object has exactly two fields: <code>request</code> and <code>models</code>. Unknown fields fail closed. Payloads are capped at 256 KiB and 100 models.</p>
@@ -63,6 +64,7 @@
 
       <h2 id="scoring">Scoring</h2>
       <p>Routing happens in two phases. First, a model is rejected if it violates health, risk class, data boundary, capability, context, modality, cost, or latency requirements. Duplicate model IDs are also rejected. Second, eligible candidates receive normalized quality, reliability, cost, latency, health, and optional incumbent-stickiness components. An explicit cost or latency ceiling anchors its matching component, so catalog membership cannot change that component; without a ceiling, the component falls back to normalization against the eligible set. Without changing the closed v1 response shape, every route receipt exposes the selected modes in <code>decisionCodes</code> and the exact numeric bounds in <code>explanation</code>.</p>
+      <p>v2 retains those hard eligibility filters but requires <code>normalization.basis: "request_budget"</code> plus positive cost and latency anchors. It computes the Pareto frontier with quality, reliability, and health higher-is-better and cost and latency lower-is-better. A v2 winner is always on that frontier; an incumbent can resolve only an exact frontier-score tie and receives no bonus.</p>
       <p>The selected objective changes explicit weights:</p>
       <ul><li><code>balanced</code>: quality 35%, reliability 25%, cost 20%, latency 15%, health 5%.</li><li><code>quality</code>: quality 60%, reliability 25%, with 5% each for cost, latency, and health.</li><li><code>cost</code>: cost 45%, quality and reliability 20% each, latency 10%, health 5%.</li><li><code>latency</code>: latency 45%, quality and reliability 20% each, cost 10%, health 5%.</li></ul>
       <div class="callout"><strong>Evidence rule.</strong> Quality scores, reliability, cost, latency, boundaries, and capabilities are caller-supplied inputs. Nymrel Agent explains how it used them; it does not certify that they are accurate.</div>
@@ -81,7 +83,7 @@ npx nymrel-agent contract</code></pre>
       <p>The CLI reads locally by default and writes the result as JSON to stdout. Use <code>--endpoint https://nymrel-agent.vercel.app</code> to call the hosted router. No prompt is sent because route payloads contain metadata only.</p>
 
       <h2 id="mcp">MCP</h2>
-      <p>The MCP server exposes <code>route_models</code> and <code>explain_contract</code> over stdio. Configure your compatible client to run <code>node /absolute/path/to/dist/src/bin/nymrel-agent-mcp.js</code>. Protocol messages use stdout; diagnostics use stderr.</p>
+      <p>The MCP server exposes <code>route_models</code>, <code>route_models_v2</code>, and <code>explain_contract</code> over stdio. Configure your compatible client to run <code>node /absolute/path/to/dist/src/bin/nymrel-agent-mcp.js</code>. Protocol messages use stdout; diagnostics use stderr.</p>
 
       <h2 id="local-execution">Local execution</h2>
       <p>The optional local harness can execute read-only tasks through explicitly configured adapters. Provider keys are read from an environment variable named in your local config and sent directly from your machine to that provider. Keys are never accepted by the public Nymrel endpoint, stored in receipts, or printed by the CLI.</p>

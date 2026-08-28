@@ -71,6 +71,42 @@
           }
         }
       }
+    },
+    "/v2": {
+      "get": {
+        "operationId": "getApiDiscoveryV2",
+        "summary": "v2 API discovery",
+        "responses": { "200": { "description": "Versioned API links", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiscoveryV2" } } } } }
+      }
+    },
+    "/v2/openapi.json": {
+      "get": {
+        "operationId": "getOpenApiDocumentV2",
+        "summary": "OpenAPI document for v2",
+        "responses": { "200": { "description": "This complete OpenAPI 3.1 document", "content": { "application/json": { "schema": { "type": "object" } } } } }
+      }
+    },
+    "/v2/route": {
+      "post": {
+        "operationId": "routeModelsV2",
+        "summary": "Select a model from a caller-supplied catalog with explicit request-budget normalization",
+        "description": "Filters ineligible models, computes the deterministic Pareto frontier, ranks only that frontier, and returns an explainable deterministic plan.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RoutePayloadV2" } } } },
+        "responses": {
+          "200": { "description": "Routing decision", "headers": { "Nymrel-Request-Id": { "schema": { "type": "string", "format": "uuid" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RouteResponseV2" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "options": {
+        "operationId": "preflightRouteModelsV2",
+        "summary": "CORS preflight for v2",
+        "responses": { "204": { "description": "CORS preflight accepted", "headers": { "Access-Control-Allow-Origin": { "schema": { "type": "string", "const": "*" } }, "Access-Control-Allow-Methods": { "schema": { "type": "string" } }, "Access-Control-Allow-Headers": { "schema": { "type": "string" } } } } }
+      }
     }
   },
   "components": {
@@ -119,6 +155,28 @@
           "incumbentModelId": { "type": "string", "minLength": 1, "maxLength": 160 }
         }
       },
+      "RouteNormalizationV2": {
+        "type": "object", "additionalProperties": false,
+        "required": ["basis", "costAnchorMicroUsd", "latencyAnchorMs"],
+        "properties": {
+          "basis": { "type": "string", "const": "request_budget" },
+          "costAnchorMicroUsd": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+          "latencyAnchorMs": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+        }
+      },
+      "RouteRequestV2": {
+        "type": "object", "additionalProperties": false,
+        "required": ["phase", "risk", "objective", "requirements", "constraints", "normalization"],
+        "properties": {
+          "phase": { "$ref": "#/components/schemas/TaskPhase" },
+          "risk": { "$ref": "#/components/schemas/RiskClass" },
+          "objective": { "$ref": "#/components/schemas/Objective" },
+          "requirements": { "$ref": "#/components/schemas/RouteRequirements" },
+          "constraints": { "$ref": "#/components/schemas/RouteConstraints" },
+          "incumbentModelId": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "normalization": { "$ref": "#/components/schemas/RouteNormalizationV2" }
+        }
+      },
       "Capabilities": {
         "type": "object", "additionalProperties": false,
         "required": ["toolUse", "structuredOutput", "contextTokens", "modalities"],
@@ -153,6 +211,13 @@
           "models": { "type": "array", "minItems": 1, "maxItems": 100, "items": { "$ref": "#/components/schemas/ModelProfile" } }
         }
       },
+      "RoutePayloadV2": {
+        "type": "object", "additionalProperties": false, "required": ["request", "models"],
+        "properties": {
+          "request": { "$ref": "#/components/schemas/RouteRequestV2" },
+          "models": { "type": "array", "minItems": 1, "maxItems": 100, "items": { "$ref": "#/components/schemas/ModelProfile" } }
+        }
+      },
       "ScoreComponents": {
         "type": "object", "additionalProperties": false,
         "required": ["quality", "reliability", "cost", "latency", "health", "stickiness"],
@@ -164,6 +229,18 @@
       "EligibleCandidate": {
         "type": "object", "additionalProperties": false, "required": ["modelId", "providerId", "score", "components"],
         "properties": { "modelId": { "type": "string" }, "providerId": { "type": "string" }, "score": { "type": "integer" }, "components": { "$ref": "#/components/schemas/ScoreComponents" } }
+      },
+      "ScoreComponentsV2": {
+        "type": "object", "additionalProperties": false,
+        "required": ["quality", "reliability", "cost", "latency", "health"],
+        "properties": {
+          "quality": { "type": "integer" }, "reliability": { "type": "integer" }, "cost": { "type": "integer" },
+          "latency": { "type": "integer" }, "health": { "type": "integer" }
+        }
+      },
+      "EligibleCandidateV2": {
+        "type": "object", "additionalProperties": false, "required": ["modelId", "providerId", "score", "components"],
+        "properties": { "modelId": { "type": "string" }, "providerId": { "type": "string" }, "score": { "type": "integer" }, "components": { "$ref": "#/components/schemas/ScoreComponentsV2" } }
       },
       "RejectedCandidate": {
         "type": "object", "additionalProperties": false, "required": ["modelId", "providerId", "reasonCodes"],
@@ -183,9 +260,29 @@
           "explanation": { "type": "string", "description": "Human-readable decision summary, including the exact cost and latency normalization bounds when scoring occurs." }
         }
       },
+      "RoutePlanV2": {
+        "type": "object", "additionalProperties": false,
+        "required": ["contractVersion", "selectedModelId", "selectedProviderId", "objective", "normalization", "eligible", "rejected", "paretoFrontierModelIds", "decisionCodes", "explanation"],
+        "properties": {
+          "contractVersion": { "type": "string", "const": "nymrel.agent.route/v2" },
+          "selectedModelId": { "type": ["string", "null"] },
+          "selectedProviderId": { "type": ["string", "null"] },
+          "objective": { "$ref": "#/components/schemas/Objective" },
+          "normalization": { "$ref": "#/components/schemas/RouteNormalizationV2" },
+          "eligible": { "type": "array", "items": { "$ref": "#/components/schemas/EligibleCandidateV2" } },
+          "rejected": { "type": "array", "items": { "$ref": "#/components/schemas/RejectedCandidate" } },
+          "paretoFrontierModelIds": { "type": "array", "items": { "type": "string" } },
+          "decisionCodes": { "type": "array", "items": { "type": "string" } },
+          "explanation": { "type": "string" }
+        }
+      },
       "RouteResponse": {
         "type": "object", "additionalProperties": false, "required": ["ok", "requestId", "plan"],
         "properties": { "ok": { "type": "boolean", "const": true }, "requestId": { "type": "string", "format": "uuid" }, "plan": { "$ref": "#/components/schemas/RoutePlan" } }
+      },
+      "RouteResponseV2": {
+        "type": "object", "additionalProperties": false, "required": ["ok", "requestId", "plan"],
+        "properties": { "ok": { "type": "boolean", "const": true }, "requestId": { "type": "string", "format": "uuid" }, "plan": { "$ref": "#/components/schemas/RoutePlanV2" } }
       },
       "ErrorResponse": {
         "type": "object", "additionalProperties": false, "required": ["ok", "requestId", "error"],
@@ -213,6 +310,18 @@
           "contractVersion": { "type": "string", "const": "nymrel.agent.route/v1" },
           "route": { "type": "string", "const": "/v1/route" },
           "openapi": { "type": "string", "const": "/v1/openapi.json" }
+        }
+      }
+      ,"DiscoveryV2": {
+        "type": "object", "additionalProperties": false,
+        "required": ["ok", "name", "version", "contractVersion", "route", "openapi"],
+        "properties": {
+          "ok": { "type": "boolean", "const": true },
+          "name": { "type": "string", "const": "Nymrel Agent" },
+          "version": { "type": "string" },
+          "contractVersion": { "type": "string", "const": "nymrel.agent.route/v2" },
+          "route": { "type": "string", "const": "/v2/route" },
+          "openapi": { "type": "string", "const": "/v2/openapi.json" }
         }
       }
     }

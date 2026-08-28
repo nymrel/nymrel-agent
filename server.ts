@@ -84,6 +84,8 @@ export function createApp(options: ServerOptions = {}): Hono {
   app.all("/readyz", forward);
   app.all("/v1", forward);
   app.all("/v1/*", forward);
+  app.all("/v2", forward);
+  app.all("/v2/*", forward);
 
   return app;
 }

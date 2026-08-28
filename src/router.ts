@@ -1,15 +1,20 @@
 import {
   CONTRACT_VERSION,
+  CONTRACT_VERSION_V2,
   type ModelProfile,
   type RejectedRouteCandidate,
   type RouteObjective,
   type RoutePlan,
+  type RoutePlanV2,
   type RouteRequest,
+  type RouteRequestV2,
   type RouteScoreComponents,
   type ScoredRouteCandidate,
+  type ScoredRouteCandidateV2,
 } from "./contracts.js";
 import { compareCodeUnits } from "./ordering.js";
-import { parsePublicRoutePayload } from "./validation.js";
+import { paretoFrontier, v2ScoreCandidate } from "./scoring.js";
+import { parsePublicRoutePayload, parsePublicRoutePayloadV2 } from "./validation.js";
 
 const PROFILE_INVALID = "profile_invalid";
 const HEALTH_STATES = new Set(["healthy", "degraded", "unavailable"]);
@@ -170,4 +175,63 @@ function routeValidated(request: RouteRequest, profiles: readonly ModelProfile[]
 export function route(requestValue: unknown, profilesValue: unknown): RoutePlan {
   const payload = parsePublicRoutePayload({ request: requestValue, models: profilesValue });
   return routeValidated(payload.request, payload.models);
+}
+
+function routeValidatedV2(request: RouteRequestV2, profiles: readonly ModelProfile[]): RoutePlanV2 {
+  if (!Object.hasOwn(OBJECTIVE_WEIGHTS, request.objective)) throw new Error("Unsupported routing objective");
+  const idCounts = new Map<string, number>();
+  for (const profile of profiles) idCounts.set(profile.modelId, (idCounts.get(profile.modelId) ?? 0) + 1);
+
+  const acceptedProfiles: ModelProfile[] = [];
+  const rejected: RejectedRouteCandidate[] = [];
+  for (const profile of [...profiles].sort((a, b) => compareCodeUnits(a.modelId, b.modelId) || compareCodeUnits(a.providerId, b.providerId))) {
+    const reasons = rejectionReasons(request, profile);
+    if ((idCounts.get(profile.modelId) ?? 0) > 1) reasons.push("duplicate_model_id");
+    if (reasons.length > 0) rejected.push({ modelId: profile.modelId, providerId: profile.providerId, reasonCodes: [...new Set(reasons)].sort(compareCodeUnits) });
+    else acceptedProfiles.push(profile);
+  }
+
+  const eligible: ScoredRouteCandidateV2[] = acceptedProfiles.map((profile) => v2ScoreCandidate(request, profile));
+  eligible.sort((a, b) => b.score - a.score || compareCodeUnits(a.modelId, b.modelId) || compareCodeUnits(a.providerId, b.providerId));
+  const frontierProfiles = paretoFrontier(acceptedProfiles);
+  const scoreByModelId = new Map(eligible.map((candidate) => [candidate.modelId, candidate]));
+  const frontier = frontierProfiles.map((profile) => scoreByModelId.get(profile.modelId)!).sort(
+    (a, b) => b.score - a.score || compareCodeUnits(a.modelId, b.modelId) || compareCodeUnits(a.providerId, b.providerId),
+  );
+  const bestScore = frontier[0]?.score;
+  const tied = bestScore === undefined ? [] : frontier.filter((candidate) => candidate.score === bestScore);
+  const incumbent = request.incumbentModelId === undefined ? undefined : tied.find((candidate) => candidate.modelId === request.incumbentModelId);
+  const selected = incumbent ?? tied[0];
+  const decisionCodes = selected
+    ? [
+      `objective_${request.objective}`,
+      "normalization_request_budget",
+      "pareto_frontier_computed",
+      "eligible_candidates_ranked",
+      "deterministic_tie_break",
+      ...(incumbent === undefined ? [] : ["incumbent_exact_score_tie_break"]),
+      "model_selected",
+    ]
+    : ["normalization_request_budget", "pareto_frontier_computed", "no_eligible_model", "policy_blocked"];
+
+  return {
+    contractVersion: CONTRACT_VERSION_V2,
+    selectedModelId: selected?.modelId ?? null,
+    selectedProviderId: selected?.providerId ?? null,
+    objective: request.objective,
+    normalization: request.normalization,
+    eligible,
+    rejected,
+    paretoFrontierModelIds: frontierProfiles.map((profile) => profile.modelId),
+    decisionCodes,
+    explanation: selected
+      ? `Selected ${selected.modelId} from ${frontier.length} non-dominated model(s) after explicit request-budget normalization; ${rejected.length} model(s) were rejected by explicit constraints.`
+      : "No model satisfied the explicit health, risk, capability, data-boundary, cost, and latency constraints.",
+  };
+}
+
+/** Route only an explicit nymrel.agent.route/v2 payload. */
+export function routeV2(requestValue: unknown, profilesValue: unknown): RoutePlanV2 {
+  const payload = parsePublicRoutePayloadV2({ request: requestValue, models: profilesValue });
+  return routeValidatedV2(payload.request, payload.models);
 }

@@ -9,6 +9,10 @@ function example(): string {
   return readFileSync("examples/route-request.json", "utf8");
 }
 
+function exampleV2(): string {
+  return readFileSync("examples/route-request-v2.json", "utf8");
+}
+
 const allowed: VercelRateLimitChecker = async () => ({ rateLimited: false });
 
 test("Vercel adapter verifies its deployment-wide WAF rule and serves API discovery", async () => {
@@ -40,6 +44,17 @@ test("Vercel adapter verifies its deployment-wide WAF rule and serves API discov
   const openapi = await app.request("https://agent.example/v1/openapi.json");
   assert.equal(openapi.status, 200);
   assert.equal((await openapi.json() as { openapi?: string }).openapi, "3.1.0");
+
+  const v2Discovery = await app.request("https://agent.example/v2");
+  assert.equal(v2Discovery.status, 200);
+  assert.equal((await v2Discovery.json() as { contractVersion?: string }).contractVersion, "nymrel.agent.route/v2");
+  const v2Route = await app.request("https://agent.example/v2/route", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: exampleV2(),
+  });
+  assert.equal(v2Route.status, 200);
+  assert.equal((await v2Route.json() as { plan?: { contractVersion?: string } }).plan?.contractVersion, "nymrel.agent.route/v2");
 });
 
 test("Vercel adapter shares one external limiter across independent app instances", async () => {

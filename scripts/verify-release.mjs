@@ -15,7 +15,7 @@ const required = [
   "public/downloads/nymrel-agent-0.1.1.tgz", "public/downloads/nymrel-agent-v0.1.1-source.tar.gz", "public/downloads/v0.1.1.json",
   "public/downloads/nymrel-agent-0.1.2.tgz", "public/downloads/nymrel-agent-v0.1.2-source.tar.gz", "public/downloads/v0.1.2.json",
   "public/downloads/nymrel-agent-0.1.3.tgz", "public/downloads/nymrel-agent-v0.1.3-source.tar.gz", "public/downloads/v0.1.3.json",
-  "public/openapi.json", "public/llms.txt", "examples/route-request.json",
+  "public/openapi.json", "public/llms.txt", "examples/route-request.json", "examples/route-request-v2.json", "public/examples/route-request-v2.json",
   "examples/openai-local-config.example.json", "docs/PRODUCTION_LAUNCH_PACKET.md", "docs/FIRST_USER_ACTIVATION.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
   "src/bin/nymrel-agent.ts", "src/bin/nymrel-agent-mcp.ts", "scripts/verify-packed-install.mjs",
@@ -52,9 +52,13 @@ assert.ok(contracts.includes(`PRODUCT_VERSION = "${packageJson.version}"`), "sou
 assert.ok(contracts.includes('CONTRACT_VERSION = "nymrel.agent.route/v1"'), "stable route contract is missing");
 
 assert.equal(read("examples/route-request.json"), read("public/examples/route-request.json"), "source and hosted examples drifted");
+assert.equal(read("examples/route-request-v2.json"), read("public/examples/route-request-v2.json"), "source and hosted v2 examples drifted");
 const routeExample = json("examples/route-request.json");
+const routeExampleV2 = json("examples/route-request-v2.json");
 assert.deepEqual(Object.keys(routeExample).sort(), ["models", "request"]);
 assert.equal(Object.hasOwn(routeExample, "prompt"), false);
+assert.deepEqual(Object.keys(routeExampleV2).sort(), ["models", "request"]);
+assert.equal(routeExampleV2.request?.normalization?.basis, "request_budget");
 
 const openapi = json("public/openapi.json");
 assert.equal(openapi.openapi, "3.1.0");
@@ -63,9 +67,14 @@ assert.ok(openapi.paths?.["/v1/route"]?.post, "OpenAPI route operation is missin
 assert.ok(openapi.paths?.["/v1/route"]?.options, "OpenAPI preflight operation is missing");
 assert.ok(openapi.paths?.["/v1"]?.get, "OpenAPI discovery operation is missing");
 assert.ok(openapi.paths?.["/v1/openapi.json"]?.get, "OpenAPI document operation is missing");
+assert.ok(openapi.paths?.["/v2/route"]?.post, "OpenAPI v2 route operation is missing");
+assert.ok(openapi.paths?.["/v2/route"]?.options, "OpenAPI v2 preflight operation is missing");
+assert.ok(openapi.paths?.["/v2"]?.get, "OpenAPI v2 discovery operation is missing");
+assert.ok(openapi.paths?.["/v2/openapi.json"]?.get, "OpenAPI v2 document operation is missing");
 assert.ok(openapi.paths?.["/readyz"]?.get?.responses?.["503"], "OpenAPI readiness 503 response is missing");
 assert.equal(openapi.components?.schemas?.RoutePayload?.additionalProperties, false);
 assert.equal(openapi.components?.schemas?.ModelProfile?.additionalProperties, false);
+assert.equal(openapi.components?.schemas?.RoutePayloadV2?.additionalProperties, false);
 assert.equal(openapi.servers?.[0]?.url, packageJson.homepage);
 
 const releaseManifest = json("public/downloads/v0.1.3.json");

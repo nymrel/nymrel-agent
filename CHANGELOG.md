@@ -2,6 +2,11 @@
 
 All notable product changes are documented here.
 
+## Unreleased
+
+- Added the opt-in `nymrel.agent.route/v2` contract with required request-budget normalization, deterministic integer utilities, hard-eligibility Pareto frontiers, frontier-only selection, and exact-score-only incumbent tie resolution.
+- Added v2 API discovery and route surfaces, CLI and MCP opt-in entry points, examples, OpenAPI documentation, and contract-isolation coverage. `nymrel.agent.route/v1` remains unchanged.
+
 ## 0.1.3 — 2026-08-26
 
 - Normalize cost and latency components against explicit caller ceilings when present, preventing unrelated catalog additions or removals from changing the remaining candidates' scores. Requests without a matching ceiling retain the documented eligible-set fallback. The unchanged v1 response shape discloses modes through `decisionCodes` and numeric bounds through `explanation`.

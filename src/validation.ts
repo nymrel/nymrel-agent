@@ -4,9 +4,11 @@ import type {
   ModelProfile,
   Modality,
   PublicRoutePayload,
+  PublicRoutePayloadV2,
   RiskClass,
   RouteObjective,
   RouteRequest,
+  RouteRequestV2,
   TaskPhase,
 } from "./contracts.js";
 import { NymrelError } from "./errors.js";
@@ -134,10 +136,50 @@ function parseRequest(value: unknown): RouteRequest {
   };
 }
 
+function parseRequestV2(value: unknown): RouteRequestV2 {
+  const row = record(value, "request", ["phase", "risk", "objective", "requirements", "constraints", "incumbentModelId", "normalization"]);
+  const requirements = record(row.requirements, "request.requirements", ["toolUse", "structuredOutput", "minContextTokens", "modalities"]);
+  const constraints = record(row.constraints, "request.constraints", ["dataBoundary", "maxCostMicroUsd", "maxLatencyMs"]);
+  const normalization = record(row.normalization, "request.normalization", ["basis", "costAnchorMicroUsd", "latencyAnchorMs"]);
+  const incumbentModelId = row.incumbentModelId === undefined ? undefined : identifier(row.incumbentModelId, "request.incumbentModelId", 160);
+  const maxCostMicroUsd = optionalInteger(constraints.maxCostMicroUsd, "request.constraints.maxCostMicroUsd", 0, 1_000_000_000);
+  const maxLatencyMs = optionalInteger(constraints.maxLatencyMs, "request.constraints.maxLatencyMs", 0, 600_000);
+  return {
+    phase: enumValue<TaskPhase>(row.phase, "request.phase", TASK_PHASES),
+    risk: enumValue<RiskClass>(row.risk, "request.risk", RISKS),
+    objective: enumValue<RouteObjective>(row.objective, "request.objective", OBJECTIVES),
+    requirements: {
+      toolUse: bool(requirements.toolUse, "request.requirements.toolUse"),
+      structuredOutput: bool(requirements.structuredOutput, "request.requirements.structuredOutput"),
+      minContextTokens: integer(requirements.minContextTokens, "request.requirements.minContextTokens", 1, 10_000_000),
+      modalities: enumArray<Modality>(requirements.modalities, "request.requirements.modalities", MODALITIES, 3),
+    },
+    constraints: {
+      dataBoundary: enumValue<DataBoundary>(constraints.dataBoundary, "request.constraints.dataBoundary", BOUNDARIES),
+      ...(maxCostMicroUsd === undefined ? {} : { maxCostMicroUsd }),
+      ...(maxLatencyMs === undefined ? {} : { maxLatencyMs }),
+    },
+    normalization: {
+      basis: enumValue(normalization.basis, "request.normalization.basis", ["request_budget"]),
+      costAnchorMicroUsd: integer(normalization.costAnchorMicroUsd, "request.normalization.costAnchorMicroUsd", 1, Number.MAX_SAFE_INTEGER),
+      latencyAnchorMs: integer(normalization.latencyAnchorMs, "request.normalization.latencyAnchorMs", 1, Number.MAX_SAFE_INTEGER),
+    },
+    ...(incumbentModelId === undefined ? {} : { incumbentModelId }),
+  };
+}
+
 export function parsePublicRoutePayload(value: unknown): PublicRoutePayload {
   const root = record(value, "$", ["request", "models"]);
   if (!Array.isArray(root.models) || root.models.length === 0 || root.models.length > 100) {
     invalid("models", "must be an array with 1 to 100 model profiles");
   }
   return { request: parseRequest(root.request), models: root.models.map(parseModel) };
+}
+
+export function parsePublicRoutePayloadV2(value: unknown): PublicRoutePayloadV2 {
+  const root = record(value, "$", ["request", "models"]);
+  if (!Array.isArray(root.models) || root.models.length === 0 || root.models.length > 100) {
+    invalid("models", "must be an array with 1 to 100 model profiles");
+  }
+  return { request: parseRequestV2(root.request), models: root.models.map(parseModel) };
 }

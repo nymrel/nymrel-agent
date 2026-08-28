@@ -21,6 +21,20 @@ test("CLI routes the public example locally", () => {
   assert.equal(payload.plan.selectedModelId, "provider-b/fast");
 });
 
+test("CLI defaults to v1 and requires an explicit v2 contract version", () => {
+  const v2 = runCli(["route", "--contract-version", "v2", "--file", "examples/route-request-v2.json"]);
+  assert.equal(v2.status, 0, v2.stderr);
+  const v2Payload = JSON.parse(v2.stdout) as { plan: { contractVersion: string; paretoFrontierModelIds: string[] } };
+  assert.equal(v2Payload.plan.contractVersion, "nymrel.agent.route/v2");
+  assert.deepEqual(v2Payload.plan.paretoFrontierModelIds, ["provider-a/reasoning-large", "provider-b/fast"]);
+
+  const defaultV1 = runCli(["route", "--file", "examples/route-request-v2.json"]);
+  assert.equal(defaultV1.status, 65);
+  assert.match(defaultV1.stderr, /invalid_request/);
+  const invalidVersion = runCli(["route", "--contract-version", "v3", "--file", "examples/route-request-v2.json"]);
+  assert.equal(invalidVersion.status, 64);
+});
+
 test("CLI doctor and demo are offline and truthful", () => {
   const doctor = runCli(["models", "doctor"]);
   assert.equal(doctor.status, 0, doctor.stderr);

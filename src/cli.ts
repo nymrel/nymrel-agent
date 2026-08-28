@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { CONTRACT_VERSION, PRODUCT_VERSION } from "./contracts.js";
+import { CONTRACT_VERSION, CONTRACT_VERSION_V2, PRODUCT_VERSION } from "./contracts.js";
 import { createDefaultRouteRequest, createDemoRuntime } from "./defaults.js";
 import { NymrelError, publicError } from "./errors.js";
 import { createConfiguredAdapters, parseLocalAgentConfig } from "./local-config.js";
-import { route } from "./router.js";
+import { route, routeV2 } from "./router.js";
 import { AgentRuntime } from "./runtime.js";
 import { isLoopbackHostname } from "./url-security.js";
-import { parsePublicRoutePayload } from "./validation.js";
+import { parsePublicRoutePayload, parsePublicRoutePayloadV2 } from "./validation.js";
 
 function flagValue(args: readonly string[], flag: string): string | undefined {
   const indexes = args.flatMap((value, index) => value === flag ? [index] : []);
@@ -52,7 +52,7 @@ function printJson(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
 
-function endpointUrl(value: string): string {
+function endpointUrl(value: string, contractVersion: "v1" | "v2"): string {
   let url: URL;
   try { url = new URL(value); }
   catch { throw new NymrelError("endpoint_invalid", "The endpoint must be a valid URL.", 64); }
@@ -60,7 +60,7 @@ function endpointUrl(value: string): string {
   if (url.username || url.password || url.search || url.hash || (url.protocol !== "https:" && !(local && url.protocol === "http:"))) {
     throw new NymrelError("endpoint_invalid", "The endpoint must use HTTPS (or HTTP localhost) and contain no credentials, query, or fragment.", 64);
   }
-  return `${url.toString().replace(/\/$/, "")}/v1/route`;
+  return `${url.toString().replace(/\/$/, "")}/${contractVersion}/route`;
 }
 
 export async function boundedResponseBody(response: Response, maximum: number): Promise<Uint8Array> {
@@ -100,8 +100,8 @@ export async function boundedResponseBody(response: Response, maximum: number): 
   return result;
 }
 
-async function remoteRoute(endpoint: string, payload: unknown): Promise<number> {
-  const url = endpointUrl(endpoint);
+async function remoteRoute(endpoint: string, payload: unknown, contractVersion: "v1" | "v2"): Promise<number> {
+  const url = endpointUrl(endpoint, contractVersion);
   let response: Response;
   try {
     response = await fetch(url, {
@@ -117,6 +117,13 @@ async function remoteRoute(endpoint: string, payload: unknown): Promise<number> 
   const result = parseJson(new TextDecoder().decode(bytes), "The endpoint response");
   printJson(result);
   return response.ok ? 0 : 69;
+}
+
+function routeContractVersion(args: readonly string[]): "v1" | "v2" {
+  const value = flagValue(args, "--contract-version");
+  if (value === undefined || value === "v1") return "v1";
+  if (value === "v2") return "v2";
+  throw new NymrelError("usage_error", "--contract-version must be v1 or v2.", 64);
 }
 
 function localConfig(args: readonly string[]): ReturnType<typeof parseLocalAgentConfig> {
@@ -135,7 +142,7 @@ function taskText(args: readonly string[]): string {
 function help(): void {
   process.stdout.write(`Nymrel Agent ${PRODUCT_VERSION}\n\n` +
     "Usage:\n" +
-    "  nymrel-agent route --file PAYLOAD.json [--endpoint https://host]\n" +
+    "  nymrel-agent route --file PAYLOAD.json [--contract-version v2] [--endpoint https://host]\n" +
     "  nymrel-agent models doctor [--config CONFIG.json]\n" +
     "  nymrel-agent run --config CONFIG.json (--task TEXT | --task-file FILE|-) [--max-output-tokens N]\n" +
     "  nymrel-agent contract\n" +
@@ -160,11 +167,16 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
     return result.receipt.status === "completed" ? 0 : 2;
   }
   if (command === "route") {
-    validateOptions(args, 1, ["--file", "--endpoint"]);
-    const payload = parsePublicRoutePayload(parseJson(readText(requireFlag(args, "--file")), "The route payload"));
+    validateOptions(args, 1, ["--file", "--endpoint", "--contract-version"]);
+    const contractVersion = routeContractVersion(args);
+    const payloadValue = parseJson(readText(requireFlag(args, "--file")), "The route payload");
+    const payload = contractVersion === "v1" ? parsePublicRoutePayload(payloadValue) : parsePublicRoutePayloadV2(payloadValue);
     const endpoint = flagValue(args, "--endpoint");
-    if (endpoint !== undefined) return remoteRoute(endpoint, payload);
-    printJson({ ok: true, requestId: "local", plan: route(payload.request, payload.models) });
+    if (endpoint !== undefined) return remoteRoute(endpoint, payload, contractVersion);
+    const plan = contractVersion === "v1"
+      ? route(payload.request, payload.models)
+      : routeV2(payload.request, payload.models);
+    printJson({ ok: true, requestId: "local", plan });
     return 0;
   }
   if (command === "models" && args[1] === "doctor") {

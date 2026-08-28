@@ -1,7 +1,7 @@
-import { CONTRACT_VERSION, PRODUCT_VERSION, type PublicErrorResponse, type PublicRouteResponse } from "./contracts.js";
+import { CONTRACT_VERSION, CONTRACT_VERSION_V2, PRODUCT_VERSION, type PublicErrorResponse, type PublicRouteResponse, type PublicRouteResponseV2 } from "./contracts.js";
 import { NymrelError, publicError } from "./errors.js";
-import { route } from "./router.js";
-import { parsePublicRoutePayload } from "./validation.js";
+import { route, routeV2 } from "./router.js";
+import { parsePublicRoutePayload, parsePublicRoutePayloadV2 } from "./validation.js";
 
 const MAX_BODY_BYTES = 256 * 1024;
 
@@ -12,6 +12,10 @@ export const PUBLIC_ROUTES = Object.freeze([
   { method: "GET", path: "/v1/openapi.json", reason: "Public machine-readable API documentation." },
   { method: "POST", path: "/v1/route", reason: "Free stateless router; accepts model metadata only and stores nothing." },
   { method: "OPTIONS", path: "/v1/route", reason: "CORS preflight for the public stateless router." },
+  { method: "GET", path: "/v2", reason: "Public v2 API discovery document; contains no customer data." },
+  { method: "GET", path: "/v2/openapi.json", reason: "Public machine-readable API documentation for v2." },
+  { method: "POST", path: "/v2/route", reason: "Free stateless v2 router with explicit request-budget normalization." },
+  { method: "OPTIONS", path: "/v2/route", reason: "CORS preflight for the public stateless v2 router." },
 ]);
 
 export const STATIC_ASSET_POLICY = Object.freeze([
@@ -178,7 +182,7 @@ async function handleApi(request: Request, env: WorkerEnv): Promise<Response> {
   const id = requestId();
   const url = new URL(request.url);
   try {
-    if (request.method === "OPTIONS" && url.pathname === "/v1/route") return new Response(null, { status: 204, headers: apiHeaders(id) });
+    if (request.method === "OPTIONS" && (url.pathname === "/v1/route" || url.pathname === "/v2/route")) return new Response(null, { status: 204, headers: apiHeaders(id) });
     if (request.method === "GET" && url.pathname === "/healthz") {
       return json({
         ok: true,
@@ -227,8 +231,12 @@ async function handleApi(request: Request, env: WorkerEnv): Promise<Response> {
     if (request.method === "GET" && url.pathname === "/v1") {
       return json({ ok: true, name: "Nymrel Agent", version: PRODUCT_VERSION, contractVersion: CONTRACT_VERSION, route: "/v1/route", openapi: "/v1/openapi.json" }, 200, id);
     }
+    if (request.method === "GET" && url.pathname === "/v2") {
+      return json({ ok: true, name: "Nymrel Agent", version: PRODUCT_VERSION, contractVersion: CONTRACT_VERSION_V2, route: "/v2/route", openapi: "/v2/openapi.json" }, 200, id);
+    }
     if (request.method === "GET" && url.pathname === "/v1/openapi.json") return asset(request, env, "/openapi.json");
-    if (url.pathname === "/v1/route" && request.method !== "POST") {
+    if (request.method === "GET" && url.pathname === "/v2/openapi.json") return asset(request, env, "/openapi.json");
+    if ((url.pathname === "/v1/route" || url.pathname === "/v2/route") && request.method !== "POST") {
       throw new NymrelError("method_not_allowed", "Use POST for this endpoint.", 405);
     }
     if (request.method === "POST" && url.pathname === "/v1/route") {
@@ -238,6 +246,15 @@ async function handleApi(request: Request, env: WorkerEnv): Promise<Response> {
       await enforceRateLimit(request, env);
       const payload = parsePublicRoutePayload(await parseJsonBody(request));
       const response: PublicRouteResponse = { ok: true, requestId: id, plan: route(payload.request, payload.models) };
+      return json(response, 200, id);
+    }
+    if (request.method === "POST" && url.pathname === "/v2/route") {
+      if (env.ROUTING_API_ENABLED === "false") {
+        throw new NymrelError("service_disabled", "The routing API is temporarily offline.", 503);
+      }
+      await enforceRateLimit(request, env);
+      const payload = parsePublicRoutePayloadV2(await parseJsonBody(request));
+      const response: PublicRouteResponseV2 = { ok: true, requestId: id, plan: routeV2(payload.request, payload.models) };
       return json(response, 200, id);
     }
     throw new NymrelError("not_found", "The API route does not exist.", 404);
@@ -257,7 +274,7 @@ async function handleApi(request: Request, env: WorkerEnv): Promise<Response> {
 
 export async function handleRequest(request: Request, env: WorkerEnv = {}): Promise<Response> {
   const path = new URL(request.url).pathname;
-  if (path === "/healthz" || path === "/readyz" || path === "/v1" || path.startsWith("/v1/")) return handleApi(request, env);
+  if (path === "/healthz" || path === "/readyz" || path === "/v1" || path.startsWith("/v1/") || path === "/v2" || path.startsWith("/v2/")) return handleApi(request, env);
   if (request.method !== "GET" && request.method !== "HEAD") {
     const response = withHeaders(new Response("Method not allowed\n", { status: 405, headers: { "content-type": "text/plain; charset=utf-8" } }));
     response.headers.set("Allow", "GET, HEAD");

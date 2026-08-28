@@ -23,7 +23,7 @@ deterministic objective scoring --> route plan
 
 ## Hosted surface
 
-One Fetch-compatible handler owns the six dynamic public route classes. `POST /v1/route` checks media type and incrementally reads at most 256 KiB before parsing, validates exact fields, applies the routing core, and returns JSON with a request ID. There is no application database, queue, provider adapter, task field, or credential binding.
+One Fetch-compatible handler owns the ten dynamic public route classes. `POST /v1/route` and the separate opt-in `POST /v2/route` check media type and incrementally read at most 256 KiB before parsing, validate exact fields, apply their routing core, and return JSON with a request ID. There is no application database, queue, provider adapter, task field, or credential binding.
 
 The production Vercel adapter serves named reviewed assets from the platform CDN and handles `/` plus dynamic API paths through Hono. The homepage is a compile-time JSON import; release verification enforces that its HTML is byte-identical to the canonical `public/index.html`, with no runtime filesystem or network read. Routing calls use the project-level Vercel WAF rate-limit rule `nymrel-agent-route-v1`: 120 requests per 60 seconds against the network identity derived by Vercel from the request, shared across function instances. The adapter never supplies a caller-influenceable custom key, calls `@vercel/firewall`, and fails closed when the rule is missing or cannot be checked. The ready probe checks the rule and reports `deployment` scope.
 
@@ -42,6 +42,8 @@ Eligibility rules run before ranking:
 
 Eligible candidates receive integer components. Quality and reliability use caller-supplied normalized inputs. When the caller supplies a cost or latency ceiling, that component is normalized against the matching ceiling: zero usage receives full utility and a candidate exactly at the ceiling receives zero utility. This keeps the candidate's component stable when unrelated models are added to or removed from the catalog. Without a matching ceiling, cost or latency falls back to normalization relative to the eligible set. The closed v1 route shape is preserved: `decisionCodes` records the modes and `explanation` records the exact numeric bounds. Degraded health receives reduced utility; an incumbent receives a small visible stickiness bonus. The final tie-break uses code-unit order of model ID and provider ID.
 
+`nymrel.agent.route/v2` is a separate request and response contract. It requires explicit positive request-budget cost and latency anchors, uses integer-safe request-anchor utilities, and computes the Pareto frontier after the same hard eligibility filters. Quality, reliability, and health are maximized; cost and latency are minimized. The selected model must be on the sorted frontier. v2 weighted scoring ranks only that frontier, and an incumbent can break only an exact weighted-score tie there without receiving a bonus. v1 remains unchanged, including its ceiling behavior, decision codes, explanation, and response shape.
+
 ## Local execution
 
 `AgentRuntime` accepts explicit adapters, probes them, routes only among adapters present, and executes read-only tasks. Task size, requested output tokens, provider events, and output bytes are bounded. Receipts contain body digests and event facts but not bodies.
@@ -56,7 +58,7 @@ The OpenAI Responses adapter:
 
 ## MCP
 
-The stdio MCP server uses the stable v2 TypeScript SDK and a per-connection server factory. It exposes two read-only, non-destructive, idempotent tools. Stdout is reserved for protocol messages.
+The stdio MCP server uses the stable v2 TypeScript SDK and a per-connection server factory. It exposes `route_models` for v1, `route_models_v2` for v2, and `explain_contract`; all are read-only, non-destructive, and idempotent. Stdout is reserved for protocol messages.
 
 ## OMP and Pi boundary
 

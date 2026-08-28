@@ -1,0 +1,15 @@
+{
+  "contractVersion": "nymrel.agent.route/v1",
+  "selectedModelId": "provider-b/fast",
+  "selectedProviderId": "provider-b",
+  "objective": "balanced",
+  "eligible": [
+    { "modelId": "provider-b/fast", "providerId": "provider-b", "score": 8810, "components": { "quality": 2940, "reliability": 2485, "cost": 1520, "latency": 1365, "health": 500, "stickiness": 0 } },
+    { "modelId": "provider-a/reasoning-large", "providerId": "provider-a", "score": 7373, "components": { "quality": 3220, "reliability": 2463, "cost": 320, "latency": 870, "health": 500, "stickiness": 0 } }
+  ],
+  "rejected": [
+    { "modelId": "local/text-small", "providerId": "local", "reasonCodes": ["context_too_small", "data_boundary_unsupported", "risk_class_unsupported", "tool_use_unsupported"] }
+  ],
+  "decisionCodes": ["objective_balanced", "cost_normalized_to_request_ceiling", "latency_normalized_to_request_ceiling", "eligible_candidates_ranked", "deterministic_tie_break", "model_selected"],
+  "explanation": "Selected provider-b/fast from 2 eligible model(s) for the balanced objective; 1 model(s) were rejected by explicit constraints. Cost normalization used request_ceiling bounds [0, 50000] micro-USD; latency normalization used request_ceiling bounds [0, 10000] ms."
+}

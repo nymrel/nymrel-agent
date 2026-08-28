@@ -22,6 +22,7 @@
     "src/errors.ts",
     "src/ordering.ts",
     "src/router.ts",
+    "src/scoring.ts",
     "src/validation.ts",
     "src/worker.ts"
   ]

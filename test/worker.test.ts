@@ -4,7 +4,9 @@ import test from "node:test";
 import { PUBLIC_ROUTES, handleRequest, type WorkerEnv } from "../src/worker.js";
 
 const endpoint = "https://agent.example/v1/route";
+const endpointV2 = "https://agent.example/v2/route";
 function example(): string { return readFileSync("examples/route-request.json", "utf8"); }
+function exampleV2(): string { return readFileSync("examples/route-request-v2.json", "utf8"); }
 async function jsonBody(response: Response): Promise<Record<string, unknown>> { return await response.json() as Record<string, unknown>; }
 
 test("health and readiness expose only bounded operational facts", async () => {
@@ -25,6 +27,25 @@ test("public route returns an explainable decision with request correlation", as
   const payload = await jsonBody(response) as { ok?: boolean; plan?: { selectedModelId?: string } };
   assert.equal(payload.ok, true);
   assert.equal(payload.plan?.selectedModelId, "provider-b/fast");
+});
+
+test("v2 has separate discovery, route, preflight, and validation surfaces", async () => {
+  const discovery = await handleRequest(new Request("https://agent.example/v2"));
+  assert.equal(discovery.status, 200);
+  const discovered = await jsonBody(discovery) as { contractVersion?: string; route?: string; openapi?: string };
+  assert.deepEqual(discovered, { ok: true, name: "Nymrel Agent", version: "0.1.3", contractVersion: "nymrel.agent.route/v2", route: "/v2/route", openapi: "/v2/openapi.json" });
+  assert.equal((await handleRequest(new Request(endpointV2, { method: "OPTIONS" }))).status, 204);
+
+  const response = await handleRequest(new Request(endpointV2, { method: "POST", headers: { "content-type": "application/json" }, body: exampleV2() }));
+  assert.equal(response.status, 200);
+  const payload = await jsonBody(response) as { plan?: { contractVersion?: string; paretoFrontierModelIds?: string[]; decisionCodes?: string[] } };
+  assert.equal(payload.plan?.contractVersion, "nymrel.agent.route/v2");
+  assert.deepEqual(payload.plan?.paretoFrontierModelIds, ["provider-a/reasoning-large", "provider-b/fast"]);
+  assert.ok(payload.plan?.decisionCodes?.includes("normalization_request_budget"));
+  assert.ok(payload.plan?.decisionCodes?.includes("pareto_frontier_computed"));
+
+  assert.equal((await handleRequest(new Request(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: exampleV2() }))).status, 400);
+  assert.equal((await handleRequest(new Request(endpointV2, { method: "POST", headers: { "content-type": "application/json" }, body: example() }))).status, 400);
 });
 
 test("route rejects prompt fields and never echoes their value", async () => {

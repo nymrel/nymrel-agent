@@ -10,6 +10,10 @@
     { "method": "GET", "path": "/v1/openapi.json", "reason": "Public machine-readable API documentation." },
     { "method": "POST", "path": "/v1/route", "reason": "Free stateless router; accepts model metadata only and stores nothing." },
     { "method": "OPTIONS", "path": "/v1/route", "reason": "CORS preflight for the public stateless router." },
+    { "method": "GET", "path": "/v2", "reason": "Public v2 API discovery document; contains no customer data." },
+    { "method": "GET", "path": "/v2/openapi.json", "reason": "Public machine-readable API documentation for v2." },
+    { "method": "POST", "path": "/v2/route", "reason": "Free stateless v2 router with explicit request-budget normalization." },
+    { "method": "OPTIONS", "path": "/v2/route", "reason": "CORS preflight for the public stateless v2 router." },
     { "method": "GET", "path": "/{static-asset}", "reason": "Public immutable product, documentation, discoverability, and example files from the reviewed public directory." },
     { "method": "HEAD", "path": "/{static-asset}", "reason": "Public metadata probe for the same reviewed static assets; returns no application or customer data." }
   ]

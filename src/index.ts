@@ -8,5 +8,6 @@ export * from "./openai-responses-provider.js";
 export * from "./ordering.js";
 export * from "./receipt.js";
 export * from "./router.js";
+export * from "./scoring.js";
 export * from "./runtime.js";
 export * from "./validation.js";

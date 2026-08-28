@@ -1,4 +1,5 @@
 export const CONTRACT_VERSION = "nymrel.agent.route/v1" as const;
+export const CONTRACT_VERSION_V2 = "nymrel.agent.route/v2" as const;
 export const PRODUCT_VERSION = "0.1.3" as const;
 
 export type TaskPhase = "research" | "plan" | "implement" | "review";
@@ -52,6 +53,17 @@ export interface RouteRequest {
   readonly incumbentModelId?: string;
 }
 
+/** Explicit request-budget normalization for the v2 routing contract. */
+export interface RouteNormalizationV2 {
+  readonly basis: "request_budget";
+  readonly costAnchorMicroUsd: number;
+  readonly latencyAnchorMs: number;
+}
+
+export interface RouteRequestV2 extends RouteRequest {
+  readonly normalization: RouteNormalizationV2;
+}
+
 export interface RouteScoreComponents {
   readonly quality: number;
   readonly reliability: number;
@@ -85,8 +97,41 @@ export interface RoutePlan {
   readonly explanation: string;
 }
 
+export interface RouteScoreComponentsV2 {
+  readonly quality: number;
+  readonly reliability: number;
+  readonly cost: number;
+  readonly latency: number;
+  readonly health: number;
+}
+
+export interface ScoredRouteCandidateV2 {
+  readonly modelId: string;
+  readonly providerId: string;
+  readonly score: number;
+  readonly components: RouteScoreComponentsV2;
+}
+
+export interface RoutePlanV2 {
+  readonly contractVersion: typeof CONTRACT_VERSION_V2;
+  readonly selectedModelId: string | null;
+  readonly selectedProviderId: string | null;
+  readonly objective: RouteObjective;
+  readonly normalization: RouteNormalizationV2;
+  readonly eligible: readonly ScoredRouteCandidateV2[];
+  readonly rejected: readonly RejectedRouteCandidate[];
+  readonly paretoFrontierModelIds: readonly string[];
+  readonly decisionCodes: readonly string[];
+  readonly explanation: string;
+}
+
 export interface PublicRoutePayload {
   readonly request: RouteRequest;
+  readonly models: readonly ModelProfile[];
+}
+
+export interface PublicRoutePayloadV2 {
+  readonly request: RouteRequestV2;
   readonly models: readonly ModelProfile[];
 }
 
@@ -94,6 +139,12 @@ export interface PublicRouteResponse {
   readonly ok: true;
   readonly requestId: string;
   readonly plan: RoutePlan;
+}
+
+export interface PublicRouteResponseV2 {
+  readonly ok: true;
+  readonly requestId: string;
+  readonly plan: RoutePlanV2;
 }
 
 export interface PublicErrorResponse {

@@ -54,21 +54,35 @@ async function verifyLegacyHandshake(): Promise<void> {
     rpc.notify("notifications/initialized");
     const listed = await rpc.request("tools/list", {});
     const tools = listed.result?.tools as Array<{ name: string; annotations?: { readOnlyHint?: boolean } }>;
-    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "route_models"]);
+    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "route_models", "route_models_v2"]);
     assert.ok(tools.every((tool) => tool.annotations?.readOnlyHint === true));
     const explained = await rpc.request("tools/call", { name: "explain_contract", arguments: {} });
-    const contract = explained.result?.structuredContent as { scoring?: Record<string, unknown> };
+    const contract = explained.result?.structuredContent as { contractVersions?: string[]; scoring?: Record<string, unknown> };
+    assert.deepEqual(contract.contractVersions, ["nymrel.agent.route/v1", "nymrel.agent.route/v2"]);
     assert.deepEqual(contract.scoring, {
-      cost: "request_ceiling_when_present_else_eligible_set_range",
-      latency: "request_ceiling_when_present_else_eligible_set_range",
-      receiptModeField: "decisionCodes",
-      receiptBoundsField: "explanation",
+      v1: {
+        cost: "request_ceiling_when_present_else_eligible_set_range",
+        latency: "request_ceiling_when_present_else_eligible_set_range",
+        receiptModeField: "decisionCodes",
+        receiptBoundsField: "explanation",
+      },
+      v2: {
+        normalization: "explicit_request_budget",
+        selection: "hard_eligibility_then_pareto_frontier_then_weighted_score",
+        incumbent: "exact_frontier_weighted_score_tie_only",
+      },
     });
     const payload = readFileSync("examples/route-request.json", "utf8");
     const called = await rpc.request("tools/call", { name: "route_models", arguments: { payload } });
     assert.equal(called.error, undefined);
     const structured = called.result?.structuredContent as { selectedModelId?: string };
     assert.equal(structured.selectedModelId, "provider-b/fast");
+    const v2Payload = readFileSync("examples/route-request-v2.json", "utf8");
+    const v2Called = await rpc.request("tools/call", { name: "route_models_v2", arguments: { payload: v2Payload } });
+    assert.equal(v2Called.error, undefined);
+    const v2Structured = v2Called.result?.structuredContent as { contractVersion?: string; selectedModelId?: string };
+    assert.equal(v2Structured.contractVersion, "nymrel.agent.route/v2");
+    assert.equal(v2Structured.selectedModelId, "provider-b/fast");
   } finally {
     child.stdin.end();
     child.kill();
@@ -96,7 +110,7 @@ async function verifyModernHandshake(): Promise<void> {
     assert.equal(listed.error, undefined);
     assert.equal(listed.result?.resultType, "complete");
     const tools = listed.result?.tools as Array<{ name: string; annotations?: { readOnlyHint?: boolean } }>;
-    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "route_models"]);
+    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "route_models", "route_models_v2"]);
     assert.ok(tools.every((tool) => tool.annotations?.readOnlyHint === true));
 
     const payload = readFileSync("examples/route-request.json", "utf8");
@@ -105,6 +119,12 @@ async function verifyModernHandshake(): Promise<void> {
     assert.equal(called.result?.resultType, "complete");
     const structured = called.result?.structuredContent as { selectedModelId?: string };
     assert.equal(structured.selectedModelId, "provider-b/fast");
+    const v2Payload = readFileSync("examples/route-request-v2.json", "utf8");
+    const v2Called = await rpc.request("tools/call", { name: "route_models_v2", arguments: { payload: v2Payload }, _meta: modernMeta });
+    assert.equal(v2Called.error, undefined);
+    const v2Structured = v2Called.result?.structuredContent as { contractVersion?: string; selectedModelId?: string };
+    assert.equal(v2Structured.contractVersion, "nymrel.agent.route/v2");
+    assert.equal(v2Structured.selectedModelId, "provider-b/fast");
   } finally {
     child.stdin.end();
     child.kill();

@@ -9,6 +9,7 @@
 - Documentation: https://nymrel-agent.vercel.app/docs
 - OpenAPI 3.1: https://nymrel-agent.vercel.app/openapi.json
 - API discovery: https://nymrel-agent.vercel.app/v1
+- API discovery v2: https://nymrel-agent.vercel.app/v2
 - Health: https://nymrel-agent.vercel.app/healthz
 - Release manifest: https://nymrel-agent.vercel.app/downloads/v0.1.3.json
 - Source archive: https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.1.3-source.tar.gz
@@ -21,6 +22,8 @@
 ## Core operation
 
 POST /v1/route accepts exactly `request` and `models`. It filters models by health, risk class, data boundary, tool use, structured output, context size, modality, cost, and latency. Eligible models are ranked under `balanced`, `quality`, `cost`, or `latency` objectives. An explicit cost or latency ceiling anchors its matching score component, preventing unrelated catalog changes from changing that component; an omitted ceiling uses eligible-set normalization. Without changing the closed v1 response shape, responses disclose normalization modes in `decisionCodes` and numeric bounds in `explanation`, alongside the selection, ranked candidates, rejected candidates, score components, and a request ID.
+
+POST /v2/route is an explicit separate contract. Its request includes `normalization` with `basis: request_budget` and positive cost and latency anchors. It filters eligibility, computes a sorted Pareto frontier with quality/reliability/health higher-is-better and cost/latency lower-is-better, then selects only from that frontier using deterministic weighted scores. An incumbent can break an exact frontier score tie only; it has no score bonus. v2 responses include `normalization` and `paretoFrontierModelIds`.
 
 ## Important boundaries
 
