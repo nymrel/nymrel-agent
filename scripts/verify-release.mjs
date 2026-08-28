@@ -334,6 +334,18 @@ for (const requiredLaunchHold of [
   "Do not use `--yes`, `Force Promote`",
   "releaseSourceCommit",
   "deploymentSourceCommit",
+  "version `0.2.0`",
+  "| GET | `/v1` | 200 JSON; unchanged contract `nymrel.agent.route/v1`",
+  "| GET | `/v2` | 200 JSON; contract `nymrel.agent.route/v2`",
+  "| GET | `/v2/openapi.json` | 200 JSON; OpenAPI `3.1.0` |",
+  "| OPTIONS | `/v2/route` | 204; origin `*`; methods `GET, POST, OPTIONS`; header `content-type` |",
+  "| POST | `/v2/route` | 200 for the published v2 fixture; selected model is in `paretoFrontierModelIds` |",
+  "| GET | `/v2/route` | 405 JSON; `Allow: POST, OPTIONS` |",
+  "/examples/route-request-v2.json",
+  "c5850361b19f72315b22bbe2794530d9415897ff",
+  "d0a31ea20fccc62496408ee9b52266749f1be81689fa0d8b782c13d8147327aa",
+  "06a4a89f36bbe6b4ae4858a48a7c770c1b3780d235e0cd9036cdbfc1fab5244b",
+  "29fc8b59a828fd7ef168dc388cb821a27b6afc2a3bcb221e94d1d23a63377727",
 ]) {
   assert.ok(launchPacket.includes(requiredLaunchHold), `production launch packet is missing staged-promotion hold: ${requiredLaunchHold}`);
 }

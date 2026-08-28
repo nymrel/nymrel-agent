@@ -151,15 +151,20 @@ Every registered dynamic route is checked against the production alias:
 
 | Method | Path | Expected proof |
 | --- | --- | --- |
-| GET | `/healthz` | 200 JSON; version `0.1.3`; `sourceCommit` equals accepted SHA |
+| GET | `/healthz` | 200 JSON; version `0.2.0`; `sourceCommit` equals the accepted `deploymentSourceCommit` |
 | GET | `/readyz` | 200 JSON; routing enabled; source SHA bound; WAF `platform_ready`; scope `deployment` |
-| GET | `/v1` | 200 JSON; contract `nymrel.agent.route/v1`; route and OpenAPI links |
+| GET | `/v1` | 200 JSON; unchanged contract `nymrel.agent.route/v1`; route and OpenAPI links |
 | GET | `/v1/openapi.json` | 200 JSON; OpenAPI `3.1.0` |
 | OPTIONS | `/v1/route` | 204; origin `*`; methods `GET, POST, OPTIONS`; header `content-type` |
-| POST | `/v1/route` | 200 for canonical fixture; same selected model as local CLI |
+| POST | `/v1/route` | 200 for unchanged canonical fixture; same selected model and v1 response shape as local CLI |
 | GET | `/v1/route` | 405 JSON; `Allow: POST, OPTIONS` |
+| GET | `/v2` | 200 JSON; contract `nymrel.agent.route/v2`; route and OpenAPI links |
+| GET | `/v2/openapi.json` | 200 JSON; OpenAPI `3.1.0` |
+| OPTIONS | `/v2/route` | 204; origin `*`; methods `GET, POST, OPTIONS`; header `content-type` |
+| POST | `/v2/route` | 200 for the published v2 fixture; selected model is in `paretoFrontierModelIds` |
+| GET | `/v2/route` | 405 JSON; `Allow: POST, OPTIONS` |
 
-Static checks cover `/`, `/docs`, `/demo.js`, `/sitemap.xml`, `/openapi.json`, `/llms.txt`, `/robots.txt`, `/examples/route-request.json`, `/og-image.png`, `/og-image.svg`, and `/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt`, including exact uploaded bytes plus content type, cache, and security headers. The staged deployment and production alias must both return the social image at exactly 1200×630 and the UTF-8 IndexNow key file with an exact body of `0e2a8eae9dfa779ba2f3282c3c6e3d2d`; a successful IndexNow response proves receipt only, not crawl, index, rank, citation, or recommendation.
+Static checks cover `/`, `/docs`, `/demo.js`, `/sitemap.xml`, `/openapi.json`, `/llms.txt`, `/robots.txt`, `/examples/route-request.json`, `/examples/route-request-v2.json`, `/og-image.png`, `/og-image.svg`, and `/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt`, including exact uploaded bytes plus content type, cache, and security headers. The staged deployment and production alias must both return the social image at exactly 1200×630 and the UTF-8 IndexNow key file with an exact body of `0e2a8eae9dfa779ba2f3282c3c6e3d2d`; a successful IndexNow response proves receipt only, not crawl, index, rank, citation, or recommendation.
 
 Browser activation checks load the staged homepage at desktop and mobile viewports, run the published example through the visible control, require the expected `provider-b/fast` result and feedback link, and confirm zero console errors, cookies, local storage, or session storage. The feedback link must remain hidden until a successful route.
 
@@ -167,8 +172,8 @@ Negative checks cover malformed `Content-Length`, invalid JSON, unknown prompt f
 
 Source and install checks:
 
-- `releaseSourceCommit` identifies the v0.1.3 package and source release. The public Vercel release manifest binds those artifacts to that commit plus exact SHA-256 digests. The public GitHub tag must peel to the same source, and all three downloaded GitHub release assets must match the manifest or their recorded exact bytes. No source-immutability badge is claimed unless the provider reports one.
-- `deploymentSourceCommit` identifies the accepted hosting carrier. The cumulative v0.1.3 source archive includes the product, hosted activation source, and release tooling but excludes `public/downloads/` through the committed export boundary, preventing recursive archive inclusion. The later carrier adds the generated v0.1.3 artifacts and switches customer-facing download pointers without changing the accepted route contract. At deployment time, provider metadata, authenticated remote `main`, clean local `HEAD`, the uploaded-source inventory, `/healthz`, and `/readyz` must all bind the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
+- `releaseSourceCommit` must equal `c5850361b19f72315b22bbe2794530d9415897ff`, the v0.2.0 package and source release. The public Vercel release manifest must bind that commit to the canonical package (48,373 bytes, SHA-256 `d0a31ea20fccc62496408ee9b52266749f1be81689fa0d8b782c13d8147327aa`), source archive (168,956 bytes, SHA-256 `06a4a89f36bbe6b4ae4858a48a7c770c1b3780d235e0cd9036cdbfc1fab5244b`), and manifest (571 bytes, SHA-256 `29fc8b59a828fd7ef168dc388cb821a27b6afc2a3bcb221e94d1d23a63377727`). The public GitHub tag must peel to the same source, and all three downloaded GitHub release assets must match the manifest or their recorded exact bytes. No source-immutability badge is claimed unless the provider reports one.
+- `deploymentSourceCommit` identifies the accepted hosting carrier. The v0.2.0 source archive contains the product, hosted activation source, and release tooling from `releaseSourceCommit`, while the committed export boundary excludes `public/downloads/` and prevents recursive archive inclusion. The later carrier adds the generated v0.2.0 artifacts and switches customer-facing download pointers without changing the accepted v1 contract. At deployment time, provider metadata, authenticated remote `main`, clean local `HEAD`, the uploaded-source inventory, `/healthz`, and `/readyz` must all bind the exact carrier commit rather than implying that `releaseSourceCommit` reproduces the live hosting surface byte-for-byte.
 - Vercel inspection identifies the exact organization, project, deployment, source mode, and `deploymentSourceCommit`. `provider_git` requires the connected repository and provider `gitSource`; `verified_cli_bundle` requires authenticated remote `main`, local `HEAD`, provider metadata, runtime probes, and the accepted hosting commit to agree, plus an exact allowlist and SHA-1 proof for every uploaded source file.
 - An unauthenticated download and install from the Vercel-hosted package passes the public quickstart; the Vercel-hosted source archive expands to the recorded release source.
 - The release tarball SHA-256 is recorded and its installed CLI and MCP bins pass the Windows packed-install gate. The public repository carries the pinned Linux/Windows GitHub Actions workflow, but no public CI proof is claimed while the provider-level Actions gate remains closed.
