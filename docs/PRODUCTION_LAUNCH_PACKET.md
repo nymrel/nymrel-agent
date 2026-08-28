@@ -1,14 +1,29 @@
 # Nymrel Agent production launch packet
 
-Status: v0.1.3 is current in production at `https://nymrel-agent.vercel.app`; v0.2.0 is a local release-preparation candidate only, with no deployment or publication performed; the first independent user was verified on 2026-08-26; Growth Experiment #3 remains open pending its exact product-attribution receipt
+Status: v0.2.0 is current in production at `https://nymrel-agent.vercel.app`; the first independent user was verified on 2026-08-26; Growth Experiment #3 remains open pending its exact product-attribution receipt
 
-Owner: Codex release-preparation lane under claim `codex-nymrel-agent-route-v2-20260827`
+Owner: Codex release-integration lane under claim `codex-nymrel-agent-020-release-integration-20260828`
 
 Target release: `0.2.0`
 
 Public contracts: `nymrel.agent.route/v1` and opt-in `nymrel.agent.route/v2`
 
 Source branch: `codex/nymrel-agent-route-v2-20260827`
+
+## v0.2.0 production receipt — 2026-08-28
+
+- Accepted release source: `c5850361b19f72315b22bbe2794530d9415897ff`; the public annotated tag `v0.2.0` peels to that exact commit. Accepted deployment carrier: `7a0ccf87953d1ea7c8d95789dacba35c872b4970`. Canonical GitHub `main` was fast-forwarded to the carrier before deployment.
+- Public release: `https://github.com/Nymrel/nymrel-agent/releases/tag/v0.2.0`. GitHub reports the package at 48,373 bytes with SHA-256 `d0a31ea20fccc62496408ee9b52266749f1be81689fa0d8b782c13d8147327aa`, the source archive at 168,956 bytes with SHA-256 `06a4a89f36bbe6b4ae4858a48a7c770c1b3780d235e0cd9036cdbfc1fab5244b`, and the 571-byte manifest with SHA-256 `29fc8b59a828fd7ef168dc388cb821a27b6afc2a3bcb221e94d1d23a63377727`.
+- Independent acceptance: exact source and carrier review reproduced the source archive and package byte-for-byte, preserved every v0.1.3 artifact, passed 75 tests, packed-install probes, a production dependency audit with zero vulnerabilities, and the Cloudflare dry-run. Two carrier candidates were held until the Vercel v2-example inventory and active 0.2.0 launch matrix were complete.
+- Fail-closed stage: deployment `dpl_Ecf9z1QtHW1oigLKjDiM8rZDPZff` returned 0.2.0 content but an empty runtime source commit. `/readyz` returned 503 and the deployment was never promoted.
+- Accepted offline fallback: deployment `dpl_34K7geZVVaBJ2DoREoNZ2eUBSNnL` at `https://nymrel-agent-rha0wz181-jalens-projects-0ade4450.vercel.app` binds the exact carrier, passes the authenticated 45-file source inventory, keeps routing disabled, and returns the stable `service_disabled` response. During fallback inspection, `nymrel-agent.vercel.app` remained on ready v0.1.3.
+- Accepted enabled stage and production deployment: `dpl_87a26L8xqx5KeGBS1JDsB8Nup8ia` at `https://nymrel-agent-pb9mm63u7-jalens-projects-0ade4450.vercel.app`, deployed through `verified_cli_bundle`, inspected while staged, then promoted without a rebuild to `https://nymrel-agent.vercel.app`. Provider metadata, clean authenticated remote `main`, uploaded bytes, `/healthz`, and `/readyz` all bind carrier `7a0ccf87953d1ea7c8d95789dacba35c872b4970`.
+- Production API proof: all 12 registered health/readiness/v1/v2 discovery, OpenAPI, CORS, method, and route checks passed. The unchanged v1 and opt-in v2 fixtures both select `provider-b/fast`; the v2 winner is a member of `paretoFrontierModelIds`. Invalid JSON, an unknown prompt field with a non-echoed sentinel, wrong media type, and oversized input fail with the expected body-safe errors.
+- Exact-byte proof: 14 public docs, discovery, example, image, key, package, source, and manifest paths matched the reviewed local bytes on both the staged URL and production alias. The authenticated Vercel upload inventory contains exactly 45 reviewed files.
+- Platform protection: Vercel Firewall rule `rule_nymrel_agent_route_sdk_wUzADh` remains active at 120 requests per 60 seconds keyed by IP. Both v1 and v2 use the same registered SDK rate-limit ID; staged and production readiness report `platform_ready` with deployment scope. No firewall draft or pricing gate was created.
+- Browser proof: 1440x1000 desktop and 390x844 mobile runs completed the live example on staging and production, showed feedback only after success, selected `provider-b/fast`, produced zero console errors or warnings, stored no cookies/local storage/session storage, and had no horizontal overflow. All Playwright CLI sessions were closed after acceptance.
+- Private-boundary proof: this release changes only the public metadata router. It does not enable the separate private handoff, accept prompts or client content on public routes, custody provider credentials, or confer execution authority.
+- Rollback targets: use offline 0.2.0 deployment `dpl_34K7geZVVaBJ2DoREoNZ2eUBSNnL` for a current-version routing kill switch, or prior ready v0.1.3 deployment `dpl_3WM4Byq4QKmVbyhZiqWjU1LKi7iC` for a version rollback. Alias reassignment remains the reversible rollback action.
 
 ## v0.2.0 local release-preparation receipt — 2026-08-28
 
