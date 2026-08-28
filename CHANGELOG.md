@@ -2,6 +2,10 @@
 
 All notable product changes are documented here.
 
+## 0.3.1 — 2026-08-28
+
+- Fixed horizontal overflow in the public documentation at narrow mobile widths by allowing the single-column documentation grid and prose content to shrink, while wrapping long inline code tokens. The v0.3.0 staged deployment was not promoted after the browser gate found this defect.
+
 ## 0.3.0 — 2026-08-28
 
 - Added local plan-only Job Mode. It validates a bounded, body-free, ordered 1–32-step manifest, uses the existing v2 router for every step, emits a body-free correlation receipt, and labels non-read steps as external handoffs without calling a provider or performing work.

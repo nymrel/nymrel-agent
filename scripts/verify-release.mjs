@@ -210,6 +210,7 @@ assert.ok(indexHtml.includes(`<link rel="canonical" href="${packageJson.homepage
 const docsHtml = read("public/docs.html");
 const llmsText = read("public/llms.txt");
 const demoScript = read("public/demo.js");
+const styles = read("public/styles.css");
 const sitemap = read("public/sitemap.xml");
 const robots = read("public/robots.txt");
 const indexNowKey = "0e2a8eae9dfa779ba2f3282c3c6e3d2d";
@@ -239,6 +240,10 @@ assert.ok(demoScript.includes('fetch("/examples/route-request.json"'));
 assert.ok(demoScript.includes('fetch("/v1/route"'));
 assert.equal(/localStorage|sessionStorage|document\.cookie|sendBeacon/.test(demoScript), false, "activation script must not add browser tracking state");
 assert.equal(/api[_-]?key|provider credential/i.test(demoScript), false, "activation script must not handle provider credentials");
+assert.ok(styles.includes("grid-template-columns: minmax(0, 1fr);"), "mobile docs grid must permit the content column to shrink");
+assert.ok(styles.includes(".prose {\n    min-width: 0;\n  }") || styles.includes(".prose {\r\n    min-width: 0;\r\n  }"), "mobile docs prose must permit grid-item shrinkage");
+assert.ok(styles.includes("overflow-wrap: anywhere;"), "long inline documentation tokens must wrap on mobile");
+assert.ok(styles.includes("word-break: break-word;"), "mobile inline-code fallback wrapping is missing");
 assert.ok(sitemap.includes(`<loc>${packageJson.homepage}/</loc>`));
 assert.ok(sitemap.includes(`<loc>${packageJson.homepage}/docs</loc>`));
 assert.ok(robots.includes(`Sitemap: ${packageJson.homepage}/sitemap.xml`));

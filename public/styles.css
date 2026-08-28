@@ -590,12 +590,21 @@ button:focus-visible {
   }
 
   .docs {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .docs aside {
     position: static;
     display: none;
+  }
+
+  .prose {
+    min-width: 0;
+  }
+
+  .prose code:not(pre code) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .footer {
