@@ -17,6 +17,8 @@ import { canonicalJson, sha256Text } from "./receipt.js";
 const MAX_HISTORY = 32;
 const MAX_ARTIFACTS = 32;
 const MAX_COUNTER = 1_000_000;
+/** 192 KiB preserves at least 32 KiB headroom above the tested 32x32 maximum-domain pretty CLI envelope. */
+export const MAX_LIFECYCLE_ENVELOPE_BYTES = 192 * 1024;
 const HASH = /^[a-f0-9]{64}$/;
 const OPAQUE_KEY = /^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/;
 const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
@@ -40,7 +42,16 @@ function string(value: unknown, maximum: number): string {
 function opaqueKey(value: unknown): string { const result = string(value, 128); if (!OPAQUE_KEY.test(result)) invalid(); return result; }
 function sha256(value: unknown): string { const result = string(value, 64); if (!HASH.test(result)) invalid(); return result; }
 function counter(value: unknown, maximum = MAX_COUNTER): number { if (!Number.isSafeInteger(value) || (value as number) < 0 || (value as number) > maximum) invalid(); return value as number; }
-function timestamp(value: unknown): string { const result = string(value, 24); if (!UTC.test(result) || Number.isNaN(Date.parse(result))) invalid(); return result; }
+function timestamp(value: unknown): string {
+  const result = string(value, 24);
+  if (!UTC.test(result)) invalid();
+  const milliseconds = Date.parse(result);
+  if (Number.isNaN(milliseconds)) invalid();
+  const canonical = new Date(milliseconds).toISOString();
+  const expected = result.includes(".") ? result : `${result.slice(0, -1)}.000Z`;
+  if (canonical !== expected) invalid();
+  return result;
+}
 function enumValue<T extends string>(value: unknown, options: readonly T[]): T { if (typeof value !== "string" || !options.includes(value as T)) invalid(); return value as T; }
 function ordinalArray(value: unknown, maximum: number): number[] {
   if (!Array.isArray(value) || value.length > maximum) invalid();

@@ -91,6 +91,45 @@ test("CLI lifecycle accepts its own saved envelopes for checkpoint and terminal 
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
+test("CLI retains the full maximum-domain lifecycle envelope through terminal completion", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "nymrel-agent-lifecycle-max-"));
+  try {
+    const fixture = JSON.parse(readFileSync("examples/job-48h-game-builder.json", "utf8")) as { contractVersion: string; models: unknown; steps: Array<{ request: unknown }> };
+    const manifestPath = path.join(directory, "manifest.json");
+    const statePath = path.join(directory, "state.json");
+    const checkpointPath = path.join(directory, "checkpoint.json");
+    const terminalPath = path.join(directory, "terminal.json");
+    const maxManifest = {
+      contractVersion: fixture.contractVersion,
+      jobId: "maximum-domain-lifecycle",
+      models: fixture.models,
+      steps: Array.from({ length: 32 }, (_, index) => ({ stepId: `step-${String(index + 1).padStart(2, "0")}`, dependsOn: index === 0 ? [] : [`step-${String(index).padStart(2, "0")}`], request: fixture.steps[0]!.request })),
+    };
+    writeFileSync(manifestPath, JSON.stringify(maxManifest));
+    const initialized = runCli(["job", "lifecycle", "init", "--file", manifestPath, "--at", "2026-08-28T20:00:00.000Z"]);
+    assert.equal(initialized.status, 0, initialized.stderr);
+    writeFileSync(statePath, initialized.stdout);
+    const artifactSha256 = Array.from({ length: 32 }, (_, index) => index.toString(16).padStart(64, "a"));
+    const completedStepOrdinals = Array.from({ length: 32 }, (_, index) => index + 1);
+    for (let sequence = 1; sequence <= 32; sequence += 1) {
+      const idempotencyKey = `c${String(sequence).padStart(3, "0")}${"x".repeat(124)}`;
+      writeFileSync(checkpointPath, JSON.stringify({ contractVersion: "nymrel.agent.job.checkpoint-input/v1", idempotencyKey, phase: "review", status: "active", nextActionCode: "validate", completedStepOrdinals, artifactSha256, metrics: { stepsCompleted: 32, reworkCount: 1_000_000, testsPassed: 1_000_000 }, recordedAt: `2026-08-28T20:00:${String(sequence).padStart(2, "0")}.000Z` }));
+      const advanced = runCli(["job", "lifecycle", "checkpoint", "--state-file", statePath, "--file", checkpointPath]);
+      assert.equal(advanced.status, 0, advanced.stderr);
+      writeFileSync(statePath, advanced.stdout);
+    }
+    const savedEnvelope = readFileSync(statePath, "utf8");
+    const savedEnvelopeBytes = Buffer.byteLength(savedEnvelope, "utf8");
+    assert.ok(savedEnvelopeBytes > 128 * 1024, "regression must exceed the former 128 KiB state limit");
+    assert.ok(savedEnvelopeBytes <= 192 * 1024, "maximum-domain envelope must fit the documented 192 KiB bound");
+    assert.ok((192 * 1024) - savedEnvelopeBytes >= 32 * 1024, "documented state-envelope headroom must remain at least 32 KiB");
+    writeFileSync(terminalPath, JSON.stringify({ contractVersion: "nymrel.agent.job.terminal-input/v1", idempotencyKey: `t${"x".repeat(127)}`, status: "completed", reasonCode: "success", validationStatus: "passed", evidenceSha256: "b".repeat(64), completedAt: "2026-08-28T20:01:00.000Z" }));
+    const completed = runCli(["job", "lifecycle", "complete", "--state-file", statePath, "--file", terminalPath]);
+    assert.equal(completed.status, 0, completed.stderr);
+    assert.equal((JSON.parse(completed.stdout) as { state: { status: string } }).state.status, "completed");
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
 test("CLI rejects bounded stdin paths before buffering", () => {
   const manifest = runCli(["job", "plan", "--file", "-"]);
   assert.equal(manifest.status, 65); assert.match(manifest.stderr, /invalid_request/);

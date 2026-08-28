@@ -103,6 +103,17 @@ test("lifecycle binds retained idempotency input hashes to their signed receipts
   });
 });
 
+test("lifecycle timestamps require exact valid UTC calendar instants", () => {
+  for (const recordedAt of ["2026-02-31T20:01:00.000Z", "2026-08-28T24:00:00Z", "2026-08-28T20:01:00+00:00", "2026-08-28T20:01:00.12Z"]) {
+    assert.throws(() => checkpointJobLifecycle(state(), checkpoint({ recordedAt })), (error: unknown) => {
+      assert.match(String(error), /invalid/);
+      assert.doesNotMatch(String(error), /2026-/);
+      return true;
+    });
+  }
+  assert.equal(initJobLifecycle(manifest, "2024-02-29T23:59:59.123Z").startedAt, "2024-02-29T23:59:59.123Z");
+});
+
 test("lifecycle rejects receipt transplants, oversized history, secret fields, and ordinal regression", () => {
   const first = checkpointJobLifecycle(state(), checkpoint());
   const otherManifest = structuredClone(manifest) as { jobId: string };

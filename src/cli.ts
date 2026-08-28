@@ -8,7 +8,7 @@ import { route, routeV2 } from "./router.js";
 import { AgentRuntime } from "./runtime.js";
 import { parseJobManifest, planJob } from "./job.js";
 import { createJobPlanReceipt } from "./receipt.js";
-import { checkpointJobLifecycle, completeJobLifecycle, initJobLifecycle } from "./lifecycle.js";
+import { checkpointJobLifecycle, completeJobLifecycle, initJobLifecycle, MAX_LIFECYCLE_ENVELOPE_BYTES } from "./lifecycle.js";
 import { isLoopbackHostname } from "./url-security.js";
 import { parsePublicRoutePayload, parsePublicRoutePayloadV2 } from "./validation.js";
 
@@ -68,6 +68,12 @@ function readText(path: string, maximumBytes?: number): string {
 
 function printJson(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function printLifecycleEnvelope(value: unknown): void {
+  const text = `${JSON.stringify(value, null, 2)}\n`;
+  if (Buffer.byteLength(text, "utf8") > MAX_LIFECYCLE_ENVELOPE_BYTES) throw new NymrelError("invalid_request", "The lifecycle envelope exceeds the allowed size.", 65);
+  process.stdout.write(text);
 }
 
 function endpointUrl(value: string, contractVersion: "v1" | "v2"): string {
@@ -234,21 +240,21 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
     validateOptions(args, 3, ["--file", "--at"]);
     const manifest = parseJobManifest(parseJson(readText(requireFlag(args.slice(3), "--file"), 256 * 1024), "The job manifest"));
     const at = flagValue(args.slice(3), "--at");
-    printJson({ ok: true, state: initJobLifecycle(manifest, at) });
+    printLifecycleEnvelope({ ok: true, state: initJobLifecycle(manifest, at) });
     return 0;
   }
   if (command === "job" && args[1] === "lifecycle" && args[2] === "checkpoint") {
     validateOptions(args, 3, ["--state-file", "--file"]);
-    const state = parseJson(readText(requireFlag(args.slice(3), "--state-file"), 128 * 1024), "The lifecycle state");
+    const state = parseJson(readText(requireFlag(args.slice(3), "--state-file"), MAX_LIFECYCLE_ENVELOPE_BYTES), "The lifecycle state");
     const result = checkpointJobLifecycle(state, parseJson(readText(requireFlag(args.slice(3), "--file"), 64 * 1024), "The checkpoint input"));
-    printJson({ ok: true, state: result.state, receipt: result.receipt, replayed: result.replayed });
+    printLifecycleEnvelope({ ok: true, state: result.state, receipt: result.receipt, replayed: result.replayed });
     return 0;
   }
   if (command === "job" && args[1] === "lifecycle" && args[2] === "complete") {
     validateOptions(args, 3, ["--state-file", "--file"]);
-    const state = parseJson(readText(requireFlag(args.slice(3), "--state-file"), 128 * 1024), "The lifecycle state");
+    const state = parseJson(readText(requireFlag(args.slice(3), "--state-file"), MAX_LIFECYCLE_ENVELOPE_BYTES), "The lifecycle state");
     const result = completeJobLifecycle(state, parseJson(readText(requireFlag(args.slice(3), "--file"), 16 * 1024), "The terminal input"));
-    printJson({ ok: true, state: result.state, receipt: result.receipt, replayed: result.replayed });
+    printLifecycleEnvelope({ ok: true, state: result.state, receipt: result.receipt, replayed: result.replayed });
     return 0;
   }
   if (command === "models" && args[1] === "doctor") {
