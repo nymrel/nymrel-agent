@@ -2,7 +2,7 @@
 
 All notable product changes are documented here.
 
-## Unreleased
+## 0.3.0 — 2026-08-28
 
 - Added local plan-only Job Mode. It validates a bounded, body-free, ordered 1–32-step manifest, uses the existing v2 router for every step, emits a body-free correlation receipt, and labels non-read steps as external handoffs without calling a provider or performing work.
 
