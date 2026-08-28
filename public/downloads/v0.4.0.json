@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "nymrel.agent.release/v1",
+  "version": "0.4.0",
+  "releaseSourceCommit": "70ee9e915a2f51e81a713b0b1eb2451b7d236bc1",
+  "license": "MIT",
+  "package": {
+    "url": "https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.4.0.tgz",
+    "bytes": 66813,
+    "sha256": "25c3c377986564afefe39ce039a8171401eaef71a0f4965fd5b0c423972bf6ae"
+  },
+  "source": {
+    "url": "https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.4.0-source.tar.gz",
+    "bytes": 201276,
+    "sha256": "77a1e034b3c209db79442daaf4ead30adc782358d064e6f635c540fe64110fa4"
+  }
+}

@@ -11,11 +11,11 @@
 - API discovery: https://nymrel-agent.vercel.app/v1
 - API discovery v2: https://nymrel-agent.vercel.app/v2
 - Health: https://nymrel-agent.vercel.app/healthz
-- Release manifest: https://nymrel-agent.vercel.app/downloads/v0.3.1.json
-- Source archive: https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.3.1-source.tar.gz
-- Package artifact: https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.3.1.tgz
+- Release manifest: https://nymrel-agent.vercel.app/downloads/v0.4.0.json
+- Source archive: https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.4.0-source.tar.gz
+- Package artifact: https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.4.0.tgz
 - Public source repository: https://github.com/Nymrel/nymrel-agent
-- GitHub release: https://github.com/Nymrel/nymrel-agent/releases/tag/v0.3.1
+- Release status: v0.4.0 has an approved source and local reproducible carrier artifacts; npm publication, GitHub Release, deployment, and promotion are not claimed.
 - Company: https://nymrel.com/
 - Feedback and service brief: https://nymrel.com/brief?utm_source=nymrel-agent&utm_medium=llms-txt&utm_campaign=nymrel-agent-first-user
 

@@ -30,6 +30,7 @@ const required = [
   "public/downloads/nymrel-agent-0.2.0.tgz", "public/downloads/nymrel-agent-v0.2.0-source.tar.gz", "public/downloads/v0.2.0.json",
   "public/downloads/nymrel-agent-0.3.0.tgz", "public/downloads/nymrel-agent-v0.3.0-source.tar.gz", "public/downloads/v0.3.0.json",
   "public/downloads/nymrel-agent-0.3.1.tgz", "public/downloads/nymrel-agent-v0.3.1-source.tar.gz", "public/downloads/v0.3.1.json",
+  "public/downloads/nymrel-agent-0.4.0.tgz", "public/downloads/nymrel-agent-v0.4.0-source.tar.gz", "public/downloads/v0.4.0.json",
   "public/openapi.json", "public/llms.txt", "examples/route-request.json", "examples/route-request-v2.json", "public/examples/route-request-v2.json", "public/examples/job-48h-game-builder.json", "public/examples/job-48h-game-builder-summary.txt",
   "examples/openai-local-config.example.json", "examples/job-48h-game-builder.json", "docs/ONBOARDING.md", "docs/JOB_MODE.md", "docs/PRODUCTION_LAUNCH_PACKET.md", "docs/FIRST_USER_ACTIVATION.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
@@ -107,10 +108,10 @@ assert.equal(openapi.components?.schemas?.RoutePayloadV2?.additionalProperties, 
 assert.equal(openapi.servers?.[0]?.url, packageJson.homepage);
 
 assert.deepEqual(ACTIVE_RELEASE_FILES, [
-  "public/downloads/nymrel-agent-0.3.1.tgz",
-  "public/downloads/nymrel-agent-v0.3.1-source.tar.gz",
-  "public/downloads/v0.3.1.json",
-], "active release registry must contain the full 0.3.1 artifact set");
+  "public/downloads/nymrel-agent-0.4.0.tgz",
+  "public/downloads/nymrel-agent-v0.4.0-source.tar.gz",
+  "public/downloads/v0.4.0.json",
+], "active release registry must contain the full 0.4.0 artifact set");
 assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/route-request.json"), "Vercel registry omits the v1 example");
 assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/route-request-v2.json"), "Vercel registry omits the v2 example");
 assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/job-48h-game-builder.json"), "Vercel registry omits the Job Mode fixture");
@@ -121,7 +122,7 @@ for (const relative of RELEASE_ARCHIVE_FILES) assert.ok(VERCEL_SOURCE_FILES.incl
 const releaseManifest = json(`public/downloads/v${ACTIVE_RELEASE_VERSION}.json`);
 assert.equal(releaseManifest.schemaVersion, "nymrel.agent.release/v1");
 assert.equal(releaseManifest.version, packageJson.version);
-assert.equal(releaseManifest.releaseSourceCommit, "efcc9482ed0a7add39e2f7946564d5aa1f9d57f0");
+assert.equal(releaseManifest.releaseSourceCommit, "70ee9e915a2f51e81a713b0b1eb2451b7d236bc1");
 assert.equal(releaseManifest.license, packageJson.license);
 for (const [kind, filename] of [
   ["package", `nymrel-agent-${ACTIVE_RELEASE_VERSION}.tgz`],
@@ -134,6 +135,14 @@ for (const [kind, filename] of [
 }
 
 for (const historical of [
+  {
+    version: "0.3.1",
+    sourceCommit: "efcc9482ed0a7add39e2f7946564d5aa1f9d57f0",
+    artifacts: {
+      package: { filename: "nymrel-agent-0.3.1.tgz", bytes: 54227, sha256: "974b6b27036c09d680405100fdd1d2a8e4a93b507f4627e8108e2de2f2be4332" },
+      source: { filename: "nymrel-agent-v0.3.1-source.tar.gz", bytes: 182934, sha256: "fad20538ef62ab42196bd78ced700e6752573a7e5b987e97f5e71a4f27274fc7" },
+    },
+  },
   {
     version: "0.3.0",
     sourceCommit: "4357722ae581203e9a560a777979d07ad8257de6",
@@ -203,6 +212,8 @@ assert.match(read(".gitattributes"), /^public\/downloads\/ export-ignore\r?$/m, 
 
 const sourceArchive = path.join(root, "public", "downloads", `nymrel-agent-v${ACTIVE_RELEASE_VERSION}-source.tar.gz`);
 const archiveRoot = `nymrel-agent-${ACTIVE_RELEASE_VERSION}/`;
+const sourceCommitArchive = execFileSync("git", ["archive", "--format=tar.gz", `--prefix=${archiveRoot}`, releaseManifest.releaseSourceCommit], { cwd: root });
+assert.deepEqual(readFileSync(sourceArchive), sourceCommitArchive, "active source archive must exactly reproduce releaseSourceCommit");
 const archiveNames = execFileSync("tar", ["-tzf", sourceArchive], { encoding: "utf8" }).trimEnd().split(/\r?\n/);
 assert.ok(archiveNames.length > 1, "source archive is empty");
 assert.equal(archiveNames[0], archiveRoot, "source archive must begin with one versioned root");
@@ -270,10 +281,10 @@ for (const publicDocument of [indexHtml, docsHtml, llmsText]) {
   assert.equal(publicDocument.includes("github.com/JalenBuildsHub/nymrel-agent"), false, "public launch document links to the suspended personal-account mirror");
 }
 const publicLaunchDocuments = `${indexHtml}\n${docsHtml}\n${llmsText}`;
-for (const filename of ["nymrel-agent-0.3.1.tgz", "nymrel-agent-v0.3.1-source.tar.gz", "v0.3.1.json"]) {
+for (const filename of ["nymrel-agent-0.4.0.tgz", "nymrel-agent-v0.4.0-source.tar.gz", "v0.4.0.json"]) {
   assert.ok(publicLaunchDocuments.includes(`/downloads/${filename}`), `public launch documents omit active artifact ${filename}`);
 }
-for (const filename of ["nymrel-agent-0.3.0.tgz", "nymrel-agent-v0.3.0-source.tar.gz", "v0.3.0.json"]) {
+for (const filename of ["nymrel-agent-0.3.1.tgz", "nymrel-agent-v0.3.1-source.tar.gz", "v0.3.1.json"]) {
   assert.equal(publicLaunchDocuments.includes(`/downloads/${filename}`), false, `public launch documents still advertise historical artifact ${filename}`);
 }
 const structuredData = indexHtml.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
@@ -427,7 +438,7 @@ for (const requiredLaunchHold of [
   "Do not use `--yes`, `Force Promote`",
   "releaseSourceCommit",
   "deploymentSourceCommit",
-  "version `0.3.1`",
+  "version `0.4.0`",
   "| GET | `/v1` | 200 JSON; unchanged contract `nymrel.agent.route/v1`",
   "| GET | `/v2` | 200 JSON; contract `nymrel.agent.route/v2`",
   "| GET | `/v2/openapi.json` | 200 JSON; OpenAPI `3.1.0` |",
@@ -435,10 +446,10 @@ for (const requiredLaunchHold of [
   "| POST | `/v2/route` | 200 for the published v2 fixture; selected model is in `paretoFrontierModelIds` |",
   "| GET | `/v2/route` | 405 JSON; `Allow: POST, OPTIONS` |",
   "/examples/route-request-v2.json",
-  "efcc9482ed0a7add39e2f7946564d5aa1f9d57f0",
-  "974b6b27036c09d680405100fdd1d2a8e4a93b507f4627e8108e2de2f2be4332",
-  "fad20538ef62ab42196bd78ced700e6752573a7e5b987e97f5e71a4f27274fc7",
-  "b2b18236dc87bfeb10e7484c6ab2837b960a0c38a0696d5505367f2917b87003",
+  "70ee9e915a2f51e81a713b0b1eb2451b7d236bc1",
+  "25c3c377986564afefe39ce039a8171401eaef71a0f4965fd5b0c423972bf6ae",
+  "77a1e034b3c209db79442daaf4ead30adc782358d064e6f635c540fe64110fa4",
+  "51475953ac447baa4b8cc0fb570a40540976267341fe363c539bb2f04d67e1e9",
   "separate security and package/runtime reviewers accepted both the exact release-source SHA and the exact carrier SHA",
   "In `provider_git` mode, require Vercel's provider-supplied `VERCEL_GIT_COMMIT_SHA` and `gitSource` to agree with the carrier.",
   "In `verified_cli_bundle` mode, `--env` is the explicit runtime input and `--meta githubCommitSha` is metadata only;",

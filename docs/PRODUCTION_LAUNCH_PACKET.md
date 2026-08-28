@@ -1,14 +1,21 @@
 # Nymrel Agent production launch packet
 
-Status: v0.2.0 remains current in production at `https://nymrel-agent.vercel.app`; v0.3.0 Job Mode is published on GitHub but its staged deployment was not promoted after the mobile browser gate found documentation overflow; v0.3.1 has independently accepted patch source and reproducible local artifacts but no accepted carrier, public release, deployment, or promotion yet
+Status: v0.3.1 remains current in production at `https://nymrel-agent.vercel.app`; v0.4.0 has an approved release source and local reproducible carrier artifacts, but no npm publication, GitHub Release, deployment, promotion, or production-status change is claimed.
 
-Owner: Codex Job Mode patch release-integration lane under claim `codex-nymrel-agent-job-mode-v031-source-20260828`
+Owner: Codex Job Lifecycle v0.4 release-carrier preparation lane
 
-Target release: `0.3.1`
+Target release: `0.4.0`
 
 Public contracts: `nymrel.agent.route/v1` and opt-in `nymrel.agent.route/v2`
 
-Source branch: `codex/nymrel-agent-job-mode-v031-20260828`
+Source branch: `codex/nymrel-agent-job-lifecycle-v040-20260828`
+
+## v0.4.0 local carrier-preparation receipt — 2026-08-28
+
+- Carrier version `0.4.0` is local-only until the separate publication and deployment gates are accepted.
+- Approved release source: `70ee9e915a2f51e81a713b0b1eb2451b7d236bc1`.
+- Reproducible local artifacts: package `nymrel-agent-0.4.0.tgz` is 66,813 bytes with SHA-256 `25c3c377986564afefe39ce039a8171401eaef71a0f4965fd5b0c423972bf6ae`; source archive `nymrel-agent-v0.4.0-source.tar.gz` is 201,276 bytes with SHA-256 `77a1e034b3c209db79442daaf4ead30adc782358d064e6f635c540fe64110fa4`; manifest `v0.4.0.json` is 571 bytes with SHA-256 `51475953ac447baa4b8cc0fb570a40540976267341fe363c539bb2f04d67e1e9`.
+- Carrier boundary: the artifacts and manifest are locally committed release-carrier material. They are not evidence of npm publication, a GitHub Release, Vercel deployment, staged acceptance, promotion, or a production version change. Existing v1/v2 routes and hosted metadata-only routing remain unchanged.
 
 ## v0.3.1 local carrier-preparation receipt — 2026-08-28
 
@@ -205,7 +212,7 @@ Every registered dynamic route is checked against the production alias:
 | POST | `/v2/route` | 200 for the published v2 fixture; selected model is in `paretoFrontierModelIds` |
 | GET | `/v2/route` | 405 JSON; `Allow: POST, OPTIONS` |
 
-Static checks cover `/`, `/docs`, `/demo.js`, `/sitemap.xml`, `/openapi.json`, `/llms.txt`, `/robots.txt`, `/examples/route-request.json`, `/examples/route-request-v2.json`, `/og-image.png`, `/og-image.svg`, and `/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt`, including exact uploaded bytes plus content type, cache, and security headers. The staged deployment and production alias must both return the social image at exactly 1200×630 and the UTF-8 IndexNow key file with an exact body of `0e2a8eae9dfa779ba2f3282c3c6e3d2d`; a successful IndexNow response proves receipt only, not crawl, index, rank, citation, or recommendation.
+Static checks cover `/`, `/docs`, `/demo.js`, `/sitemap.xml`, `/openapi.json`, `/llms.txt`, `/robots.txt`, `/examples/route-request.json`, `/examples/route-request-v2.json`, `/examples/job-48h-game-builder.json`, `/examples/job-48h-game-builder-summary.txt`, `/og-image.png`, `/og-image.svg`, and `/0e2a8eae9dfa779ba2f3282c3c6e3d2d.txt`, including exact uploaded bytes plus content type, cache, and security headers. The staged deployment and production alias must both return the social image at exactly 1200×630 and the UTF-8 IndexNow key file with an exact body of `0e2a8eae9dfa779ba2f3282c3c6e3d2d`; a successful IndexNow response proves receipt only, not crawl, index, rank, citation, or recommendation.
 
 Browser activation checks load the staged homepage at desktop and mobile viewports, run the published example through the visible control, require the expected `provider-b/fast` result and feedback link, and confirm zero console errors, cookies, local storage, or session storage. The feedback link must remain hidden until a successful route.
 

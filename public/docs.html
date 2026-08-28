@@ -21,7 +21,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header class="nav shell"><a class="brand" href="/"><span class="mark" aria-hidden="true">N</span><span>Nymrel Agent</span></a><nav aria-label="Primary navigation"><a href="/">Product</a><a href="/openapi.json">OpenAPI</a><a href="/downloads/v0.3.1.json">Downloads</a><a href="https://github.com/Nymrel/nymrel-agent">Source</a><a class="button small" href="/#live-demo">Run example</a></nav></header>
+  <header class="nav shell"><a class="brand" href="/"><span class="mark" aria-hidden="true">N</span><span>Nymrel Agent</span></a><nav aria-label="Primary navigation"><a href="/">Product</a><a href="/openapi.json">OpenAPI</a><a href="/downloads/v0.4.0.json">Downloads</a><a href="https://github.com/Nymrel/nymrel-agent">Source</a><a class="button small" href="/#live-demo">Run example</a></nav></header>
   <main class="docs shell">
     <aside aria-label="Documentation sections"><p class="eyebrow">DOCUMENTATION</p><a href="#quickstart">Quickstart</a><a href="#contract">Request contract</a><a href="#scoring">Scoring</a><a href="#errors">Errors</a><a href="#downloads">Downloads</a><a href="#cli">CLI</a><a href="#mcp">MCP</a><a href="#local-execution">Local execution</a><a href="#security">Security</a><a href="#service">Managed service</a></aside>
     <article class="prose">
@@ -73,12 +73,12 @@
       <p>All API errors are JSON and include a request ID plus a stable code. Expected codes include <code>invalid_json</code>, <code>invalid_content_length</code>, <code>invalid_request</code>, <code>payload_too_large</code>, <code>unsupported_media_type</code>, <code>method_not_allowed</code>, <code>rate_limited</code>, <code>service_misconfigured</code>, <code>service_disabled</code>, and <code>not_found</code>. The Vercel production endpoint applies a project-level WAF limit of 120 routing calls per 60-second window per platform-derived network identity, shared across function instances. Shared networks can share an allowance. Internal stack traces and request bodies are never returned.</p>
 
       <h2 id="downloads">Versioned downloads</h2>
-      <p>Nymrel hosts the exact v0.3.1 package and MIT-licensed source archive on this service. The <a href="/downloads/v0.3.1.json">release manifest</a> records their byte sizes, SHA-256 digests, and source commit. The <a href="https://github.com/Nymrel/nymrel-agent">public source repository</a> carries the same code, release, issue tracker, and contribution path.</p>
-      <ul><li><a href="/downloads/nymrel-agent-0.3.1.tgz">Package artifact</a></li><li><a href="/downloads/nymrel-agent-v0.3.1-source.tar.gz">Source archive</a></li><li><a href="https://github.com/Nymrel/nymrel-agent/releases/tag/v0.3.1">GitHub release</a></li></ul>
+      <p>The reviewed v0.4.0 local carrier contains an exact package and MIT-licensed source archive. Its <a href="/downloads/v0.4.0.json">release manifest</a> records byte sizes, SHA-256 digests, and the approved source commit. It is prepared locally; npm publication, a GitHub Release, deployment, and promotion remain separate gates.</p>
+      <ul><li><a href="/downloads/nymrel-agent-0.4.0.tgz">Package artifact</a></li><li><a href="/downloads/nymrel-agent-v0.4.0-source.tar.gz">Source archive</a></li><li><a href="https://github.com/Nymrel/nymrel-agent">Public source repository</a></li></ul>
 
       <h2 id="cli">CLI</h2>
       <p>Until npm registry publishing is separately approved, install the versioned package directly:</p>
-      <pre><code>npm install https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.3.1.tgz
+      <pre><code>npm install https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.4.0.tgz
 npx nymrel-agent contract</code></pre>
       <p>The CLI reads locally by default and writes the result as JSON to stdout. Use <code>--endpoint https://nymrel-agent.vercel.app</code> to call the hosted router. No prompt is sent because route payloads contain metadata only.</p>
       <h3>Job Mode and Lifecycle</h3>
