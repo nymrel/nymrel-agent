@@ -67,7 +67,7 @@ export function parseJobManifest(value: unknown): JobManifest {
 }
 
 /** Produce routing decisions only. Job Mode does not invoke providers or perform work. */
-export function planJob(manifest: JobManifest): JobPlan {
+function planValidatedJob(manifest: JobManifest): JobPlan {
   const steps = manifest.steps.map((step, index) => {
     const routePlan = routeV2(step.request, manifest.models);
     const external = step.request.risk !== "read";
@@ -124,4 +124,9 @@ export function planJob(manifest: JobManifest): JobPlan {
       status === "blocked" ? "job_plan_blocked" : status === "ready_with_handoffs" ? "external_handoffs_required" : "job_plan_ready",
     ],
   };
+}
+
+/** Exported API is strict even when called directly from a package consumer. */
+export function planJob(value: unknown): JobPlan {
+  return planValidatedJob(parseJobManifest(value));
 }

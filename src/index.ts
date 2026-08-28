@@ -5,6 +5,7 @@ export * from "./errors.js";
 export * from "./fake-provider.js";
 export * from "./job.js";
 export * from "./local-config.js";
+export * from "./lifecycle.js";
 export * from "./openai-responses-provider.js";
 export * from "./ordering.js";
 export * from "./receipt.js";

@@ -77,7 +77,7 @@ async function verifyMcp(executable) {
     const listed = await request("tools/list", { _meta: meta });
     assert.equal(listed.error, undefined);
     assert.equal(listed.result?.resultType, "complete");
-    assert.deepEqual(listed.result?.tools.map((tool) => tool.name).sort(), ["explain_contract", "explain_contract_v2", "route_models", "route_models_v2"]);
+    assert.deepEqual(listed.result?.tools.map((tool) => tool.name).sort(), ["explain_contract", "explain_contract_v2", "plan_job", "route_models", "route_models_v2"]);
 
     const payload = readFileSync(path.join(root, "examples", "route-request.json"), "utf8");
     const called = await request("tools/call", { name: "route_models", arguments: { payload }, _meta: meta });
@@ -90,6 +90,10 @@ async function verifyMcp(executable) {
     assert.equal(calledV2.error, undefined);
     assert.equal(calledV2.result?.resultType, "complete");
     assert.equal(calledV2.result?.structuredContent?.contractVersion, "nymrel.agent.route/v2");
+    const jobPayload = readFileSync(path.join(root, "examples", "job-48h-game-builder.json"), "utf8");
+    const job = await request("tools/call", { name: "plan_job", arguments: { payload: jobPayload }, _meta: meta });
+    assert.equal(job.error, undefined);
+    assert.equal(job.result?.structuredContent?.profile, "plan-only");
   } finally {
     child.stdin.end();
     if (child.exitCode === null) {
@@ -142,6 +146,8 @@ try {
   assert.equal(jobPlan.plan?.summary?.externalHandoffRequiredSteps, 2);
   assert.equal(jobPlan.receipt?.status, "planned");
   assert.equal(jobPlan.receipt?.counts?.totalSteps, 5);
+  const summary = run(bin("nymrel-agent"), ["job", "plan", "--file", path.join(installedPackageRoot, "examples", "job-48h-game-builder.json"), "--format", "summary"], { cwd: installRoot });
+  assert.ok(summary.split(/\r?\n/).filter(Boolean).length <= 40);
   await verifyMcp(bin("nymrel-agent-mcp"));
   process.stdout.write(`${candidateMode ? "candidate-" : ""}packed-install-verification: pass (${process.platform})\n`);
 } finally {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync, statSync } from "node:fs";
-import { CONTRACT_VERSION, CONTRACT_VERSION_V2, PRODUCT_VERSION } from "./contracts.js";
+import { CONTRACT_VERSION, CONTRACT_VERSION_V2, JOB_LIFECYCLE_CONTRACT_VERSION, PRODUCT_VERSION } from "./contracts.js";
 import { createDefaultRouteRequest, createDemoRuntime } from "./defaults.js";
 import { NymrelError, publicError } from "./errors.js";
 import { createConfiguredAdapters, parseLocalAgentConfig } from "./local-config.js";
@@ -8,6 +8,7 @@ import { route, routeV2 } from "./router.js";
 import { AgentRuntime } from "./runtime.js";
 import { parseJobManifest, planJob } from "./job.js";
 import { createJobPlanReceipt } from "./receipt.js";
+import { checkpointJobLifecycle, completeJobLifecycle, initJobLifecycle } from "./lifecycle.js";
 import { isLoopbackHostname } from "./url-security.js";
 import { parsePublicRoutePayload, parsePublicRoutePayloadV2 } from "./validation.js";
 
@@ -47,6 +48,9 @@ function parseJson(text: string, label: string): unknown {
 
 function readText(path: string, maximumBytes?: number): string {
   try {
+    if (maximumBytes !== undefined && path === "-") {
+      throw new NymrelError("invalid_request", "Bounded inputs must be supplied as files.", 65);
+    }
     if (maximumBytes !== undefined && path !== "-" && statSync(path).size > maximumBytes) {
       throw new NymrelError("invalid_request", "The requested input exceeds the allowed size.", 65);
     }
@@ -153,11 +157,30 @@ function taskText(args: readonly string[]): string {
   throw new NymrelError("usage_error", "--task or --task-file is required.", 64);
 }
 
+export function formatJobPlanSummary(value: unknown): string {
+  const plan = planJob(value);
+  const lines = [
+    `Nymrel Agent Job Mode · local plan only · ${plan.status}`,
+    "No provider call, persistence, scheduler, or execution is performed.",
+    ...plan.steps.map((step) => {
+      const model = step.routePlan.selectedModelId ?? "NO_ELIGIBLE_MODEL";
+      const dependencies = step.dependsOn.length === 0 ? "none" : step.dependsOn.join(",");
+      const signal = step.routePlan.selectedModelId === null ? "blocked:no_eligible_model" : `policy:${step.routePlan.objective}`;
+      const boundary = step.executionDisposition === "external_handoff_required" ? "external-handoff-required" : "read-only-eligible";
+      return `${step.ordinal}. ${step.stepId} · ${step.phase} · ${model} · deps:${dependencies} · ${signal} · ${boundary}`;
+    }),
+  ];
+  return `${lines.slice(0, 40).join("\n")}\n`;
+}
+
 function help(): void {
   process.stdout.write(`Nymrel Agent ${PRODUCT_VERSION}\n\n` +
     "Usage:\n" +
     "  nymrel-agent route --file PAYLOAD.json [--contract-version v2] [--endpoint https://host]\n" +
-    "  nymrel-agent job plan --file MANIFEST.json\n" +
+    "  nymrel-agent job plan --file MANIFEST.json [--format summary]\n" +
+    "  nymrel-agent job lifecycle init --file MANIFEST.json [--at RFC3339_UTC]\n" +
+    "  nymrel-agent job lifecycle checkpoint --state-file STATE.json --file CHECKPOINT.json\n" +
+    "  nymrel-agent job lifecycle complete --state-file STATE.json --file TERMINAL.json\n" +
     "  nymrel-agent models doctor [--config CONFIG.json]\n" +
     "  nymrel-agent run --config CONFIG.json (--task TEXT | --task-file FILE|-) [--max-output-tokens N]\n" +
     "  nymrel-agent contract\n" +
@@ -173,7 +196,7 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
   }
   if (command === "contract") {
     validateOptions(args, 1, []);
-    printJson({ name: "Nymrel Agent", version: PRODUCT_VERSION, contractVersion: CONTRACT_VERSION, publicExecution: false, localExecutionProfile: "read-only" }); return 0;
+    printJson({ name: "Nymrel Agent", version: PRODUCT_VERSION, contractVersion: CONTRACT_VERSION, jobLifecycleContractVersion: JOB_LIFECYCLE_CONTRACT_VERSION, publicExecution: false, localExecutionProfile: "read-only" }); return 0;
   }
   if (command === "demo") {
     validateOptions(args, 1, []);
@@ -195,11 +218,38 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
     return 0;
   }
   if (command === "job" && args[1] === "plan") {
-    validateOptions(args, 2, ["--file"]);
+    validateOptions(args, 2, ["--file", "--format"]);
     const manifest = parseJobManifest(parseJson(readText(requireFlag(args.slice(2), "--file"), 256 * 1024), "The job manifest"));
     const plan = planJob(manifest);
+    const format = flagValue(args.slice(2), "--format");
+    if (format !== undefined && format !== "summary") throw new NymrelError("usage_error", "--format must be summary when provided.", 64);
+    if (format === "summary") {
+      process.stdout.write(formatJobPlanSummary(manifest));
+      return plan.status === "blocked" ? 2 : 0;
+    }
     printJson({ ok: true, plan, receipt: createJobPlanReceipt(manifest, plan) });
     return plan.status === "blocked" ? 2 : 0;
+  }
+  if (command === "job" && args[1] === "lifecycle" && args[2] === "init") {
+    validateOptions(args, 3, ["--file", "--at"]);
+    const manifest = parseJobManifest(parseJson(readText(requireFlag(args.slice(3), "--file"), 256 * 1024), "The job manifest"));
+    const at = flagValue(args.slice(3), "--at");
+    printJson({ ok: true, state: initJobLifecycle(manifest, at) });
+    return 0;
+  }
+  if (command === "job" && args[1] === "lifecycle" && args[2] === "checkpoint") {
+    validateOptions(args, 3, ["--state-file", "--file"]);
+    const state = parseJson(readText(requireFlag(args.slice(3), "--state-file"), 128 * 1024), "The lifecycle state");
+    const result = checkpointJobLifecycle(state, parseJson(readText(requireFlag(args.slice(3), "--file"), 64 * 1024), "The checkpoint input"));
+    printJson({ ok: true, state: result.state, receipt: result.receipt, replayed: result.replayed });
+    return 0;
+  }
+  if (command === "job" && args[1] === "lifecycle" && args[2] === "complete") {
+    validateOptions(args, 3, ["--state-file", "--file"]);
+    const state = parseJson(readText(requireFlag(args.slice(3), "--state-file"), 128 * 1024), "The lifecycle state");
+    const result = completeJobLifecycle(state, parseJson(readText(requireFlag(args.slice(3), "--file"), 16 * 1024), "The terminal input"));
+    printJson({ ok: true, state: result.state, receipt: result.receipt, replayed: result.replayed });
+    return 0;
   }
   if (command === "models" && args[1] === "doctor") {
     validateOptions(args, 2, ["--config"]);

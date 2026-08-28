@@ -41,14 +41,14 @@ if (demo instanceof HTMLElement) {
       setState("loading", "Loading the public example and routing it now.");
 
       try {
-        const exampleResponse = await fetch("/examples/route-request.json", {
+        const exampleResponse = await fetch("/examples/route-request-v2.json", {
           cache: "no-store",
           headers: { Accept: "application/json" },
         });
         if (!exampleResponse.ok) throw new Error("example_unavailable");
 
         const payload = await exampleResponse.json();
-        const routeResponse = await fetch("/v1/route", {
+        const routeResponse = await fetch("/v2/route", {
           method: "POST",
           headers: {
             Accept: "application/json",

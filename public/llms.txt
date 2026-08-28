@@ -31,7 +31,7 @@ POST /v2/route is an explicit separate contract. Its request includes `normaliza
 - Model metrics and capabilities are supplied by the caller; Nymrel Agent does not certify them.
 - The local harness executes read-only requests only.
 - Provider credentials remain on the customer's machine for local execution.
-- Write-capable tools, hosted credential custody, billing, and autonomous side effects are outside v0.2.
+- Write-capable tools, hosted credential custody, billing, and autonomous side effects are outside the hosted service. Local Job Mode and Job Lifecycle only plan and return caller-retained body-free envelopes; they do not execute, schedule, or persist work.
 
 ## Service
 

@@ -2,6 +2,11 @@
 
 All notable product changes are documented here.
 
+## 0.4.0 — 2026-08-28
+
+- Added a local-only Job Lifecycle contract: callers retain the latest envelope while deterministic init, checkpoint, and terminal transitions validate bounded body-free inputs, replay idempotent requests, and verify a SHA-256 integrity chain. It neither runs work nor persists data.
+- Added the stdio-only, read-only `plan_job` MCP tool and a concise Job Mode timeline view. The hosted API remains a metadata-only v1/v2 router with no Job or Lifecycle endpoint.
+
 ## 0.3.1 — 2026-08-28
 
 - Fixed horizontal overflow in the public documentation at narrow mobile widths by allowing the single-column documentation grid and prose content to shrink, while wrapping long inline code tokens. The v0.3.0 staged deployment was not promoted after the browser gate found this defect.

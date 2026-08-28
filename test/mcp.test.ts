@@ -69,7 +69,7 @@ async function verifyLegacyHandshake(): Promise<void> {
     rpc.notify("notifications/initialized");
     const listed = await rpc.request("tools/list", {});
     const tools = listed.result?.tools as Array<{ name: string; annotations?: { readOnlyHint?: boolean } }>;
-    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "explain_contract_v2", "route_models", "route_models_v2"]);
+    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "explain_contract_v2", "plan_job", "route_models", "route_models_v2"]);
     assert.ok(tools.every((tool) => tool.annotations?.readOnlyHint === true));
     const explained = await rpc.request("tools/call", { name: "explain_contract", arguments: {} });
     assert.deepEqual(explained.result?.structuredContent, legacyContract);
@@ -96,6 +96,20 @@ async function verifyLegacyHandshake(): Promise<void> {
     const v2Structured = v2Called.result?.structuredContent as { contractVersion?: string; selectedModelId?: string };
     assert.equal(v2Structured.contractVersion, "nymrel.agent.route/v2");
     assert.equal(v2Structured.selectedModelId, "provider-b/fast");
+    const jobPayload = readFileSync("examples/job-48h-game-builder.json", "utf8");
+    const jobCalled = await rpc.request("tools/call", { name: "plan_job", arguments: { payload: jobPayload } });
+    assert.equal(jobCalled.error, undefined);
+    assert.equal((jobCalled.result?.structuredContent as { profile?: string }).profile, "plan-only");
+    assert.doesNotMatch(JSON.stringify(jobCalled.result), /createdAt|recordedAt|completedAt/);
+    for (const payload of [
+      JSON.stringify({ ...JSON.parse(jobPayload) as object, prompt: "mcp-private-prompt" }),
+      "{not-valid-json",
+      "é".repeat(200_000),
+    ]) {
+      const rejected = await rpc.request("tools/call", { name: "plan_job", arguments: { payload } });
+      assert.equal(rejected.result?.isError, true);
+      assert.doesNotMatch(JSON.stringify(rejected.result), /mcp-private-prompt/);
+    }
     const v1WithV2 = await rpc.request("tools/call", { name: "route_models", arguments: { payload: v2Payload } });
     assert.equal(v1WithV2.result?.isError, true);
     const v2WithV1 = await rpc.request("tools/call", { name: "route_models_v2", arguments: { payload } });
@@ -127,13 +141,13 @@ async function verifyModernHandshake(): Promise<void> {
     assert.equal(discovered.result?.resultType, "complete");
     assert.deepEqual(discovered.result?.supportedVersions, ["2026-07-28"]);
     const discoveryMeta = discovered.result?._meta as Record<string, unknown>;
-    assert.deepEqual(discoveryMeta["io.modelcontextprotocol/serverInfo"], { name: "nymrel-agent", version: "0.3.1" });
+    assert.deepEqual(discoveryMeta["io.modelcontextprotocol/serverInfo"], { name: "nymrel-agent", version: "0.4.0" });
 
     const listed = await rpc.request("tools/list", { _meta: modernMeta });
     assert.equal(listed.error, undefined);
     assert.equal(listed.result?.resultType, "complete");
     const tools = listed.result?.tools as Array<{ name: string; annotations?: { readOnlyHint?: boolean } }>;
-    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "explain_contract_v2", "route_models", "route_models_v2"]);
+    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "explain_contract_v2", "plan_job", "route_models", "route_models_v2"]);
     assert.ok(tools.every((tool) => tool.annotations?.readOnlyHint === true));
 
     const payload = readFileSync("examples/route-request.json", "utf8");
@@ -148,6 +162,11 @@ async function verifyModernHandshake(): Promise<void> {
     const v2Structured = v2Called.result?.structuredContent as { contractVersion?: string; selectedModelId?: string };
     assert.equal(v2Structured.contractVersion, "nymrel.agent.route/v2");
     assert.equal(v2Structured.selectedModelId, "provider-b/fast");
+    const jobPayload = readFileSync("examples/job-48h-game-builder.json", "utf8");
+    const jobCalled = await rpc.request("tools/call", { name: "plan_job", arguments: { payload: jobPayload }, _meta: modernMeta });
+    assert.equal(jobCalled.error, undefined);
+    assert.equal((jobCalled.result?.structuredContent as { profile?: string }).profile, "plan-only");
+    assert.doesNotMatch(JSON.stringify(jobCalled.result), /createdAt|recordedAt|completedAt/);
   } finally {
     child.stdin.end();
     child.kill();

@@ -25,7 +25,7 @@
   <main class="docs shell">
     <aside aria-label="Documentation sections"><p class="eyebrow">DOCUMENTATION</p><a href="#quickstart">Quickstart</a><a href="#contract">Request contract</a><a href="#scoring">Scoring</a><a href="#errors">Errors</a><a href="#downloads">Downloads</a><a href="#cli">CLI</a><a href="#mcp">MCP</a><a href="#local-execution">Local execution</a><a href="#security">Security</a><a href="#service">Managed service</a></aside>
     <article class="prose">
-      <p class="status-pill">v0.1 · production</p>
+      <p class="status-pill">v0.4 · local-first</p>
       <h1>Route work across the models you already use.</h1>
       <p>Nymrel Agent applies one deterministic routing contract across a public API, a local CLI, and an MCP server. You supply the model catalog and its evidence. Nymrel Agent filters ineligible options, ranks the rest, and explains the decision.</p>
 
@@ -81,9 +81,16 @@
       <pre><code>npm install https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.3.1.tgz
 npx nymrel-agent contract</code></pre>
       <p>The CLI reads locally by default and writes the result as JSON to stdout. Use <code>--endpoint https://nymrel-agent.vercel.app</code> to call the hosted router. No prompt is sent because route payloads contain metadata only.</p>
+      <h3>Job Mode and Lifecycle</h3>
+      <p><code>job plan</code> routes a body-free, ordered manifest with caller-supplied policy and catalog evidence. It does not inspect task text, learn user behavior, call a provider, or execute a step. <code>job plan --format summary</code> prints a concise local timeline; non-read steps are external handoffs. Phase labels organize the fixture only; they do not affect routing scores.</p>
+      <p>The <a href="/examples/job-48h-game-builder.json">sanitized fictional five-step manifest</a> has a pinned <a href="/examples/job-48h-game-builder-summary.txt">deterministic local summary</a>: research → plan → build handoff → review → release handoff. Each line shows its objective, selected model, dependency, and external-handoff boundary.</p>
+      <pre><code>nymrel-agent job lifecycle init --file examples/job-48h-game-builder.json
+nymrel-agent job lifecycle checkpoint --state-file state.json --file examples/lifecycle-checkpoint.example.json
+nymrel-agent job lifecycle complete --state-file state.json --file examples/lifecycle-terminal.example.json</code></pre>
+      <p>Lifecycle commands print a next local envelope. It contains only digests, counts, ordinals, enums, timestamps, and bounded metrics. Hashes support integrity and correlation, not confidentiality or freshness. One terminal transition applies only to the retained latest state lineage: stale copies can fork because v0.4 has no authority or persistence service. There is no hosted lifecycle endpoint, scheduler, persistence, or provider execution.</p>
 
       <h2 id="mcp">MCP</h2>
-      <p>The MCP server exposes <code>route_models</code>, <code>route_models_v2</code>, <code>explain_contract</code>, and <code>explain_contract_v2</code> over stdio. Configure your compatible client to run <code>node /absolute/path/to/dist/src/bin/nymrel-agent-mcp.js</code>. Protocol messages use stdout; diagnostics use stderr.</p>
+      <p>The MCP server exposes <code>route_models</code>, <code>route_models_v2</code>, <code>plan_job</code>, <code>explain_contract</code>, and <code>explain_contract_v2</code> over stdio. <code>plan_job</code> is read-only and idempotent; it uses the body-free local Job Mode parser and returns no timestamped receipt. Configure your compatible client to run <code>node /absolute/path/to/dist/src/bin/nymrel-agent-mcp.js</code>. Protocol messages use stdout; diagnostics use stderr. The MCP host may retain arguments even though Nymrel sends none over its network.</p>
 
       <h2 id="local-execution">Local execution</h2>
       <p>The optional local harness can execute read-only tasks through explicitly configured adapters. Provider keys are read from an environment variable named in your local config and sent directly from your machine to that provider. Keys are never accepted by the public Nymrel endpoint, stored in receipts, or printed by the CLI.</p>

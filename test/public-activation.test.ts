@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import type { PublicRoutePayload } from "../src/contracts.js";
-import { route } from "../src/router.js";
+import type { PublicRoutePayloadV2 } from "../src/contracts.js";
+import { formatJobPlanSummary } from "../src/cli.js";
+import { routeV2 } from "../src/router.js";
 
 const read = (relative: string) => readFileSync(relative, "utf8");
 
@@ -10,8 +11,8 @@ test("the public activation path runs only the metadata example and exposes attr
   const homepage = read("public/index.html");
   const script = read("public/demo.js");
   const mirror = JSON.parse(read("homepage.json")) as { html?: string };
-  const fixture = JSON.parse(read("examples/route-request.json")) as PublicRoutePayload;
-  const plan = route(fixture.request, fixture.models);
+  const fixture = JSON.parse(read("examples/route-request-v2.json")) as PublicRoutePayloadV2;
+  const plan = routeV2(fixture.request, fixture.models);
 
   assert.match(homepage, /data-live-demo/);
   assert.match(homepage, /data-run-demo/);
@@ -40,8 +41,8 @@ test("the public activation path runs only the metadata example and exposes attr
   const liveDemo = homepage.indexOf('id="live-demo"');
   assert.ok(heroStart >= 0 && liveDemo > heroStart && liveDemo < heroEnd, "the live route example must stay inside the hero");
   assert.ok(homepage.indexOf("Run the live route") < homepage.indexOf("Need this fitted to your model stack"));
-  assert.match(script, /fetch\("\/examples\/route-request\.json"/);
-  assert.match(script, /fetch\("\/v1\/route"/);
+  assert.match(script, /fetch\("\/examples\/route-request-v2\.json"/);
+  assert.match(script, /fetch\("\/v2\/route"/);
   assert.match(script, /querySelectorAll\("\[data-run-demo\]"\)/);
   assert.match(script, /tradeoffAgainstRunnerUp/);
   assert.match(script, /callerSuppliedCatalogEvidence/);
@@ -80,4 +81,21 @@ test("the standalone product publishes a same-origin sitemap and explicit crawle
   assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   assert.equal(png.readUInt32BE(16), 1200);
   assert.equal(png.readUInt32BE(20), 630);
+});
+
+test("the public Job Mode proof is a pinned local-only summary of its sanitized fixture", () => {
+  const sourceFixture = read("examples/job-48h-game-builder.json");
+  const publicFixture = read("public/examples/job-48h-game-builder.json");
+  const summary = read("public/examples/job-48h-game-builder-summary.txt");
+  const homepage = read("public/index.html");
+  const docs = read("public/docs.html");
+  assert.equal(publicFixture, sourceFixture);
+  assert.equal(summary, formatJobPlanSummary(JSON.parse(sourceFixture) as unknown));
+  assert.ok(summary.split(/\r?\n/).filter(Boolean).length <= 40);
+  for (const document of [homepage, docs]) {
+    assert.match(document, /job-48h-game-builder\.json/);
+    assert.match(document, /job-48h-game-builder-summary\.txt/);
+    assert.match(document, /Phase labels.*do not affect scoring|phase labels.*do not affect routing scores/i);
+  }
+  assert.match(homepage, /EXTERNAL HANDOFF/);
 });

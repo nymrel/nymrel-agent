@@ -46,6 +46,16 @@ test("Job Mode rejects prompt-bearing, unknown, and forward-dependent manifests"
   assert.throws(() => parseJobManifest(unknownStep), /job manifest is invalid/);
 });
 
+test("the exported Job Mode API revalidates untrusted values without echoing them", () => {
+  const privateValue = "private-prompt-must-never-echo";
+  assert.throws(() => planJob({ prompt: privateValue }), (error: unknown) => {
+    assert.match(String(error), /job manifest is invalid/);
+    assert.doesNotMatch(String(error), new RegExp(privateValue));
+    return true;
+  });
+  assert.throws(() => planJob({ contractVersion: "nymrel.agent.job/v1", jobId: "x", models: [], steps: [] }), /job manifest is invalid/);
+});
+
 test("Job Mode blocks a plan when a step has no eligible model", () => {
   const value = fixture();
   const steps = value.steps as Array<Record<string, unknown>>;

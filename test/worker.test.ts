@@ -33,7 +33,7 @@ test("v2 has separate discovery, route, preflight, and validation surfaces", asy
   const discovery = await handleRequest(new Request("https://agent.example/v2"));
   assert.equal(discovery.status, 200);
   const discovered = await jsonBody(discovery) as { contractVersion?: string; route?: string; openapi?: string };
-  assert.deepEqual(discovered, { ok: true, name: "Nymrel Agent", version: "0.3.1", contractVersion: "nymrel.agent.route/v2", route: "/v2/route", openapi: "/v2/openapi.json" });
+  assert.deepEqual(discovered, { ok: true, name: "Nymrel Agent", version: "0.4.0", contractVersion: "nymrel.agent.route/v2", route: "/v2/route", openapi: "/v2/openapi.json" });
   assert.equal((await handleRequest(new Request(endpointV2, { method: "OPTIONS" }))).status, 204);
 
   const response = await handleRequest(new Request(endpointV2, { method: "POST", headers: { "content-type": "application/json" }, body: exampleV2() }));

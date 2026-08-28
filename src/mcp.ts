@@ -5,12 +5,32 @@ import { z } from "zod";
 import { CONTRACT_VERSION, CONTRACT_VERSION_V2, PRODUCT_VERSION } from "./contracts.js";
 import { NymrelError, publicError } from "./errors.js";
 import { route, routeV2 } from "./router.js";
+import { planJob } from "./job.js";
 import { parsePublicRoutePayload, parsePublicRoutePayloadV2 } from "./validation.js";
 
 const readOnlyAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
 
 export function createNymrelMcpServer(): McpServer {
   const server = new McpServer({ name: "nymrel-agent", version: PRODUCT_VERSION }, { capabilities: { tools: {} } });
+  server.registerTool(
+    "plan_job",
+    {
+      title: "Plan a local Job Mode workflow",
+      description: "Validate and plan a body-free local Job Mode manifest. This stdio tool makes no provider or network call; the MCP host may retain its arguments.",
+      inputSchema: z.object({ payload: z.string().min(2).max(256 * 1024).describe("Body-free JSON matching nymrel.agent.job/v1; do not include prompts, tasks, outputs, paths, or customer data") }),
+      annotations: readOnlyAnnotations,
+    },
+    async ({ payload }) => {
+      try {
+        if (new TextEncoder().encode(payload).byteLength > 256 * 1024) throw new NymrelError("payload_too_large", "The Job Mode manifest exceeds 256 KiB.", 413);
+        const plan = planJob(JSON.parse(payload) as unknown);
+        return { content: [{ type: "text", text: JSON.stringify(plan, null, 2) }], structuredContent: JSON.parse(JSON.stringify(plan)) as Record<string, unknown> };
+      } catch (caught) {
+        const error = publicError(caught);
+        return { isError: true, content: [{ type: "text", text: JSON.stringify({ code: error.code, message: error.message }) }] };
+      }
+    },
+  );
   server.registerTool(
     "route_models",
     {

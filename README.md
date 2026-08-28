@@ -38,6 +38,8 @@ node dist/src/bin/nymrel-agent.js job plan --file examples/job-48h-game-builder.
 
 Job Mode accepts only a bounded, body-free manifest with a shared model catalog and ordered v2 route requests. It makes deterministic selections for each step, emits a body-free correlation receipt, and marks any non-read step as an external handoff; it does not run the workflow. See [Job Mode](docs/JOB_MODE.md).
 
+Job Lifecycle is a separate local envelope contract for callers that want to retain a bounded checkpoint chain around an already-routable Job Mode plan. It records only digests, counts, ordinals, enums, metrics, and timestamps; it does not parse transcripts, retain tasks, invoke a provider, schedule work, or persist anything. Callers write the returned JSON themselves.
+
 Full documentation: <https://nymrel-agent.vercel.app/docs>
 
 OpenAPI 3.1: <https://nymrel-agent.vercel.app/openapi.json>
@@ -60,6 +62,10 @@ The opt-in v2 contract leaves v1 unchanged. Its required `normalization` object 
 ```text
 nymrel-agent route --file PAYLOAD.json [--contract-version v2] [--endpoint https://host]
 nymrel-agent job plan --file MANIFEST.json
+nymrel-agent job plan --file MANIFEST.json --format summary
+nymrel-agent job lifecycle init --file MANIFEST.json [--at RFC3339_UTC]
+nymrel-agent job lifecycle checkpoint --state-file STATE.json --file CHECKPOINT.json
+nymrel-agent job lifecycle complete --state-file STATE.json --file TERMINAL.json
 nymrel-agent models doctor [--config CONFIG.json]
 nymrel-agent run --config CONFIG.json (--task TEXT | --task-file FILE|-)
 nymrel-agent contract
@@ -68,14 +74,17 @@ nymrel-agent demo
 
 Local routing is the default. `--endpoint` sends the metadata-only payload to a hosted router.
 
+`job lifecycle` is local-only and reads JSON files only; it prints the next state envelope to stdout rather than writing state. The state has a canonical SHA-256 integrity hash and checkpoint chain. Those hashes support correlation and tamper detection, not confidentiality or freshness; retain the newest state envelope and keep it private.
+
 ## MCP
 
-The stdio MCP server exposes four read-only tools:
+The stdio MCP server exposes five read-only tools:
 
 - `route_models` — validate and route a `nymrel.agent.route/v1` JSON payload.
 - `route_models_v2` — validate and route an explicit `nymrel.agent.route/v2` JSON payload.
 - `explain_contract` — return the stable routing and custody boundary.
 - `explain_contract_v2` — return the explicit v2 routing and custody boundary.
+- `plan_job` — validate and plan a body-free local Job Mode manifest without a provider call or a receipt timestamp. MCP remains stdio-only; the host application may retain arguments even though Nymrel sends nothing over its network.
 
 Example client configuration after building from source:
 

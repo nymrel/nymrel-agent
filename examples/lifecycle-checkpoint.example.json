@@ -1,0 +1,11 @@
+{
+  "contractVersion": "nymrel.agent.job.checkpoint-input/v1",
+  "idempotencyKey": "checkpoint-demo-0001",
+  "phase": "review",
+  "status": "waiting",
+  "nextActionCode": "validate",
+  "completedStepOrdinals": [1, 2, 3, 4],
+  "artifactSha256": ["1111111111111111111111111111111111111111111111111111111111111111"],
+  "metrics": { "stepsCompleted": 4, "reworkCount": 1, "testsPassed": 12 },
+  "recordedAt": "2026-08-28T20:04:00.000Z"
+}

@@ -46,6 +46,15 @@ test("CLI produces a local-only Job Mode plan", () => {
   assert.equal(payload.receipt.status, "planned");
 });
 
+test("CLI renders a concise Job Mode summary without changing JSON default", () => {
+  const result = runCli(["job", "plan", "--file", "examples/job-48h-game-builder.json", "--format", "summary"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(result.stdout.split(/\r?\n/).filter(Boolean).length <= 40);
+  assert.match(result.stdout, /local plan only/);
+  assert.match(result.stdout, /external-handoff-required/);
+  assert.match(result.stdout, /policy:/);
+});
+
 test("CLI rejects an oversized Job Mode manifest before parsing", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "nymrel-agent-job-"));
   try {
@@ -58,6 +67,35 @@ test("CLI rejects an oversized Job Mode manifest before parsing", () => {
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test("CLI lifecycle accepts its own saved envelopes for checkpoint and terminal transitions", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "nymrel-agent-lifecycle-"));
+  try {
+    const manifest = path.join(directory, "manifest.json");
+    const checkpoint = path.join(directory, "checkpoint.json");
+    const terminal = path.join(directory, "terminal.json");
+    const initialized = path.join(directory, "initialized.json");
+    const progressed = path.join(directory, "progressed.json");
+    writeFileSync(manifest, readFileSync("examples/job-48h-game-builder.json", "utf8"));
+    writeFileSync(checkpoint, JSON.stringify({ contractVersion: "nymrel.agent.job.checkpoint-input/v1", idempotencyKey: "cli-checkpoint-0001", phase: "review", status: "active", nextActionCode: "validate", completedStepOrdinals: [1, 2, 3, 4, 5], artifactSha256: ["a".repeat(64)], metrics: { stepsCompleted: 5, reworkCount: 0, testsPassed: 1 }, recordedAt: "2026-08-28T20:01:00.000Z" }));
+    writeFileSync(terminal, JSON.stringify({ contractVersion: "nymrel.agent.job.terminal-input/v1", idempotencyKey: "cli-terminal-0001", status: "completed", reasonCode: "success", validationStatus: "passed", evidenceSha256: "b".repeat(64), completedAt: "2026-08-28T20:02:00.000Z" }));
+    const init = runCli(["job", "lifecycle", "init", "--file", manifest, "--at", "2026-08-28T20:00:00.000Z"]);
+    assert.equal(init.status, 0, init.stderr); writeFileSync(initialized, init.stdout);
+    const advanced = runCli(["job", "lifecycle", "checkpoint", "--state-file", initialized, "--file", checkpoint]);
+    assert.equal(advanced.status, 0, advanced.stderr); writeFileSync(progressed, advanced.stdout);
+    const completed = runCli(["job", "lifecycle", "complete", "--state-file", progressed, "--file", terminal]);
+    assert.equal(completed.status, 0, completed.stderr);
+    const result = JSON.parse(completed.stdout) as { state: { status: string }; replayed: boolean };
+    assert.equal(result.state.status, "completed"); assert.equal(result.replayed, false);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("CLI rejects bounded stdin paths before buffering", () => {
+  const manifest = runCli(["job", "plan", "--file", "-"]);
+  assert.equal(manifest.status, 65); assert.match(manifest.stderr, /invalid_request/);
+  const state = runCli(["job", "lifecycle", "checkpoint", "--state-file", "-", "--file", "examples/lifecycle-checkpoint.example.json"]);
+  assert.equal(state.status, 65); assert.match(state.stderr, /invalid_request/);
 });
 
 test("CLI doctor and demo are offline and truthful", () => {

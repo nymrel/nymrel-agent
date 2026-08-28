@@ -30,7 +30,7 @@ const required = [
   "public/downloads/nymrel-agent-0.2.0.tgz", "public/downloads/nymrel-agent-v0.2.0-source.tar.gz", "public/downloads/v0.2.0.json",
   "public/downloads/nymrel-agent-0.3.0.tgz", "public/downloads/nymrel-agent-v0.3.0-source.tar.gz", "public/downloads/v0.3.0.json",
   "public/downloads/nymrel-agent-0.3.1.tgz", "public/downloads/nymrel-agent-v0.3.1-source.tar.gz", "public/downloads/v0.3.1.json",
-  "public/openapi.json", "public/llms.txt", "examples/route-request.json", "examples/route-request-v2.json", "public/examples/route-request-v2.json",
+  "public/openapi.json", "public/llms.txt", "examples/route-request.json", "examples/route-request-v2.json", "public/examples/route-request-v2.json", "public/examples/job-48h-game-builder.json", "public/examples/job-48h-game-builder-summary.txt",
   "examples/openai-local-config.example.json", "examples/job-48h-game-builder.json", "docs/ONBOARDING.md", "docs/JOB_MODE.md", "docs/PRODUCTION_LAUNCH_PACKET.md", "docs/FIRST_USER_ACTIVATION.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
   "src/bin/nymrel-agent.ts", "src/bin/nymrel-agent-mcp.ts", "scripts/verify-packed-install.mjs",
@@ -78,6 +78,10 @@ assert.ok(contracts.includes('CONTRACT_VERSION_V2 = "nymrel.agent.route/v2"'), "
 
 assert.equal(read("examples/route-request.json"), read("public/examples/route-request.json"), "source and hosted examples drifted");
 assert.equal(read("examples/route-request-v2.json"), read("public/examples/route-request-v2.json"), "source and hosted v2 examples drifted");
+assert.equal(read("examples/job-48h-game-builder.json"), read("public/examples/job-48h-game-builder.json"), "source and hosted Job Mode fixtures drifted");
+const jobSummary = execFileSync(process.execPath, ["dist/src/bin/nymrel-agent.js", "job", "plan", "--file", "examples/job-48h-game-builder.json", "--format", "summary"], { cwd: root, encoding: "utf8" });
+assert.ok(jobSummary.split(/\r?\n/).filter(Boolean).length <= 40, "Job Mode public summary must remain concise");
+assert.equal(read("public/examples/job-48h-game-builder-summary.txt"), jobSummary, "public Job Mode summary must match the canonical planner");
 const routeExample = json("examples/route-request.json");
 const routeExampleV2 = json("examples/route-request-v2.json");
 assert.deepEqual(Object.keys(routeExample).sort(), ["models", "request"]);
@@ -109,6 +113,8 @@ assert.deepEqual(ACTIVE_RELEASE_FILES, [
 ], "active release registry must contain the full 0.3.1 artifact set");
 assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/route-request.json"), "Vercel registry omits the v1 example");
 assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/route-request-v2.json"), "Vercel registry omits the v2 example");
+assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/job-48h-game-builder.json"), "Vercel registry omits the Job Mode fixture");
+assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/job-48h-game-builder-summary.txt"), "Vercel registry omits the Job Mode summary");
 assert.ok(VERCEL_SOURCE_FILES.includes("scripts/release-public-registry.mjs"), "Vercel registry must inventory its own uploaded source");
 for (const relative of RELEASE_ARCHIVE_FILES) assert.ok(VERCEL_SOURCE_FILES.includes(relative), `Vercel registry omits release artifact: ${relative}`);
 
@@ -245,8 +251,8 @@ assert.equal(socialPng.readUInt32BE(20), 630, "social image height drifted");
 assert.ok(indexHtml.includes('src="/demo.js"'));
 assert.ok(indexHtml.includes("data-live-demo"));
 assert.ok(indexHtml.includes("utm_campaign=nymrel-agent-first-user"));
-assert.ok(demoScript.includes('fetch("/examples/route-request.json"'));
-assert.ok(demoScript.includes('fetch("/v1/route"'));
+assert.ok(demoScript.includes('fetch("/examples/route-request-v2.json"'));
+assert.ok(demoScript.includes('fetch("/v2/route"'));
 assert.equal(/localStorage|sessionStorage|document\.cookie|sendBeacon/.test(demoScript), false, "activation script must not add browser tracking state");
 assert.equal(/api[_-]?key|provider credential/i.test(demoScript), false, "activation script must not handle provider credentials");
 assert.ok(styles.includes("grid-template-columns: minmax(0, 1fr);"), "mobile docs grid must permit the content column to shrink");
@@ -293,7 +299,7 @@ assert.ok(authz.publicRoutes.every((entry) => typeof entry.reason === "string" &
 assert.deepEqual(authz.publicRoutes.map((entry) => `${entry.method} ${entry.path}`).sort(), expectedRoutes, "public route register drifted from the Worker");
 
 const worker = read("src/worker.ts");
-for (const forbidden of ["./runtime", "./receipt", "./job", "./local-config", "./openai-responses-provider", "console."]) {
+for (const forbidden of ["./runtime", "./receipt", "./job", "./lifecycle", "./local-config", "./openai-responses-provider", "console."]) {
   assert.equal(worker.includes(forbidden), false, `public Worker must not include ${forbidden}`);
 }
 assert.ok(worker.includes("MAX_BODY_BYTES = 256 * 1024"));
@@ -315,7 +321,7 @@ assert.equal(server.includes("NYMREL_SOURCE_COMMIT"), false, "Vercel source iden
 assert.equal(server.includes("process.env"), false, "Vercel source must typecheck without Node ambient globals");
 assert.ok(server.includes("environment.VERCEL_GIT_COMMIT_SHA"));
 assert.ok(server.includes("environment.ROUTING_API_ENABLED"));
-for (const forbidden of ["./src/runtime", "./src/receipt", "./src/job", "./src/local-config", "./src/openai-responses-provider", "console."]) {
+for (const forbidden of ["./src/runtime", "./src/receipt", "./src/job", "./src/lifecycle", "./src/local-config", "./src/openai-responses-provider", "console."]) {
   assert.equal(server.includes(forbidden), false, `public Vercel adapter must not include ${forbidden}`);
 }
 
@@ -366,7 +372,7 @@ for (const requiredIgnore of [
 }
 for (const localOnlySource of [
   "src/cli.ts", "src/defaults.ts", "src/local-config.ts", "src/mcp.ts",
-  "src/openai-responses-provider.ts", "src/receipt.ts", "src/runtime.ts", "src/url-security.ts", "src/job.ts",
+  "src/openai-responses-provider.ts", "src/receipt.ts", "src/runtime.ts", "src/url-security.ts", "src/job.ts", "src/lifecycle.ts",
 ]) {
   assert.ok(vercelIgnore.split(/\r?\n/).includes(localOnlySource), `Vercel source bundle must exclude ${localOnlySource}`);
 }

@@ -1,6 +1,6 @@
 {
   "name": "@nymrel/agent",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Explainable multi-model routing with a stateless API, local CLI, MCP server, and low-custody execution harness.",
   "type": "module",
   "license": "MIT",
@@ -50,15 +50,16 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.package.json --noEmit",
     "test": "npm run compile --silent && node --test \"dist/test/*.test.js\"",
     "verify:release": "node scripts/verify-release.mjs",
+    "verify:candidate": "npm run compile --silent && node scripts/verify-candidate.mjs",
     "verify:packed-install": "npm run compile --silent && node scripts/verify-packed-install.mjs",
     "verify:candidate-packed-install": "npm run compile --silent && node scripts/verify-packed-install.mjs --candidate",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
-    "verify": "npm run typecheck && npm test && npm run verify:release && npm run verify:packed-install && npm run deploy:dry-run",
+    "verify": "npm run typecheck && npm test && npm run verify:candidate && npm run verify:candidate-packed-install && npm run deploy:dry-run",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
     "deploy": "wrangler deploy",
     "smoke": "npm run compile --silent && node dist/src/bin/nymrel-agent.js route --file examples/route-request.json",
     "mcp": "node dist/src/bin/nymrel-agent-mcp.js",
-    "prepack": "npm run compile --silent && npm run verify:release"
+    "prepack": "npm run compile --silent && npm run verify:candidate"
   },
   "engines": {
     "node": ">=22 <25"

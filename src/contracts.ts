@@ -1,7 +1,12 @@
 export const CONTRACT_VERSION = "nymrel.agent.route/v1" as const;
 export const CONTRACT_VERSION_V2 = "nymrel.agent.route/v2" as const;
 export const JOB_CONTRACT_VERSION = "nymrel.agent.job/v1" as const;
-export const PRODUCT_VERSION = "0.3.1" as const;
+export const JOB_LIFECYCLE_CONTRACT_VERSION = "nymrel.agent.job.lifecycle/v1" as const;
+export const JOB_CHECKPOINT_INPUT_CONTRACT_VERSION = "nymrel.agent.job.checkpoint-input/v1" as const;
+export const JOB_CHECKPOINT_RECEIPT_CONTRACT_VERSION = "nymrel.agent.job.checkpoint-receipt/v1" as const;
+export const JOB_TERMINAL_INPUT_CONTRACT_VERSION = "nymrel.agent.job.terminal-input/v1" as const;
+export const JOB_TERMINAL_RECEIPT_CONTRACT_VERSION = "nymrel.agent.job.terminal-receipt/v1" as const;
+export const PRODUCT_VERSION = "0.4.0" as const;
 
 export type TaskPhase = "research" | "plan" | "implement" | "review";
 export type RiskClass = "read" | "workspace_write" | "external_side_effect";
@@ -206,6 +211,91 @@ export interface JobPlanReceipt {
   }[];
   readonly reasonCodes: readonly string[];
   readonly createdAt: string;
+}
+
+export type JobLifecycleStatus = "active" | "waiting" | "blocked" | "completed" | "failed" | "cancelled" | "budget_exhausted";
+export type JobCheckpointPhase = "research" | "plan" | "implement" | "review" | "closeout";
+export type JobCheckpointStatus = "active" | "waiting" | "blocked";
+export type JobNextActionCode = "continue" | "await_input" | "validate" | "closeout";
+export type JobTerminalStatus = "completed" | "failed" | "blocked" | "cancelled" | "budget_exhausted";
+export type JobTerminalReasonCode = "success" | "validation_failed" | "blocked" | "cancelled" | "budget_limit" | "execution_error";
+export type JobValidationStatus = "passed" | "failed" | "not_run" | "not_applicable";
+
+export interface JobCheckpointInput {
+  readonly contractVersion: typeof JOB_CHECKPOINT_INPUT_CONTRACT_VERSION;
+  readonly idempotencyKey: string;
+  readonly phase: JobCheckpointPhase;
+  readonly status: JobCheckpointStatus;
+  readonly nextActionCode: JobNextActionCode;
+  readonly completedStepOrdinals: readonly number[];
+  readonly artifactSha256: readonly string[];
+  readonly metrics: { readonly stepsCompleted: number; readonly reworkCount: number; readonly testsPassed: number };
+  readonly recordedAt: string;
+}
+
+export interface JobCheckpointReceipt {
+  readonly contractVersion: typeof JOB_CHECKPOINT_RECEIPT_CONTRACT_VERSION;
+  readonly receiptType: "checkpoint";
+  readonly inputSha256: string;
+  readonly lifecycleSha256: string;
+  readonly checkpointSha256: string;
+  readonly previousCheckpointSha256: string | null;
+  readonly revision: number;
+  readonly checkpointSequence: number;
+  readonly phase: JobCheckpointPhase;
+  readonly status: JobCheckpointStatus;
+  readonly nextActionCode: JobNextActionCode;
+  readonly completedStepOrdinals: readonly number[];
+  readonly artifactSha256: readonly string[];
+  readonly metrics: { readonly stepsCompleted: number; readonly reworkCount: number; readonly testsPassed: number };
+  readonly recordedAt: string;
+}
+
+export interface JobTerminalInput {
+  readonly contractVersion: typeof JOB_TERMINAL_INPUT_CONTRACT_VERSION;
+  readonly idempotencyKey: string;
+  readonly status: JobTerminalStatus;
+  readonly reasonCode: JobTerminalReasonCode;
+  readonly validationStatus: JobValidationStatus;
+  readonly evidenceSha256: string;
+  readonly completedAt: string;
+}
+
+export interface JobTerminalReceipt {
+  readonly contractVersion: typeof JOB_TERMINAL_RECEIPT_CONTRACT_VERSION;
+  readonly receiptType: "terminal";
+  readonly inputSha256: string;
+  readonly lifecycleSha256: string;
+  readonly terminalSha256: string;
+  readonly revision: number;
+  readonly checkpointSequence: number;
+  readonly lastCheckpointSha256: string | null;
+  readonly totalSteps: number;
+  readonly completedStepCount: number;
+  readonly status: JobTerminalStatus;
+  readonly reasonCode: JobTerminalReasonCode;
+  readonly validationStatus: JobValidationStatus;
+  readonly evidenceSha256: string;
+  readonly completedAt: string;
+}
+
+export interface JobLifecycleState {
+  readonly contractVersion: typeof JOB_LIFECYCLE_CONTRACT_VERSION;
+  readonly stateType: "local_job_lifecycle";
+  readonly jobIdSha256: string;
+  readonly manifestSha256: string;
+  readonly planSha256: string;
+  readonly lifecycleSha256: string;
+  readonly totalSteps: number;
+  readonly startedAt: string;
+  readonly revision: number;
+  readonly checkpointSequence: number;
+  readonly status: JobLifecycleStatus;
+  readonly completedStepOrdinals: readonly number[];
+  readonly lastCheckpointSha256: string | null;
+  readonly checkpointHistory: readonly { readonly idempotencyKey: string; readonly inputSha256: string; readonly receipt: JobCheckpointReceipt }[];
+  readonly terminal: { readonly idempotencyKey: string; readonly inputSha256: string; readonly receipt: JobTerminalReceipt } | null;
+  readonly stateSha256: string;
 }
 
 export interface PublicRouteResponse {

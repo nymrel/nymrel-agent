@@ -1,0 +1,7 @@
+Nymrel Agent Job Mode · local plan only · ready_with_handoffs
+No provider call, persistence, scheduler, or execution is performed.
+1. research-scope · research · provider-b/fast · deps:none · policy:quality · read-only-eligible
+2. plan-slice · plan · provider-b/fast · deps:research-scope · policy:balanced · read-only-eligible
+3. build-prototype · implement · provider-b/fast · deps:plan-slice · policy:balanced · external-handoff-required
+4. review-build · review · provider-b/fast · deps:build-prototype · policy:quality · read-only-eligible
+5. release-handoff · review · provider-a/reasoning-large · deps:review-build · policy:quality · external-handoff-required
