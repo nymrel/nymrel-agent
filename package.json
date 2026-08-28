@@ -23,6 +23,7 @@
   "files": [
     "dist/src",
     "examples",
+    "docs/JOB_MODE.md",
     "README.md",
     "LICENSE",
     "SECURITY.md",
@@ -50,6 +51,7 @@
     "test": "npm run compile --silent && node --test \"dist/test/*.test.js\"",
     "verify:release": "node scripts/verify-release.mjs",
     "verify:packed-install": "npm run compile --silent && node scripts/verify-packed-install.mjs",
+    "verify:candidate-packed-install": "npm run compile --silent && node scripts/verify-packed-install.mjs --candidate",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "verify": "npm run typecheck && npm test && npm run verify:release && npm run verify:packed-install && npm run deploy:dry-run",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/dry-run",

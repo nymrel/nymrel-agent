@@ -7,6 +7,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const candidateMode = process.argv.slice(2).includes("--candidate");
+assert.deepEqual(process.argv.slice(2).filter((value) => value !== "--candidate"), [], "unsupported packed-install verifier option");
 const temporaryRoot = mkdtempSync(path.join(tmpdir(), "nymrel-agent-packed-"));
 const installRoot = path.join(temporaryRoot, "install");
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
@@ -113,18 +115,35 @@ try {
   assert.equal(packed.length, 1);
   const tarball = path.join(temporaryRoot, packed[0].filename);
   const generatedBytes = readFileSync(tarball);
-  const canonicalBytes = readFileSync(path.join(root, "public", "downloads", "nymrel-agent-0.2.0.tgz"));
-  const releaseManifest = JSON.parse(readFileSync(path.join(root, "public", "downloads", "v0.2.0.json"), "utf8"));
-  const generatedSha256 = createHash("sha256").update(generatedBytes).digest("hex");
-  assert.equal(generatedBytes.length, releaseManifest.package.bytes, "generated package byte count drifted from the canonical release manifest");
-  assert.equal(generatedSha256, releaseManifest.package.sha256, "generated package digest drifted from the canonical release manifest");
-  assert.deepEqual(generatedBytes, canonicalBytes, "generated package bytes drifted from the canonical hosted artifact");
+  if (!candidateMode) {
+    const canonicalBytes = readFileSync(path.join(root, "public", "downloads", "nymrel-agent-0.2.0.tgz"));
+    const releaseManifest = JSON.parse(readFileSync(path.join(root, "public", "downloads", "v0.2.0.json"), "utf8"));
+    const generatedSha256 = createHash("sha256").update(generatedBytes).digest("hex");
+    assert.equal(generatedBytes.length, releaseManifest.package.bytes, "generated package byte count drifted from the canonical release manifest");
+    assert.equal(generatedSha256, releaseManifest.package.sha256, "generated package digest drifted from the canonical release manifest");
+    assert.deepEqual(generatedBytes, canonicalBytes, "generated package bytes drifted from the canonical hosted artifact");
+  }
   run(npm, ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], { cwd: installRoot });
+
+  const installedPackageRoot = path.join(installRoot, "node_modules", "@nymrel", "agent");
+  const installedReadme = readFileSync(path.join(installedPackageRoot, "README.md"), "utf8");
+  assert.match(installedReadme, /\(docs\/JOB_MODE\.md\)/, "packed README must link to the packaged Job Mode guide");
+  assert.match(readFileSync(path.join(installedPackageRoot, "docs", "JOB_MODE.md"), "utf8"), /Job Mode \(local plan only\)/);
 
   const contract = JSON.parse(run(bin("nymrel-agent"), ["contract"], { cwd: installRoot }));
   assert.equal(contract.contractVersion, "nymrel.agent.route/v1");
+  const jobPlan = JSON.parse(run(bin("nymrel-agent"), [
+    "job", "plan", "--file", path.join(installedPackageRoot, "examples", "job-48h-game-builder.json"),
+  ], { cwd: installRoot }));
+  assert.equal(jobPlan.ok, true);
+  assert.equal(jobPlan.plan?.status, "ready_with_handoffs");
+  assert.equal(jobPlan.plan?.executionStatus, "not_started");
+  assert.equal(jobPlan.plan?.summary?.totalSteps, 5);
+  assert.equal(jobPlan.plan?.summary?.externalHandoffRequiredSteps, 2);
+  assert.equal(jobPlan.receipt?.status, "planned");
+  assert.equal(jobPlan.receipt?.counts?.totalSteps, 5);
   await verifyMcp(bin("nymrel-agent-mcp"));
-  process.stdout.write(`packed-install-verification: pass (${process.platform})\n`);
+  process.stdout.write(`${candidateMode ? "candidate-" : ""}packed-install-verification: pass (${process.platform})\n`);
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
