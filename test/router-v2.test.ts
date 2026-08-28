@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { ModelProfile, RouteRequestV2 } from "../src/contracts.js";
+import * as publicApi from "../src/index.js";
 import { route, routeV2 } from "../src/router.js";
 
 const request: RouteRequestV2 = {
@@ -41,14 +42,33 @@ test("v2 request-budget scores remain stable when irrelevant dominated profiles 
   assert.equal(full.selectedModelId, reduced.selectedModelId);
 });
 
-test("v2 rejects missing, zero, and unsafe request-budget anchors without accepting v1 shapes", () => {
-  const missing = { ...request, normalization: undefined };
-  const zero = { ...request, normalization: { ...request.normalization, costAnchorMicroUsd: 0 } };
-  const unsafe = { ...request, normalization: { ...request.normalization, latencyAnchorMs: Number.MAX_SAFE_INTEGER + 1 } };
-  assert.throws(() => routeV2(missing, [profile("valid")]), /routing payload is invalid/);
-  assert.throws(() => routeV2(zero, [profile("valid")]), /routing payload is invalid/);
-  assert.throws(() => routeV2(unsafe, [profile("valid")]), /routing payload is invalid/);
+test("v2 rejects invalid anchors independently without accepting v1 shapes", () => {
+  for (const normalization of [
+    { basis: "request_budget", latencyAnchorMs: 1_000 },
+    { basis: "request_budget", costAnchorMicroUsd: 1_000 },
+    { basis: "request_budget", costAnchorMicroUsd: 0, latencyAnchorMs: 1_000 },
+    { basis: "request_budget", costAnchorMicroUsd: 1_000, latencyAnchorMs: 0 },
+    { basis: "request_budget", costAnchorMicroUsd: 1.5, latencyAnchorMs: 1_000 },
+    { basis: "request_budget", costAnchorMicroUsd: 1_000, latencyAnchorMs: 1.5 },
+    { basis: "request_budget", costAnchorMicroUsd: Number.MAX_SAFE_INTEGER + 1, latencyAnchorMs: 1_000 },
+    { basis: "request_budget", costAnchorMicroUsd: 1_000, latencyAnchorMs: Number.MAX_SAFE_INTEGER + 1 },
+  ]) {
+    assert.throws(() => routeV2({ ...request, normalization } as unknown, [profile("valid")]), /routing payload is invalid/);
+  }
+  const maxSafe = routeV2({ ...request, normalization: { basis: "request_budget", costAnchorMicroUsd: Number.MAX_SAFE_INTEGER, latencyAnchorMs: Number.MAX_SAFE_INTEGER } }, [profile("valid")]);
+  assert.equal(maxSafe.selectedModelId, "valid");
   assert.throws(() => route({ ...request }, [profile("valid")]), /routing payload is invalid/);
+});
+
+test("v2 anchor scoring remains independent from tighter hard ceilings", () => {
+  const anchored = { ...request, constraints: { dataBoundary: "approved_provider", maxCostMicroUsd: 800, maxLatencyMs: 800 } };
+  const low = profile("low", { estimatedCostMicroUsd: 200, estimatedLatencyMs: 200 });
+  const middle = profile("middle", { estimatedCostMicroUsd: 600, estimatedLatencyMs: 600 });
+  const full = routeV2(anchored, [low, middle]);
+  const reduced = routeV2(anchored, [middle]);
+  assert.equal(full.eligible.find((candidate) => candidate.modelId === "middle")?.components.cost, 800);
+  assert.equal(full.eligible.find((candidate) => candidate.modelId === "middle")?.components.latency, 600);
+  assert.deepEqual(full.eligible.find((candidate) => candidate.modelId === "middle"), reduced.eligible[0]);
 });
 
 test("v2 retains independent hard-ceiling rejection before Pareto scoring", () => {
@@ -88,4 +108,20 @@ test("v2 excludes dominated profiles and permits incumbent only for an exact fro
   const noBonus = routeV2({ ...request, incumbentModelId: "incumbent" }, [profile("winner", { qualityScore: 100 }), profile("incumbent", { qualityScore: 80 })]);
   assert.equal(noBonus.selectedModelId, "winner");
   assert.ok(!noBonus.decisionCodes.includes("incumbent_exact_score_tie_break"));
+});
+
+test("v2 rejects duplicate IDs and lets healthy profiles dominate otherwise equal degraded profiles", () => {
+  const duplicate = routeV2(request, [profile("duplicate"), profile("duplicate")]);
+  assert.equal(duplicate.selectedModelId, null);
+  assert.ok(duplicate.rejected.every((candidate) => candidate.reasonCodes.includes("duplicate_model_id")));
+  const health = routeV2(request, [profile("degraded", { health: "degraded" }), profile("healthy")]);
+  assert.deepEqual(health.paretoFrontierModelIds, ["healthy"]);
+  assert.equal(health.selectedModelId, "healthy");
+});
+
+test("package root exposes routeV2 but not low-level scoring helpers", () => {
+  assert.equal(typeof publicApi.routeV2, "function");
+  assert.equal("requestBudgetUtility" in publicApi, false);
+  assert.equal("paretoFrontier" in publicApi, false);
+  assert.equal("v2ScoreCandidate" in publicApi, false);
 });

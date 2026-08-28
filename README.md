@@ -61,11 +61,12 @@ Local routing is the default. `--endpoint` sends the metadata-only payload to a 
 
 ## MCP
 
-The stdio MCP server exposes two read-only tools:
+The stdio MCP server exposes four read-only tools:
 
 - `route_models` — validate and route a `nymrel.agent.route/v1` JSON payload.
 - `route_models_v2` — validate and route an explicit `nymrel.agent.route/v2` JSON payload.
 - `explain_contract` — return the stable routing and custody boundary.
+- `explain_contract_v2` — return the explicit v2 routing and custody boundary.
 
 Example client configuration after building from source:
 

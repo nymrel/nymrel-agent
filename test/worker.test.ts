@@ -48,6 +48,18 @@ test("v2 has separate discovery, route, preflight, and validation surfaces", asy
   assert.equal((await handleRequest(new Request(endpointV2, { method: "POST", headers: { "content-type": "application/json" }, body: example() }))).status, 400);
 });
 
+test("v2 shares body, media, method, and rate guards with v1", async () => {
+  assert.equal((await handleRequest(new Request(endpointV2, { method: "POST", body: exampleV2() }))).status, 415);
+  assert.equal((await handleRequest(new Request(endpointV2, { method: "POST", headers: { "content-type": "application/json" }, body: "x".repeat(256 * 1024 + 1) }))).status, 413);
+  const method = await handleRequest(new Request(endpointV2, { method: "GET" }));
+  assert.equal(method.status, 405);
+  assert.equal(method.headers.get("allow"), "POST, OPTIONS");
+  const env: WorkerEnv = { ROUTE_RATE_LIMITER: { async limit() { return { success: false }; } } };
+  const limited = await handleRequest(new Request(endpointV2, { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "192.0.2.2" }, body: exampleV2() }), env);
+  assert.equal(limited.status, 429);
+  assert.equal(limited.headers.get("retry-after"), "60");
+});
+
 test("route rejects prompt fields and never echoes their value", async () => {
   const input = JSON.parse(example()) as Record<string, unknown>;
   input.prompt = "private-prompt-value";

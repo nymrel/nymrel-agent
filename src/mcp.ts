@@ -55,27 +55,45 @@ export function createNymrelMcpServer(): McpServer {
     "explain_contract",
     {
       title: "Explain the routing contract",
-      description: "Return the stable Nymrel Agent routing and custody boundaries without executing providers.",
+      description: "Return the stable Nymrel Agent v0.1 routing and custody boundary.",
       inputSchema: z.object({}),
       annotations: readOnlyAnnotations,
     },
     async () => {
       const contract = {
-        contractVersions: [CONTRACT_VERSION, CONTRACT_VERSION_V2],
+        contractVersion: CONTRACT_VERSION,
         objectives: ["balanced", "quality", "cost", "latency"],
         filters: ["health", "risk", "data_boundary", "tool_use", "structured_output", "context", "modality", "cost", "latency"],
         scoring: {
-          v1: {
-            cost: "request_ceiling_when_present_else_eligible_set_range",
-            latency: "request_ceiling_when_present_else_eligible_set_range",
-            receiptModeField: "decisionCodes",
-            receiptBoundsField: "explanation",
-          },
-          v2: {
-            normalization: "explicit_request_budget",
-            selection: "hard_eligibility_then_pareto_frontier_then_weighted_score",
-            incumbent: "exact_frontier_weighted_score_tie_only",
-          },
+          cost: "request_ceiling_when_present_else_eligible_set_range",
+          latency: "request_ceiling_when_present_else_eligible_set_range",
+          receiptModeField: "decisionCodes",
+          receiptBoundsField: "explanation",
+        },
+        publicService: "routing_metadata_only",
+        localExecution: "read_only",
+        prohibitedInputs: ["prompts", "provider_credentials", "customer_data"],
+      };
+      return { content: [{ type: "text", text: JSON.stringify(contract, null, 2) }], structuredContent: contract };
+    },
+  );
+  server.registerTool(
+    "explain_contract_v2",
+    {
+      title: "Explain the routing contract v2",
+      description: "Return the explicit Nymrel Agent v2 routing and custody boundary without executing providers.",
+      inputSchema: z.object({}),
+      annotations: readOnlyAnnotations,
+    },
+    async () => {
+      const contract = {
+        contractVersion: CONTRACT_VERSION_V2,
+        objectives: ["balanced", "quality", "cost", "latency"],
+        filters: ["health", "risk", "data_boundary", "tool_use", "structured_output", "context", "modality", "cost", "latency"],
+        normalization: { basis: "request_budget", anchors: ["costAnchorMicroUsd", "latencyAnchorMs"] },
+        scoring: {
+          selection: "hard_eligibility_then_pareto_frontier_then_weighted_score",
+          incumbent: "exact_frontier_weighted_score_tie_only",
         },
         publicService: "routing_metadata_only",
         localExecution: "read_only",

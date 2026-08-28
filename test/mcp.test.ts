@@ -6,6 +6,21 @@ import test from "node:test";
 
 interface RpcResponse { readonly id?: number; readonly result?: Record<string, unknown>; readonly error?: unknown }
 
+const legacyContract = {
+  contractVersion: "nymrel.agent.route/v1",
+  objectives: ["balanced", "quality", "cost", "latency"],
+  filters: ["health", "risk", "data_boundary", "tool_use", "structured_output", "context", "modality", "cost", "latency"],
+  scoring: {
+    cost: "request_ceiling_when_present_else_eligible_set_range",
+    latency: "request_ceiling_when_present_else_eligible_set_range",
+    receiptModeField: "decisionCodes",
+    receiptBoundsField: "explanation",
+  },
+  publicService: "routing_metadata_only",
+  localExecution: "read_only",
+  prohibitedInputs: ["prompts", "provider_credentials", "customer_data"],
+};
+
 function rpcHarness(child: ChildProcessWithoutNullStreams): {
   request(method: string, params: Record<string, unknown>): Promise<RpcResponse>;
   notify(method: string, params?: Record<string, unknown>): void;
@@ -54,23 +69,21 @@ async function verifyLegacyHandshake(): Promise<void> {
     rpc.notify("notifications/initialized");
     const listed = await rpc.request("tools/list", {});
     const tools = listed.result?.tools as Array<{ name: string; annotations?: { readOnlyHint?: boolean } }>;
-    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "route_models", "route_models_v2"]);
+    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "explain_contract_v2", "route_models", "route_models_v2"]);
     assert.ok(tools.every((tool) => tool.annotations?.readOnlyHint === true));
     const explained = await rpc.request("tools/call", { name: "explain_contract", arguments: {} });
-    const contract = explained.result?.structuredContent as { contractVersions?: string[]; scoring?: Record<string, unknown> };
-    assert.deepEqual(contract.contractVersions, ["nymrel.agent.route/v1", "nymrel.agent.route/v2"]);
-    assert.deepEqual(contract.scoring, {
-      v1: {
-        cost: "request_ceiling_when_present_else_eligible_set_range",
-        latency: "request_ceiling_when_present_else_eligible_set_range",
-        receiptModeField: "decisionCodes",
-        receiptBoundsField: "explanation",
-      },
-      v2: {
-        normalization: "explicit_request_budget",
-        selection: "hard_eligibility_then_pareto_frontier_then_weighted_score",
-        incumbent: "exact_frontier_weighted_score_tie_only",
-      },
+    assert.deepEqual(explained.result?.structuredContent, legacyContract);
+    const v2Explained = await rpc.request("tools/call", { name: "explain_contract_v2", arguments: {} });
+    assert.equal(v2Explained.error, undefined);
+    assert.deepEqual(v2Explained.result?.structuredContent, {
+      contractVersion: "nymrel.agent.route/v2",
+      objectives: ["balanced", "quality", "cost", "latency"],
+      filters: ["health", "risk", "data_boundary", "tool_use", "structured_output", "context", "modality", "cost", "latency"],
+      normalization: { basis: "request_budget", anchors: ["costAnchorMicroUsd", "latencyAnchorMs"] },
+      scoring: { selection: "hard_eligibility_then_pareto_frontier_then_weighted_score", incumbent: "exact_frontier_weighted_score_tie_only" },
+      publicService: "routing_metadata_only",
+      localExecution: "read_only",
+      prohibitedInputs: ["prompts", "provider_credentials", "customer_data"],
     });
     const payload = readFileSync("examples/route-request.json", "utf8");
     const called = await rpc.request("tools/call", { name: "route_models", arguments: { payload } });
@@ -83,6 +96,16 @@ async function verifyLegacyHandshake(): Promise<void> {
     const v2Structured = v2Called.result?.structuredContent as { contractVersion?: string; selectedModelId?: string };
     assert.equal(v2Structured.contractVersion, "nymrel.agent.route/v2");
     assert.equal(v2Structured.selectedModelId, "provider-b/fast");
+    const v1WithV2 = await rpc.request("tools/call", { name: "route_models", arguments: { payload: v2Payload } });
+    assert.equal(v1WithV2.result?.isError, true);
+    const v2WithV1 = await rpc.request("tools/call", { name: "route_models_v2", arguments: { payload } });
+    assert.equal(v2WithV1.result?.isError, true);
+    for (const [field, privateValue] of [["prompt", "prompt-private-value"], ["customerData", "customer-private-value"]] as const) {
+      const badPayload = JSON.stringify({ ...JSON.parse(v2Payload) as object, [field]: privateValue });
+      const rejected = await rpc.request("tools/call", { name: "route_models_v2", arguments: { payload: badPayload } });
+      assert.equal(rejected.result?.isError, true);
+      assert.doesNotMatch(JSON.stringify(rejected.result), new RegExp(privateValue));
+    }
   } finally {
     child.stdin.end();
     child.kill();
@@ -110,7 +133,7 @@ async function verifyModernHandshake(): Promise<void> {
     assert.equal(listed.error, undefined);
     assert.equal(listed.result?.resultType, "complete");
     const tools = listed.result?.tools as Array<{ name: string; annotations?: { readOnlyHint?: boolean } }>;
-    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "route_models", "route_models_v2"]);
+    assert.deepEqual(tools.map((tool) => tool.name).sort(), ["explain_contract", "explain_contract_v2", "route_models", "route_models_v2"]);
     assert.ok(tools.every((tool) => tool.annotations?.readOnlyHint === true));
 
     const payload = readFileSync("examples/route-request.json", "utf8");
