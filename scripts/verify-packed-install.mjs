@@ -75,13 +75,19 @@ async function verifyMcp(executable) {
     const listed = await request("tools/list", { _meta: meta });
     assert.equal(listed.error, undefined);
     assert.equal(listed.result?.resultType, "complete");
-    assert.deepEqual(listed.result?.tools.map((tool) => tool.name).sort(), ["explain_contract", "route_models"]);
+    assert.deepEqual(listed.result?.tools.map((tool) => tool.name).sort(), ["explain_contract", "explain_contract_v2", "route_models", "route_models_v2"]);
 
     const payload = readFileSync(path.join(root, "examples", "route-request.json"), "utf8");
     const called = await request("tools/call", { name: "route_models", arguments: { payload }, _meta: meta });
     assert.equal(called.error, undefined);
     assert.equal(called.result?.resultType, "complete");
     assert.equal(called.result?.structuredContent?.selectedModelId, "provider-b/fast");
+
+    const payloadV2 = readFileSync(path.join(root, "examples", "route-request-v2.json"), "utf8");
+    const calledV2 = await request("tools/call", { name: "route_models_v2", arguments: { payload: payloadV2 }, _meta: meta });
+    assert.equal(calledV2.error, undefined);
+    assert.equal(calledV2.result?.resultType, "complete");
+    assert.equal(calledV2.result?.structuredContent?.contractVersion, "nymrel.agent.route/v2");
   } finally {
     child.stdin.end();
     if (child.exitCode === null) {
@@ -107,8 +113,8 @@ try {
   assert.equal(packed.length, 1);
   const tarball = path.join(temporaryRoot, packed[0].filename);
   const generatedBytes = readFileSync(tarball);
-  const canonicalBytes = readFileSync(path.join(root, "public", "downloads", "nymrel-agent-0.1.3.tgz"));
-  const releaseManifest = JSON.parse(readFileSync(path.join(root, "public", "downloads", "v0.1.3.json"), "utf8"));
+  const canonicalBytes = readFileSync(path.join(root, "public", "downloads", "nymrel-agent-0.2.0.tgz"));
+  const releaseManifest = JSON.parse(readFileSync(path.join(root, "public", "downloads", "v0.2.0.json"), "utf8"));
   const generatedSha256 = createHash("sha256").update(generatedBytes).digest("hex");
   assert.equal(generatedBytes.length, releaseManifest.package.bytes, "generated package byte count drifted from the canonical release manifest");
   assert.equal(generatedSha256, releaseManifest.package.sha256, "generated package digest drifted from the canonical release manifest");

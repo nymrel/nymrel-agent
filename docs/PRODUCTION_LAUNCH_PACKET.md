@@ -1,14 +1,20 @@
 # Nymrel Agent production launch packet
 
-Status: v0.1.3 is current in production at `https://nymrel-agent.vercel.app`; the first independent user was verified on 2026-08-26; Growth Experiment #3 remains open pending its exact product-attribution receipt
+Status: v0.1.3 is current in production at `https://nymrel-agent.vercel.app`; v0.2.0 is a local release-preparation candidate only, with no deployment or publication performed; the first independent user was verified on 2026-08-26; Growth Experiment #3 remains open pending its exact product-attribution receipt
 
-Owner: Codex launch lane under claim `codex-app-nymrel-agent-v013-carrier-20260826`
+Owner: Codex release-preparation lane under claim `codex-nymrel-agent-route-v2-20260827`
 
-Target release: `0.1.3`
+Target release: `0.2.0`
 
-Public contract: `nymrel.agent.route/v1`
+Public contracts: `nymrel.agent.route/v1` and opt-in `nymrel.agent.route/v2`
 
-Source branch: `codex/nymrel-agent-budget-normalization-20260826`
+Source branch: `codex/nymrel-agent-route-v2-20260827`
+
+## v0.2.0 local release-preparation receipt — 2026-08-28
+
+- Exact release source: `c5850361b19f72315b22bbe2794530d9415897ff`. Package artifact: 48,373 bytes with SHA-256 `d0a31ea20fccc62496408ee9b52266749f1be81689fa0d8b782c13d8147327aa`; source archive: 168,956 bytes with SHA-256 `06a4a89f36bbe6b4ae4858a48a7c770c1b3780d235e0cd9036cdbfc1fab5244b`.
+- Contract change: v1 remains byte/shape-compatible with v0.1.3. The opt-in v2 route requires request-budget anchors, computes a deterministic Pareto frontier after hard eligibility, selects only from that frontier, and exposes separate HTTP, CLI, and MCP entry points.
+- This repository-local carrier is not a publication or deployment receipt. Tagging, GitHub release assets, remote push, staging, provider inventory, runtime probes, promotion, and production-alias proof remain protected gates.
 
 ## v0.1.3 production receipt — 2026-08-26
 

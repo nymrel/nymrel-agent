@@ -11,11 +11,11 @@
 - API discovery: https://nymrel-agent.vercel.app/v1
 - API discovery v2: https://nymrel-agent.vercel.app/v2
 - Health: https://nymrel-agent.vercel.app/healthz
-- Release manifest: https://nymrel-agent.vercel.app/downloads/v0.1.3.json
-- Source archive: https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.1.3-source.tar.gz
-- Package artifact: https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.1.3.tgz
+- Release manifest: https://nymrel-agent.vercel.app/downloads/v0.2.0.json
+- Source archive: https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.2.0-source.tar.gz
+- Package artifact: https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.2.0.tgz
 - Public source repository: https://github.com/Nymrel/nymrel-agent
-- GitHub release: https://github.com/Nymrel/nymrel-agent/releases/tag/v0.1.3
+- GitHub release: https://github.com/Nymrel/nymrel-agent/releases/tag/v0.2.0
 - Company: https://nymrel.com/
 - Feedback and service brief: https://nymrel.com/brief?utm_source=nymrel-agent&utm_medium=llms-txt&utm_campaign=nymrel-agent-first-user
 
@@ -29,9 +29,9 @@ POST /v2/route is an explicit separate contract. Its request includes `normaliza
 
 - Hosted routing is stateless application logic and does not execute model calls.
 - Model metrics and capabilities are supplied by the caller; Nymrel Agent does not certify them.
-- The local v0.1 harness executes read-only requests only.
+- The local harness executes read-only requests only.
 - Provider credentials remain on the customer's machine for local execution.
-- Write-capable tools, hosted credential custody, billing, and autonomous side effects are outside v0.1.
+- Write-capable tools, hosted credential custody, billing, and autonomous side effects are outside v0.2.
 
 ## Service
 

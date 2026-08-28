@@ -58,7 +58,7 @@ The OpenAI Responses adapter:
 
 ## MCP
 
-The stdio MCP server uses the stable v2 TypeScript SDK and a per-connection server factory. It exposes `route_models` for v1, `route_models_v2` for v2, and `explain_contract`; all are read-only, non-destructive, and idempotent. Stdout is reserved for protocol messages.
+The stdio MCP server uses the stable v2 TypeScript SDK and a per-connection server factory. It exposes `route_models` for v1, `route_models_v2` for v2, `explain_contract` for the stable v1 boundary, and `explain_contract_v2` for the explicit v2 boundary; all are read-only, non-destructive, and idempotent. Stdout is reserved for protocol messages.
 
 ## OMP and Pi boundary
 
