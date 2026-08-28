@@ -30,6 +30,7 @@ const expectedFiles = [
   "public/downloads/nymrel-agent-v0.2.0-source.tar.gz",
   "public/downloads/v0.2.0.json",
   "public/examples/route-request.json",
+  "public/examples/route-request-v2.json",
   "public/favicon.svg",
   "public/index.html",
   "public/llms.txt",
