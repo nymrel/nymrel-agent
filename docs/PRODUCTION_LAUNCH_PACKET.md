@@ -1,6 +1,6 @@
 # Nymrel Agent production launch packet
 
-Status: v0.3.1 remains current in production at `https://nymrel-agent.vercel.app`; v0.4.0 is publicly released on GitHub with exact approved assets, while npm publication, deployment, promotion, and any production-status change remain pending.
+Status: v0.4.0 is live and current at `https://nymrel-agent.vercel.app`; the exact GitHub release, staged deployment, promotion, production alias, and rollback target are independently verified. npm publication remains outside this release.
 
 Owner: Codex Job Lifecycle v0.4 release-carrier preparation lane
 
@@ -10,14 +10,21 @@ Public contracts: `nymrel.agent.route/v1` and opt-in `nymrel.agent.route/v2`
 
 Source branch: `codex/nymrel-agent-job-lifecycle-v040-20260828`
 
-## v0.4.0 public GitHub release and local carrier receipt — 2026-08-28
+## v0.4.0 public release and production receipt — 2026-08-28
 
-- Carrier version `0.4.0` is public on GitHub, while its separate Vercel deployment and promotion gates remain pending.
+- Carrier version `0.4.0` is public on GitHub and live on the stable Vercel alias.
 - Approved release source: `70ee9e915a2f51e81a713b0b1eb2451b7d236bc1`.
 - Public GitHub Release: `https://github.com/nymrel/nymrel-agent/releases/tag/v0.4.0`. Its annotated remote tag `v0.4.0` peels to the approved release source.
 - Reproducible local artifacts: package `nymrel-agent-0.4.0.tgz` is 66,813 bytes with SHA-256 `25c3c377986564afefe39ce039a8171401eaef71a0f4965fd5b0c423972bf6ae`; source archive `nymrel-agent-v0.4.0-source.tar.gz` is 201,276 bytes with SHA-256 `77a1e034b3c209db79442daaf4ead30adc782358d064e6f635c540fe64110fa4`; manifest `v0.4.0.json` is 571 bytes with SHA-256 `51475953ac447baa4b8cc0fb570a40540976267341fe363c539bb2f04d67e1e9`.
 - Public-asset proof: the GitHub Release package, source archive, and manifest match those approved byte counts and SHA-256 digests exactly.
-- Carrier boundary: the published GitHub assets and locally committed carrier are not evidence of npm publication, Vercel deployment, staged acceptance, promotion, or a production version change. Existing v1/v2 routes and hosted metadata-only routing remain unchanged.
+- Accepted deployment carrier: `b480ed66f47731f82f78a530a0afb2ff176d0806`; authenticated `origin/main`, the clean detached deployment checkout, Vercel metadata, runtime health, and uploaded bytes all equaled that carrier before promotion.
+- Production deployment: `dpl_Ae3iNasjULKkCypas6hiwLrT5rCE`, immutable URL `https://nymrel-agent-mdknb5adc-jalens-projects-0ade4450.vercel.app`, project `prj_1DFbyuPG9W0ZNOrgZTZ88R79L34F`, owner `team_MkEJAArMiAM6dAEnF96D5GLE`, `verified_cli_bundle`, `READY`, and 57 exact uploaded files accepted by the authenticated inventory verifier.
+- Staged and production proof: 14 registered static paths plus the three active v0.4.0 artifacts matched 399,180 reviewed bytes exactly; all 10 registered dynamic route methods, canonical v1/v2 fixtures, four negative request classes, method guards, preflight, and hosted Job/Lifecycle 404 boundaries passed. Both canonical route fixtures selected `provider-b/fast`, and the v2 winner remained on its Pareto frontier.
+- Browser proof: staged and production desktop, 390-pixel, and 320-pixel layouts had no document overflow; the live v2 example succeeded, exposed its feedback path only after success, and sent only the reviewed metadata fixture. Reduced-motion behavior, documentation code containment, empty cookies/local/session storage, and zero console warnings or errors passed.
+- Rollback target captured before promotion: deployment `dpl_E4SWb4hgeVjJok14wsGptAkX5drJ`, immutable URL `https://nymrel-agent-be84tkaee-jalens-projects-0ade4450.vercel.app`, serving v0.3.1 from carrier `b0ad954a8b31570da3a860f5a1ca615c86f70402`.
+- Independent verdicts: the exact release source, generated carrier, final documentation carrier, and staged deployment were separately reviewed and accepted before the stable alias changed.
+- Boundary: npm remains unpublished. Existing v1/v2 routes remain metadata-only; no hosted Job/Lifecycle endpoint, scheduler, persistence, provider execution, provider-key custody, account, billing, custom-domain, or customer-data claim was added.
+- This post-promotion documentation receipt is not the deployed source. Production identifies carrier `b480ed66f47731f82f78a530a0afb2ff176d0806` through `/healthz` and `/readyz`.
 
 ## v0.3.1 local carrier-preparation receipt — 2026-08-28
 
