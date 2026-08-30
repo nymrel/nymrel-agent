@@ -90,7 +90,7 @@ Source branch: `codex/nymrel-agent-job-lifecycle-v040-20260828`
 - Exact-byte acceptance: all 23 Vercel-served public assets matched the reviewed local bytes on staging and production. The Cloudflare-only `public/_headers` control file is explicitly excluded from the Vercel bundle and returns 404 there. All retained v0.1.0 and v0.1.1 artifacts plus the new v0.1.2 package, source, and manifest remain byte-bound to their recorded digests.
 - Public-byte dogfood: a fresh project installed the package downloaded from production, produced one plan across 20 repeated routes, matched local and hosted plans, rejected five unsafe endpoint classes with exit 64 before transport, emitted a body-free demo receipt, and completed MCP 2026-07-28 discovery, tool listing, and `route_models` invocation.
 - Discovery status: the prior v0.1.1 IndexNow acknowledgment remains a historical submission receipt only. No v0.1.2 crawl, index, rank, citation, traffic, or recommendation claim is made.
-- CI status: the pinned public workflow remains present, but GitHub returned `Actions has been disabled for this user` when manual dispatch was attempted. No GitHub Actions pass is claimed until both configured Node jobs pass for an exact public commit.
+- CI status: the immutable-action workflow defines four Node/OS cells (Node 22 and 24 on Ubuntu 24.04 and Windows 2025), full dependency audit coverage, and a separate weekly CodeQL extended scan. Both Node boundaries pass locally, but GitHub previously returned `Actions has been disabled for this user`; no hosted GitHub Actions or CodeQL pass is claimed until those workflows complete for an exact public commit.
 - Adoption status: one identifiable independent external user is verified as of 2026-08-26 through intentional use against a real model list and a human-verifiable user-authored receipt. The identity and private message remain unpublished, and no broader adoption claim is made.
 
 ## Decision
@@ -148,15 +148,17 @@ The Vercel service can launch without crossing those gates and hosts the canonic
 Local gate:
 
 ```powershell
-npm ci --ignore-scripts
+corepack enable npm
+npm --version
+npm ci
 npm run verify
-npm audit --omit=dev --audit-level=high
+npm run audit
 npm pack --dry-run --json
 git diff --check 4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD
 git show --check --oneline HEAD
 ```
 
-`npm run verify` includes type checking, compiled tests, public-release verification, installed-tarball CLI and MCP probes, and a Cloudflare dry-run.
+The version check must print `11.19.1`. `npm run verify` includes type checking, compiled tests, public-release and workflow-policy verification, installed-tarball CLI and MCP probes, and a Cloudflare dry-run. `npm run audit` covers the complete locked dependency graph.
 
 Independent gate:
 

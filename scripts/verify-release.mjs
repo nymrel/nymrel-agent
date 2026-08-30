@@ -37,7 +37,8 @@ const required = [
   "src/bin/nymrel-agent.ts", "src/bin/nymrel-agent-mcp.ts", "scripts/verify-packed-install.mjs",
   "scripts/release-public-registry.mjs", "scripts/verify-vercel-source.mjs",
   "src/url-security.ts",
-  ".github/workflows/ci.yml",
+  ".github/dependabot.yml", ".github/workflows/ci.yml", ".github/workflows/codeql.yml", ".node-version", ".npmrc",
+  "test/ci-contract.test.ts",
 ];
 for (const relative of required) assert.ok(existsSync(path.join(root, relative)), `missing release file: ${relative}`);
 
@@ -59,18 +60,29 @@ assert.equal(packageJson.license, "MIT");
 assert.equal(packageJson.publishConfig?.access, "public");
 assert.equal(packageJson.publishConfig?.provenance, true);
 assert.equal(packageJson.engines?.node, ">=22 <25");
+assert.equal(packageJson.packageManager, "npm@11.19.1");
+assert.deepEqual(packageJson.devEngines?.runtime, { name: "node", version: ">=22 <25", onFail: "error" });
+assert.deepEqual(packageJson.devEngines?.packageManager, { name: "npm", version: "11.19.1", onFail: "error" });
+assert.deepEqual(packageJson.allowScripts, { "esbuild@0.28.1": true, "workerd@1.20260828.1": true });
+assert.equal(read(".node-version").trim(), "24.20.0");
+assert.deepEqual(read(".npmrc").trim().split(/\r?\n/), ["engine-strict=true", "strict-allow-scripts=true", "strict-peer-deps=true"]);
 assert.equal(packageJson.bin?.["nymrel-agent"], "dist/src/bin/nymrel-agent.js");
 assert.equal(packageJson.bin?.["nymrel-agent-mcp"], "dist/src/bin/nymrel-agent-mcp.js");
 assert.equal(packageJson.scripts?.build, undefined, "Vercel Hono detection requires no package build script");
 assert.equal(packageJson.scripts?.compile, "npm run clean --silent && tsc -p tsconfig.package.json");
 assert.equal(packageJson.scripts?.typecheck, "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.package.json --noEmit");
+assert.equal(packageJson.scripts?.audit, "npm audit --audit-level=high");
+assert.ok(packageJson.scripts?.verify?.includes("npm run verify:release"), "default verification must execute the release verifier");
 assert.equal(packageLock.name, packageJson.name);
 assert.equal(packageLock.version, packageJson.version);
 assert.equal(packageLock.packages?.[""]?.version, packageJson.version);
 assert.equal(packageJson.dependencies?.["@modelcontextprotocol/server"], "2.0.0");
 assert.equal(packageJson.dependencies?.["@vercel/firewall"], "1.2.5");
-assert.equal(packageJson.dependencies?.hono, "4.13.4");
-assert.equal(packageJson.dependencies?.zod, "4.4.3");
+assert.equal(packageJson.dependencies?.hono, "4.13.5");
+assert.equal(packageJson.dependencies?.zod, "4.5.4");
+assert.equal(packageJson.devDependencies?.["@types/node"], "24.13.3");
+assert.equal(packageJson.devDependencies?.typescript, "7.0.2");
+assert.equal(packageJson.devDependencies?.wrangler, "4.127.1");
 
 const contracts = read("src/contracts.ts");
 assert.ok(contracts.includes(`PRODUCT_VERSION = "${packageJson.version}"`), "source product version must match package version");

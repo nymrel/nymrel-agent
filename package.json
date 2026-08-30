@@ -53,8 +53,9 @@
     "verify:candidate": "npm run compile --silent && node scripts/verify-candidate.mjs",
     "verify:packed-install": "npm run compile --silent && node scripts/verify-packed-install.mjs",
     "verify:candidate-packed-install": "npm run compile --silent && node scripts/verify-packed-install.mjs --candidate",
+    "audit": "npm audit --audit-level=high",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
-    "verify": "npm run typecheck && npm test && npm run verify:candidate && npm run verify:candidate-packed-install && npm run deploy:dry-run",
+    "verify": "npm run typecheck && npm test && npm run verify:release && npm run verify:candidate && npm run verify:candidate-packed-install && npm run deploy:dry-run",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
     "deploy": "wrangler deploy",
     "smoke": "npm run compile --silent && node dist/src/bin/nymrel-agent.js route --file examples/route-request.json",
@@ -64,16 +65,33 @@
   "engines": {
     "node": ">=22 <25"
   },
+  "packageManager": "npm@11.19.1",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=22 <25",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "npm",
+      "version": "11.19.1",
+      "onFail": "error"
+    }
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "workerd@1.20260828.1": true
+  },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
     "@vercel/firewall": "1.2.5",
-    "hono": "4.13.4",
-    "zod": "4.4.3"
+    "hono": "4.13.5",
+    "zod": "4.5.4"
   },
   "devDependencies": {
-    "@types/node": "26.3.0",
+    "@types/node": "24.13.3",
     "typescript": "7.0.2",
-    "wrangler": "4.126.0"
+    "wrangler": "4.127.1"
   },
   "publishConfig": {
     "access": "public",
