@@ -40,10 +40,23 @@ test("contributor and CI runtimes share one reviewed toolchain contract", () => 
 
 test("CI verifies every supported Node boundary on pinned hosted runners", () => {
   const workflow = read(".github/workflows/ci.yml");
+  const cachePolicy = "package-manager-cache: false";
+  const toolchainEnable = "corepack enable npm";
+  const cachePolicyIndex = workflow.indexOf(cachePolicy);
+  const toolchainEnableIndex = workflow.indexOf(toolchainEnable);
+  const lockedInstallIndex = workflow.indexOf("run: npm ci");
+
   assert.match(workflow, /os: \[ubuntu-24\.04, windows-2025\]/);
   assert.match(workflow, /node: \[22, 24\]/);
-  assert.ok(workflow.includes("npm install --global npm@11.19.1"));
+  assert.equal((workflow.match(/package-manager-cache:\s*false/g) ?? []).length, 1);
+  assert.equal(/^\s*cache:\s*npm\s*$/m.test(workflow), false);
+  assert.equal((workflow.match(/corepack enable npm/g) ?? []).length, 1);
+  assert.equal(workflow.includes("npm install --global"), false);
+  assert.ok(cachePolicyIndex >= 0);
+  assert.ok(toolchainEnableIndex > cachePolicyIndex);
+  assert.ok(lockedInstallIndex > toolchainEnableIndex);
   assert.match(workflow, /Use the reviewed npm toolchain\s*\r?\n\s+working-directory: \$\{\{ runner\.temp \}\}/);
+  assert.ok(workflow.includes(`run: ${toolchainEnable}`));
   assert.match(workflow, /run: npm ci\s*(?:\r?\n|$)/);
   assert.equal(workflow.includes("npm ci --ignore-scripts"), false);
   assert.ok(workflow.includes("npm run verify"));
@@ -71,6 +84,7 @@ test("GitHub Actions execute only immutable reviewed action bytes", () => {
 test("CodeQL has the minimum write permission and a recurring extended scan", () => {
   const workflow = read(".github/workflows/codeql.yml");
   assert.ok(workflow.includes("security-events: write"));
+  assert.match(workflow, /security-events: write\s+# Required to upload CodeQL analysis results\./);
   assert.ok(workflow.includes("languages: javascript-typescript"));
   assert.ok(workflow.includes("build-mode: none"));
   assert.ok(workflow.includes("queries: security-extended"));
