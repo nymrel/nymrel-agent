@@ -1,12 +1,22 @@
 # Contributing
 
-Issues and focused pull requests are welcome. Before proposing a change, preserve the boundaries in `AGENTS.md`: the public API remains metadata-only, local execution remains read-only in v0.1, and model-profile facts remain caller-supplied evidence.
+Issues and focused pull requests are welcome. Before proposing a change, preserve the boundaries in `AGENTS.md`: the public API remains metadata-only, the current local execution boundary remains read-only, and model-profile facts remain caller-supplied evidence.
+
+Use Node.js `>=22 <25`; `.node-version` records the preferred Node 24 patch. Enable the repository-aware Corepack shim so `packageManager` selects the reviewed npm version before running any package command:
+
+```powershell
+corepack enable npm
+npm --version
+```
+
+The version check must print `11.19.1`. Dependency install scripts fail closed unless an exact locked version appears in `allowScripts`; a dependency update that changes `esbuild` or `workerd` must receive a new pinned approval after review.
 
 Run the complete local gate:
 
 ```powershell
 npm ci
 npm run verify
+npm run audit
 npm pack --dry-run
 git diff --check 4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD
 git show --check --oneline HEAD

@@ -19,6 +19,7 @@ curl -sS https://nymrel-agent.vercel.app/v1/route \
 Route the same payload locally:
 
 ```bash
+corepack enable npm
 npm ci
 npm run compile
 node dist/src/bin/nymrel-agent.js route --file examples/route-request.json
@@ -127,16 +128,19 @@ Nymrel can configure evidence-backed catalogs, routing policy, evals, customer-l
 
 ## Development and release proof
 
-Requires Node.js 22, 23, or 24.
+Requires Node.js `>=22 <25`. `.node-version` pins the preferred Node 24 patch, while CI verifies Node 22 and 24 on both Ubuntu and Windows. The `packageManager` and `devEngines` contracts require npm 11.19.1 for development.
 
 ```powershell
+corepack enable npm
+npm --version
 npm ci
 npm run verify
+npm run audit
 npm pack --dry-run
 git show --check --oneline HEAD
 ```
 
-`npm run verify` runs type checking, the offline/integration test suite, the release manifest and secret scan, and a Cloudflare deployment dry-run. The production Vercel adapter is exercised by the same compiled integration suite and by preview verification before promotion. Phase 0 evidence remains under `docs/PHASE0_CONTRACT.md` and `evidence/phase0-receipt.json` as historical provenance, not current product status.
+The version check must print `11.19.1`. Installs fail closed on unreviewed dependency lifecycle scripts; `allowScripts` approves only the exact locked `esbuild` and `workerd` versions required by the toolchain. `npm run verify` runs type checking, the offline/integration and workflow-policy suite, the release manifest and secret scan, packed-consumer CLI/MCP verification, and a Cloudflare deployment dry-run. `npm run audit` covers the complete locked dependency graph. The production Vercel adapter is exercised by the same compiled integration suite and by preview verification before promotion. Phase 0 evidence remains under `docs/PHASE0_CONTRACT.md` and `evidence/phase0-receipt.json` as historical provenance, not current product status.
 
 ## License
 

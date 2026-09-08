@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,25 +11,30 @@ const candidateMode = process.argv.slice(2).includes("--candidate");
 assert.deepEqual(process.argv.slice(2).filter((value) => value !== "--candidate"), [], "unsupported packed-install verifier option");
 const temporaryRoot = mkdtempSync(path.join(tmpdir(), "nymrel-agent-packed-"));
 const installRoot = path.join(temporaryRoot, "install");
-const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-const bin = (name) => path.join(installRoot, "node_modules", ".bin", process.platform === "win32" ? `${name}.cmd` : name);
+const installedPackageRoot = path.join(installRoot, "node_modules", "@nymrel", "agent");
+const npmExecPath = process.env.npm_execpath;
+assert.ok(npmExecPath && existsSync(npmExecPath), "packed-install verification must be invoked through npm");
+const binShim = (name) => path.join(installRoot, "node_modules", ".bin", process.platform === "win32" ? `${name}.cmd` : name);
+const binEntrypoint = (name) => path.join(installedPackageRoot, "dist", "src", "bin", `${name}.js`);
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: options.cwd ?? root,
     encoding: "utf8",
     env: process.env,
-    shell: process.platform === "win32" && command.endsWith(".cmd"),
   });
   assert.equal(result.status, 0, `${command} ${args.join(" ")} failed:\n${result.stderr || result.stdout}`);
   return result.stdout;
 }
 
-async function verifyMcp(executable) {
-  const child = spawn(executable, [], {
+function runNpm(args, options = {}) {
+  return run(process.execPath, [npmExecPath, ...args], options);
+}
+
+async function verifyMcp(entrypoint) {
+  const child = spawn(process.execPath, [entrypoint], {
     cwd: installRoot,
     env: process.env,
-    shell: process.platform === "win32",
     stdio: ["pipe", "pipe", "pipe"],
   });
   let buffer = "";
@@ -115,7 +120,7 @@ async function verifyMcp(executable) {
 try {
   mkdirSync(installRoot);
   writeFileSync(path.join(installRoot, "package.json"), "{\"private\":true}\n", "utf8");
-  const packed = JSON.parse(run(npm, ["pack", "--ignore-scripts", "--json", "--pack-destination", temporaryRoot]));
+  const packed = JSON.parse(runNpm(["pack", "--ignore-scripts", "--json", "--pack-destination", temporaryRoot]));
   assert.equal(packed.length, 1);
   const tarball = path.join(temporaryRoot, packed[0].filename);
   const generatedBytes = readFileSync(tarball);
@@ -127,16 +132,19 @@ try {
     assert.equal(generatedSha256, releaseManifest.package.sha256, "generated package digest drifted from the canonical release manifest");
     assert.deepEqual(generatedBytes, canonicalBytes, "generated package bytes drifted from the canonical hosted artifact");
   }
-  run(npm, ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], { cwd: installRoot });
+  runNpm(["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], { cwd: installRoot });
 
-  const installedPackageRoot = path.join(installRoot, "node_modules", "@nymrel", "agent");
+  for (const name of ["nymrel-agent", "nymrel-agent-mcp"]) {
+    assert.ok(existsSync(binShim(name)), `npm did not install the ${name} executable shim`);
+    assert.ok(existsSync(binEntrypoint(name)), `package does not contain the ${name} JavaScript entrypoint`);
+  }
   const installedReadme = readFileSync(path.join(installedPackageRoot, "README.md"), "utf8");
   assert.match(installedReadme, /\(docs\/JOB_MODE\.md\)/, "packed README must link to the packaged Job Mode guide");
   assert.match(readFileSync(path.join(installedPackageRoot, "docs", "JOB_MODE.md"), "utf8"), /Job Mode \(local plan only\)/);
 
-  const contract = JSON.parse(run(bin("nymrel-agent"), ["contract"], { cwd: installRoot }));
+  const contract = JSON.parse(run(process.execPath, [binEntrypoint("nymrel-agent"), "contract"], { cwd: installRoot }));
   assert.equal(contract.contractVersion, "nymrel.agent.route/v1");
-  const jobPlan = JSON.parse(run(bin("nymrel-agent"), [
+  const jobPlan = JSON.parse(run(process.execPath, [binEntrypoint("nymrel-agent"),
     "job", "plan", "--file", path.join(installedPackageRoot, "examples", "job-48h-game-builder.json"),
   ], { cwd: installRoot }));
   assert.equal(jobPlan.ok, true);
@@ -146,9 +154,9 @@ try {
   assert.equal(jobPlan.plan?.summary?.externalHandoffRequiredSteps, 2);
   assert.equal(jobPlan.receipt?.status, "planned");
   assert.equal(jobPlan.receipt?.counts?.totalSteps, 5);
-  const summary = run(bin("nymrel-agent"), ["job", "plan", "--file", path.join(installedPackageRoot, "examples", "job-48h-game-builder.json"), "--format", "summary"], { cwd: installRoot });
+  const summary = run(process.execPath, [binEntrypoint("nymrel-agent"), "job", "plan", "--file", path.join(installedPackageRoot, "examples", "job-48h-game-builder.json"), "--format", "summary"], { cwd: installRoot });
   assert.ok(summary.split(/\r?\n/).filter(Boolean).length <= 40);
-  await verifyMcp(bin("nymrel-agent-mcp"));
+  await verifyMcp(binEntrypoint("nymrel-agent-mcp"));
   process.stdout.write(`${candidateMode ? "candidate-" : ""}packed-install-verification: pass (${process.platform})\n`);
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });

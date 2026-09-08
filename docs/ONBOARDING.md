@@ -32,14 +32,16 @@ Never substitute one SHA for the other. A production claim needs both independen
 ## 4. Validate locally
 
 ```powershell
-npm ci --ignore-scripts
+corepack enable npm
+npm --version
+npm ci
 npm run verify
-npm audit --omit=dev --audit-level=high
+npm run audit
 git diff --check
 git show --check --oneline HEAD
 ```
 
-`npm run verify` checks the active version, both v1/v2 contracts and fixtures, release artifacts, public route/static matrices, the single Vercel upload registry, packed CLI/MCP behavior, and the Cloudflare dry run. It is necessary but not a deployment receipt.
+The version check must print `11.19.1`. `.npmrc` makes engine, peer-dependency, and install-script policy fail closed; only the exact locked `esbuild` and `workerd` postinstall versions are approved. `npm run verify` checks the active version, both v1/v2 contracts and fixtures, release artifacts, public route/static matrices, the single Vercel upload registry, packed CLI/MCP behavior, workflow policy, and the Cloudflare dry run. `npm run audit` covers both runtime and development dependencies. These checks are necessary but are not a deployment receipt.
 
 ## 5. Inspect Vercel without mutating it
 
