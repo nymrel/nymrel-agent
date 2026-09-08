@@ -225,8 +225,12 @@ assert.match(read(".gitattributes"), /^public\/downloads\/ export-ignore\r?$/m, 
 
 const sourceArchive = path.join(root, "public", "downloads", `nymrel-agent-v${ACTIVE_RELEASE_VERSION}-source.tar.gz`);
 const archiveRoot = `nymrel-agent-${ACTIVE_RELEASE_VERSION}/`;
-const sourceCommitArchive = execFileSync("git", ["archive", "--format=tar.gz", `--prefix=${archiveRoot}`, releaseManifest.releaseSourceCommit], { cwd: root });
-assert.deepEqual(readFileSync(sourceArchive), sourceCommitArchive, "active source archive must exactly reproduce releaseSourceCommit");
+const sourceCommitArchive = execFileSync("git", ["-c", "core.autocrlf=false", "archive", "--format=tar.gz", `--prefix=${archiveRoot}`, releaseManifest.releaseSourceCommit], { cwd: root });
+assert.equal(
+  createHash("sha256").update(sourceCommitArchive).digest("hex"),
+  createHash("sha256").update(readFileSync(sourceArchive)).digest("hex"),
+  "active source archive must exactly reproduce releaseSourceCommit",
+);
 const archiveNames = execFileSync("tar", ["-tzf", sourceArchive], { encoding: "utf8" }).trimEnd().split(/\r?\n/);
 assert.ok(archiveNames.length > 1, "source archive is empty");
 assert.equal(archiveNames[0], archiveRoot, "source archive must begin with one versioned root");
