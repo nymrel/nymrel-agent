@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
+      actions: read # Resolve workflow metadata during CodeQL result upload.
       contents: read
       security-events: write # Required to upload CodeQL analysis results.
     steps:
