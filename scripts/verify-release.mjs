@@ -43,7 +43,8 @@ const required = [
 for (const relative of required) assert.ok(existsSync(path.join(root, relative)), `missing release file: ${relative}`);
 
 const origin = execFileSync("git", ["remote", "get-url", "origin"], { cwd: root, encoding: "utf8" }).trim();
-assert.equal(origin, CANONICAL_ORIGIN, "release verification must run from the canonical Nymrel origin");
+// GitHub treats owner/repository case and the optional .git suffix equivalently.
+assert.equal(origin.toLowerCase().replace(/\.git$/, ""), CANONICAL_ORIGIN.toLowerCase().replace(/\.git$/, ""), "release verification must run from the canonical Nymrel origin");
 const remotes = execFileSync("git", ["remote"], { cwd: root, encoding: "utf8" }).split(/\r?\n/).filter(Boolean);
 if (remotes.includes("legacy-jalenbuildshub")) {
   const legacyOrigin = execFileSync("git", ["remote", "get-url", "legacy-jalenbuildshub"], { cwd: root, encoding: "utf8" }).trim();
