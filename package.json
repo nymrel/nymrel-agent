@@ -85,8 +85,8 @@
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
     "@vercel/firewall": "1.2.5",
-    "hono": "4.13.5",
-    "zod": "4.5.4"
+    "hono": "4.13.7",
+    "zod": "4.6.2"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
