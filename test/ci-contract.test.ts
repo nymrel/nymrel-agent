@@ -109,8 +109,8 @@ test("packed-install acceptance never concatenates arguments through a command s
 
 test("dependency lifecycle scripts are denied unless an exact locked version was reviewed", () => {
   assert.deepEqual(packageJson.allowScripts, {
-    "esbuild@0.28.1": true,
-    "workerd@1.20260828.1": true,
+    "esbuild@0.28.2": true,
+    "workerd@1.20261103.1": true,
   });
   assert.deepEqual(read(".npmrc").trim().split(/\r?\n/), [
     "engine-strict=true",
