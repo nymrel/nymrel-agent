@@ -2,6 +2,10 @@
 
 All notable product changes are documented here.
 
+## Unreleased
+
+- Expose the existing routing contracts through `@nymrel/agent/router`, with public input/output types and a platform-independent module graph. Installed Node and worker consumers verify the same canonical decisions without adopting the hosted service or execution runtime. This source addition is not in the immutable v0.4.1 downloads.
+
 ## 0.4.1 — 2026-11-08
 
 - Reject Responses-provider redirects so task bodies stay bound to the explicitly configured endpoint, including loopback-only runs. Configure the final provider URL directly; redirected endpoints now fail closed.

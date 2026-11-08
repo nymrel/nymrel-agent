@@ -58,6 +58,34 @@ The selected objective changes explicit weights. Explicit cost and latency ceili
 
 The opt-in v2 contract leaves v1 unchanged. Its required `normalization` object uses `basis: "request_budget"` plus positive cost and latency anchors. v2 normalizes cost and latency against those request anchors, returns a sorted `paretoFrontierModelIds` list, and selects only from that frontier. An incumbent can resolve an exact weighted-score tie inside the frontier; it never receives a score bonus.
 
+## Embed routing in your application — unreleased source addition
+
+The `@nymrel/agent/router` subpath exposes the existing v1/v2 routing functions
+and their TypeScript contracts without importing the CLI, MCP server, provider
+adapters, or local execution runtime. It can sit between an application's
+orchestration code and its chosen provider SDK:
+
+```typescript
+import { routeV2, type ModelProfile, type RouteRequestV2 } from '@nymrel/agent/router';
+
+const plan = routeV2(requestMetadata as RouteRequestV2, modelCatalog as ModelProfile[]);
+if (plan.selectedModelId === null) {
+  // Stop or ask for changed constraints; no model satisfied the supplied policy.
+} else {
+  // Hand the selected identifiers to your application's existing provider code.
+}
+```
+
+This entry point makes a routing decision only. Model facts remain caller-supplied;
+the result does not authenticate those facts or authorize execution. It uses no
+Node-only APIs and makes no provider/network call. The package still contains
+the other entry points and their declared dependencies; the subpath isolates the
+module graph rather than creating a separate dependency-free distribution.
+
+This capability is not in the immutable v0.4.1 download. Build and install the
+exact reviewed candidate tarball using the [library consumer guide](docs/ROUTER_LIBRARY.md).
+The existing routing contracts and public endpoints are unchanged.
+
 ## CLI
 
 ```text
