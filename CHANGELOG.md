@@ -2,6 +2,11 @@
 
 All notable product changes are documented here.
 
+## 0.4.1 — 2026-11-08
+
+- Reject Responses-provider redirects so task bodies stay bound to the explicitly configured endpoint, including loopback-only runs. Configure the final provider URL directly; redirected endpoints now fail closed.
+- Bound the public routing example to a 15-second deadline across its fixture request, route request, and response-body reads; reset busy controls after failure and retain clearly labeled previous successful results for copying and explicit retry.
+
 ## 0.4.0 — 2026-08-28
 
 - Added a local-only Job Lifecycle contract: callers retain the latest envelope while deterministic init, checkpoint, and terminal transitions validate bounded body-free inputs, replay idempotent requests, and verify a SHA-256 integrity chain. It neither runs work nor persists data.
