@@ -6,12 +6,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyRouterWorkerConsumer } from "./verify-router-browser.mjs";
+import { ACTIVE_RELEASE_VERSION } from "./release-public-registry.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const candidateMode = process.argv.slice(2).includes("--candidate");
 const browserMode = process.argv.slice(2).includes("--browser");
 assert.deepEqual(process.argv.slice(2).filter((value) => !["--candidate", "--browser"].includes(value)), [], "unsupported packed-install verifier option");
-assert.ok(!browserMode || candidateMode, "native browser verification requires an explicit source candidate");
 const temporaryRoot = mkdtempSync(path.join(tmpdir(), "nymrel-agent-packed-"));
 const installRoot = path.join(temporaryRoot, "install");
 const installedPackageRoot = path.join(installRoot, "node_modules", "@nymrel", "agent");
@@ -129,8 +129,8 @@ try {
   const generatedBytes = readFileSync(tarball);
   const generatedSha256 = createHash("sha256").update(generatedBytes).digest("hex");
   if (!candidateMode) {
-    const canonicalBytes = readFileSync(path.join(root, "public", "downloads", "nymrel-agent-0.4.1.tgz"));
-    const releaseManifest = JSON.parse(readFileSync(path.join(root, "public", "downloads", "v0.4.1.json"), "utf8"));
+    const canonicalBytes = readFileSync(path.join(root, "public", "downloads", `nymrel-agent-${ACTIVE_RELEASE_VERSION}.tgz`));
+    const releaseManifest = JSON.parse(readFileSync(path.join(root, "public", "downloads", `v${ACTIVE_RELEASE_VERSION}.json`), "utf8"));
     assert.equal(generatedBytes.length, releaseManifest.package.bytes, "generated package byte count drifted from the canonical release manifest");
     assert.equal(generatedSha256, releaseManifest.package.sha256, "generated package digest drifted from the canonical release manifest");
     assert.deepEqual(generatedBytes, canonicalBytes, "generated package bytes drifted from the canonical hosted artifact");
@@ -145,9 +145,9 @@ try {
   assert.match(installedReadme, /\(docs\/JOB_MODE\.md\)/, "packed README must link to the packaged Job Mode guide");
   assert.match(readFileSync(path.join(installedPackageRoot, "docs", "JOB_MODE.md"), "utf8"), /Job Mode \(local plan only\)/);
 
-  if (candidateMode) {
+  {
     assert.match(installedReadme, /\(docs\/ROUTER_LIBRARY\.md\)/, "library consumer guide must be packaged");
-    assert.match(readFileSync(path.join(installedPackageRoot, "docs", "ROUTER_LIBRARY.md"), "utf8"), /unreleased source addition/);
+    assert.match(readFileSync(path.join(installedPackageRoot, "docs", "ROUTER_LIBRARY.md"), "utf8"), /npm registry publication is a separate gate/i);
     const nodeConsumer = path.join(installRoot, "router-node-consumer.mjs");
     writeFileSync(nodeConsumer, readFileSync(path.join(installedPackageRoot, "examples", "router-node-consumer.mjs")));
     const fixturePath = path.join(installedPackageRoot, "examples", "route-request-v2.json");
@@ -192,6 +192,7 @@ try {
     const workerProof = await verifyRouterWorkerConsumer(installRoot, { browser: browserMode });
     process.stdout.write(JSON.stringify({ kind: "synthetic-installed-router-consumers", sourceRevision: run("git", ["rev-parse", "HEAD"]).trim(),
       sourceDirty: run("git", ["status", "--porcelain"]).trim() !== "",
+      distribution: candidateMode ? "source candidate" : "canonical versioned artifact",
       tarballSha256: generatedSha256, tarballBytes: generatedBytes.length,
       nodeConsumerChecks: 3, workerTypes: "PASS; WebWorker lib with no Node ambient types", worker: workerProof,
       providerCalls: 0, externalAdoption: "not measured" }) + "\n");
