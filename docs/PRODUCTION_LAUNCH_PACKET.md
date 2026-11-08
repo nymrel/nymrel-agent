@@ -1,14 +1,27 @@
 # Nymrel Agent production launch packet
 
-Status: v0.4.1 is a local source/carrier candidate. Local candidate only; independent source/carrier acceptance, GitHub Release publication, staging, and production promotion are pending. The recorded v0.4.0 production receipt below remains historical evidence, not a fresh runtime observation.
+Status: v0.5.0 is a local source/carrier candidate. Local candidate only; independent source/carrier acceptance, GitHub Release publication, staging, and production promotion are pending. The recorded v0.4.0 production receipt below remains historical evidence, not a fresh runtime observation.
 
-Preparation scope: local v0.4.1 source and release-carrier candidate
+Preparation scope: local v0.5.0 source and release-carrier candidate
 
-Target release: `0.4.1`
+Target release: `0.5.0`
 
 Public contracts: `nymrel.agent.route/v1` and opt-in `nymrel.agent.route/v2`
 
-Source branch: `release/v0.4.1-prep` (local candidate only)
+Source branch: `codex/router-v050-release-prep-20261108` (local candidate only)
+
+## v0.5.0 local candidate preparation — 2026-11-08
+
+- Candidate version `0.5.0`; release source: `601e6d129d4fb3f2cd8b983f14809ed9a8cdb400`. This source includes the reviewed router subpath merged in PR #15, the minor feature version, public request/profile/result types, and Node orchestrator/browser module-worker installation guidance. The v1/v2 routing contracts and canonical routing algorithm are unchanged.
+- Package `nymrel-agent-0.5.0.tgz`: 71,031 bytes; SHA-256 `5a79edf4f220ac6baee1328f4c43cc120905163885229679a99c812c3802b34c`.
+- Source `nymrel-agent-v0.5.0-source.tar.gz`: 219,868 bytes; SHA-256 `6ddbf4b1c4bfe7ac0add799439ecff77d4886487a9d1b86d7392068af5ffa7c8`. This is the canonical LF Git archive of the exact source commit; hosted downloads are excluded.
+- Manifest `v0.5.0.json`: 571 bytes; SHA-256 `a36297c2a6eb8ef64e9d3df24dd05f976d81fa38bdbdf1d3b390ff5b2bc138f3`.
+- The complete v0.4.1 package/source/manifest triplet remains byte-for-byte unchanged, is retained in the source inventory, and is pinned by the release verifier. All earlier release artifacts remain unchanged too.
+- Source gates passed on Node 24.19.0/npm 11.19.1: strict typechecks, 111 tests, candidate validation, installed Node routing cases, WebWorker declarations without Node ambient types, pure browser bundle/worker-context checks, native Chromium 151 module-worker checks, and package lifecycle dry-run. These are synthetic installed consumers; independent external adoption is not measured.
+- The default native browser gate verifies the canonical versioned artifact byte-for-byte. The explicit `--candidate` option labels unarchived source checks separately. Installing the package retains its declared dependencies even when importing only the pure routing subpath.
+- The documented source-checkout recipe passed in a separate clean checkout of the exact release source. An extracted source archive also rebuilds the package byte-for-byte with the locked toolchain and normal package lifecycle; archive extraction excludes the downloads required by deployment-inventory tests, so those tests run from the canonical Git checkout.
+- Local carrier gates passed: strict typechecks, 111 tests, release/candidate verifiers, canonical installed Node/worker-types/browser-bundle/CLI/MCP consumers, dependency audit with zero vulnerabilities, and Cloudflare deployment dry-run only. Exact source code review passed before binding these candidate artifacts. Independent execution against the final carrier, hosted CI, release publication, staging and production promotion remain pending. A source or artifact candidate does not prove a hosted version upgrade; the deployed service reports its own source and version.
+- No GitHub Release, tag, npm publication, deployment, promotion, alias, credentials, billing, account, DNS or customer-data change is claimed by this preparation. npm authentication/trusted-publisher configuration remains separately held.
 
 ## v0.4.1 local candidate preparation — 2026-11-08
 

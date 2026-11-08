@@ -21,11 +21,11 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header class="nav shell"><a class="brand" href="/"><span class="mark" aria-hidden="true">N</span><span>Nymrel Agent</span></a><nav aria-label="Primary navigation"><a href="/">Product</a><a href="/openapi.json">OpenAPI</a><a href="/downloads/v0.4.1.json">Downloads</a><a href="https://github.com/Nymrel/nymrel-agent">Source</a><a class="button small" href="/#live-demo">Run example</a></nav></header>
+  <header class="nav shell"><a class="brand" href="/"><span class="mark" aria-hidden="true">N</span><span>Nymrel Agent</span></a><nav aria-label="Primary navigation"><a href="/">Product</a><a href="/openapi.json">OpenAPI</a><a href="/downloads/v0.5.0.json">Downloads</a><a href="https://github.com/Nymrel/nymrel-agent">Source</a><a class="button small" href="/#live-demo">Run example</a></nav></header>
   <main class="docs shell">
-    <aside aria-label="Documentation sections"><p class="eyebrow">DOCUMENTATION</p><a href="#quickstart">Quickstart</a><a href="#contract">Request contract</a><a href="#scoring">Scoring</a><a href="#errors">Errors</a><a href="#downloads">Downloads</a><a href="#cli">CLI</a><a href="#mcp">MCP</a><a href="#local-execution">Local execution</a><a href="#security">Security</a><a href="#service">Managed service</a></aside>
+    <aside aria-label="Documentation sections"><p class="eyebrow">DOCUMENTATION</p><a href="#quickstart">Quickstart</a><a href="#contract">Request contract</a><a href="#scoring">Scoring</a><a href="#errors">Errors</a><a href="#downloads">Downloads</a><a href="#library">Library</a><a href="#cli">CLI</a><a href="#mcp">MCP</a><a href="#local-execution">Local execution</a><a href="#security">Security</a><a href="#service">Managed service</a></aside>
     <article class="prose">
-      <p class="status-pill">v0.4 · local-first</p>
+      <p class="status-pill">v0.5 candidate · local-first</p>
       <h1>Route work across the models you already use.</h1>
       <p>Nymrel Agent applies one deterministic routing contract across a public API, a local CLI, and an MCP server. You supply the model catalog and its evidence. Nymrel Agent filters ineligible options, ranks the rest, and explains the decision.</p>
 
@@ -73,12 +73,21 @@
       <p>All API errors are JSON and include a request ID plus a stable code. Expected codes include <code>invalid_json</code>, <code>invalid_content_length</code>, <code>invalid_request</code>, <code>payload_too_large</code>, <code>unsupported_media_type</code>, <code>method_not_allowed</code>, <code>rate_limited</code>, <code>service_misconfigured</code>, <code>service_disabled</code>, and <code>not_found</code>. The Vercel production endpoint applies a project-level WAF limit of 120 routing calls per 60-second window per platform-derived network identity, shared across function instances. Shared networks can share an allowance. Internal stack traces and request bodies are never returned.</p>
 
       <h2 id="downloads">Versioned downloads</h2>
-      <p>The v0.4.1 candidate package and MIT-licensed source archive are prepared for independent review. The <a href="/downloads/v0.4.1.json">release manifest</a> records byte sizes, SHA-256 digests, and the candidate source commit. Verify downloaded assets against the manifest. GitHub Release publication and production promotion remain pending; npm publication remains a separate gate. The hosted service reports its actual active version and source identity through <a href="/healthz"><code>/healthz</code></a>.</p>
-      <ul><li><a href="/downloads/nymrel-agent-0.4.1.tgz">Package artifact</a></li><li><a href="/downloads/nymrel-agent-v0.4.1-source.tar.gz">Source archive</a></li><li>Pending GitHub release: <code>https://github.com/nymrel/nymrel-agent/releases/tag/v0.4.1</code></li><li><a href="https://github.com/Nymrel/nymrel-agent">Public source repository</a></li></ul>
+      <p>The v0.5.0 candidate package and MIT-licensed source archive are prepared for independent review. The <a href="/downloads/v0.5.0.json">release manifest</a> records byte sizes, SHA-256 digests, and the candidate source commit. Verify downloaded assets against the manifest. GitHub Release publication and production promotion remain pending; npm publication remains a separate gate. The hosted service reports its actual active version and source identity through <a href="/healthz"><code>/healthz</code></a>.</p>
+      <ul><li><a href="/downloads/nymrel-agent-0.5.0.tgz">Package artifact</a></li><li><a href="/downloads/nymrel-agent-v0.5.0-source.tar.gz">Source archive</a></li><li>Pending GitHub release: <code>https://github.com/nymrel/nymrel-agent/releases/tag/v0.5.0</code></li><li><a href="https://github.com/Nymrel/nymrel-agent">Public source repository</a></li></ul>
+
+      <h2 id="library">Embed the routing library</h2>
+      <p>The v0.5.0 package adds <code>@nymrel/agent/router</code>: the existing routing functions and TypeScript contracts in a browser-compatible module graph. Your application supplies model metadata, keeps its own provider SDK and credentials, and retains execution authority. The package still installs its declared dependencies; this is an isolated import path, not a separate zero-dependency distribution.</p>
+      <pre><code>import { routeV2 } from '@nymrel/agent/router';
+const plan = routeV2(requestMetadata, modelCatalog);
+if (plan.selectedModelId === null) {
+  // Stop: no catalog entry met the supplied constraints.
+}</code></pre>
+      <p>Use the packaged <code>docs/ROUTER_LIBRARY.md</code> guide for the Node orchestration example and module-worker integration. Installed synthetic Node and Chromium consumers prove integration compatibility, not third-party adoption. Model facts remain caller-supplied evidence.</p>
 
       <h2 id="cli">CLI</h2>
-      <p>Until npm registry publishing is separately approved, install the versioned package directly:</p>
-      <pre><code>npm install https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.4.1.tgz
+      <p>After publication, download the versioned package and manifest, verify its SHA-256 and byte count, and install the verified local file. npm registry publishing remains separate:</p>
+      <pre><code>npm install --ignore-scripts ./nymrel-agent-0.5.0.tgz
 npx nymrel-agent contract</code></pre>
       <p>The CLI reads locally by default and writes the result as JSON to stdout. Use <code>--endpoint https://nymrel-agent.vercel.app</code> to call the hosted router. No prompt is sent because route payloads contain metadata only.</p>
       <h3>Job Mode and Lifecycle</h3>

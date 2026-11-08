@@ -11,11 +11,11 @@
 - API discovery: https://nymrel-agent.vercel.app/v1
 - API discovery v2: https://nymrel-agent.vercel.app/v2
 - Health: https://nymrel-agent.vercel.app/healthz
-- Release manifest: https://nymrel-agent.vercel.app/downloads/v0.4.1.json
-- Source archive: https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.4.1-source.tar.gz
-- Package artifact: https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.4.1.tgz
+- Release manifest: https://nymrel-agent.vercel.app/downloads/v0.5.0.json
+- Source archive: https://nymrel-agent.vercel.app/downloads/nymrel-agent-v0.5.0-source.tar.gz
+- Package artifact: https://nymrel-agent.vercel.app/downloads/nymrel-agent-0.5.0.tgz
 - Public source repository: https://github.com/Nymrel/nymrel-agent
-- Release status: v0.4.1 is a local candidate with reproducible artifacts, pending independent source/carrier review; npm publication, GitHub Release, deployment, and promotion are not claimed.
+- Release status: v0.5.0 is a local candidate with reproducible artifacts, pending independent source/carrier review; npm publication, GitHub Release, deployment, and promotion are not claimed.
 - Company: https://nymrel.com/
 - Feedback and service brief: https://nymrel.com/brief?utm_source=nymrel-agent&utm_medium=llms-txt&utm_campaign=nymrel-agent-first-user
 
@@ -24,6 +24,10 @@
 POST /v1/route accepts exactly `request` and `models`. It filters models by health, risk class, data boundary, tool use, structured output, context size, modality, cost, and latency. Eligible models are ranked under `balanced`, `quality`, `cost`, or `latency` objectives. An explicit cost or latency ceiling anchors its matching score component, preventing unrelated catalog changes from changing that component; an omitted ceiling uses eligible-set normalization. Without changing the closed v1 response shape, responses disclose normalization modes in `decisionCodes` and numeric bounds in `explanation`, alongside the selection, ranked candidates, rejected candidates, score components, and a request ID.
 
 POST /v2/route is an explicit separate contract. Its request includes `normalization` with `basis: request_budget` and positive cost and latency anchors. It filters eligibility, computes a sorted Pareto frontier with quality/reliability/health higher-is-better and cost/latency lower-is-better, then selects only from that frontier using deterministic weighted scores. An incumbent can break an exact frontier score tie only; it has no score bonus. v2 responses include `normalization` and `paretoFrontierModelIds`.
+
+## Embedded routing library
+
+Version 0.5.0 adds `@nymrel/agent/router` for Node orchestrators and browser module workers. It re-exports the canonical routing functions, contract versions and input/output types. This import graph has no Node-only or provider SDK imports; the full package still installs its declared dependencies. The caller retains model SDKs, task content, credentials, retries and execution authority. The packaged `docs/ROUTER_LIBRARY.md` guide covers verified artifact installation and exact-source builds. Candidate preparation and synthetic integration tests do not establish release publication or independent adoption.
 
 ## Important boundaries
 

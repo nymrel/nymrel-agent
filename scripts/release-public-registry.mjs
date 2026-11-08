@@ -7,7 +7,7 @@
  */
 export const CANONICAL_ORIGIN = "https://github.com/Nymrel/nymrel-agent.git";
 export const LEGACY_MIRROR_ORIGIN = "https://github.com/JalenBuildsHub/nymrel-agent.git";
-export const ACTIVE_RELEASE_VERSION = "0.4.1";
+export const ACTIVE_RELEASE_VERSION = "0.5.0";
 
 const releaseArtifacts = (version) => [
   `public/downloads/nymrel-agent-${version}.tgz`,
@@ -24,6 +24,7 @@ export const RELEASE_ARCHIVE_FILES = Object.freeze([
   ...releaseArtifacts("0.3.0"),
   ...releaseArtifacts("0.3.1"),
   ...releaseArtifacts("0.4.0"),
+  ...releaseArtifacts("0.4.1"),
   ...releaseArtifacts(ACTIVE_RELEASE_VERSION),
 ]);
 
