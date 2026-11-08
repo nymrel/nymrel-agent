@@ -49,9 +49,17 @@ and preserve its origin/toolchain checks. Run:
 
 ```text
 corepack npm@11.19.1 ci
-corepack npm@11.19.1 run verify
+corepack npm@11.19.1 run typecheck
+corepack npm@11.19.1 test
+corepack npm@11.19.1 run verify:candidate
+corepack npm@11.19.1 run verify:candidate-packed-install
 corepack npm@11.19.1 pack --ignore-scripts --pack-destination /path/to/new-artifacts
 ```
+
+The complete `npm run verify` release gate runs from the later canonical carrier
+checkout with Git history and its reviewed versioned downloads. Release-source
+commits precede that artifact carrier, and source archives exclude downloads;
+the source-only commands above are not a release-verification receipt.
 
 Keep the tarball's SHA-256 and full source revision. In a separate application
 directory, install that exact tarball rather than a registry version:
