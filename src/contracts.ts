@@ -6,7 +6,7 @@ export const JOB_CHECKPOINT_INPUT_CONTRACT_VERSION = "nymrel.agent.job.checkpoin
 export const JOB_CHECKPOINT_RECEIPT_CONTRACT_VERSION = "nymrel.agent.job.checkpoint-receipt/v1" as const;
 export const JOB_TERMINAL_INPUT_CONTRACT_VERSION = "nymrel.agent.job.terminal-input/v1" as const;
 export const JOB_TERMINAL_RECEIPT_CONTRACT_VERSION = "nymrel.agent.job.terminal-receipt/v1" as const;
-export const PRODUCT_VERSION = "0.4.0" as const;
+export const PRODUCT_VERSION = "0.4.1" as const;
 
 export type TaskPhase = "research" | "plan" | "implement" | "review";
 export type RiskClass = "read" | "workspace_write" | "external_side_effect";

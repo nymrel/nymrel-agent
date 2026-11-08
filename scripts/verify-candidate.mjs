@@ -10,7 +10,7 @@ const read = (relative) => readFileSync(path.join(root, relative), "utf8");
 const packageJson = JSON.parse(read("package.json"));
 const packageLock = JSON.parse(read("package-lock.json"));
 
-assert.equal(packageJson.version, "0.4.0");
+assert.equal(packageJson.version, "0.4.1");
 assert.equal(packageLock.version, packageJson.version);
 assert.equal(packageLock.packages?.[""]?.version, packageJson.version);
 assert.ok(packageJson.files.includes("docs/JOB_MODE.md"));

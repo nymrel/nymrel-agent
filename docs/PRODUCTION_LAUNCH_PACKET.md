@@ -1,14 +1,25 @@
 # Nymrel Agent production launch packet
 
-Status: v0.4.0 is live and current at `https://nymrel-agent.vercel.app`; the exact GitHub release, staged deployment, promotion, production alias, and rollback target are independently verified. npm publication remains outside this release.
+Status: v0.4.1 is a local source/carrier candidate. Local candidate only; independent source/carrier acceptance, GitHub Release publication, staging, and production promotion are pending. The recorded v0.4.0 production receipt below remains historical evidence, not a fresh runtime observation.
 
-Owner: Codex Job Lifecycle v0.4 release-carrier preparation lane
+Preparation scope: local v0.4.1 source and release-carrier candidate
 
-Target release: `0.4.0`
+Target release: `0.4.1`
 
 Public contracts: `nymrel.agent.route/v1` and opt-in `nymrel.agent.route/v2`
 
-Source branch: `codex/nymrel-agent-job-lifecycle-v040-20260828`
+Source branch: `release/v0.4.1-prep` (local candidate only)
+
+## v0.4.1 local candidate preparation — 2026-11-08
+
+- Candidate version `0.4.1`; release source: `91c105cacf41322ee9a85b49b2f35c1b444c685a`. This source includes the merged demo-recovery/provider-redirect patch from PR #13 plus version surfaces, changelog and regression expectations.
+- Package `nymrel-agent-0.4.1.tgz`: 67,526 bytes; SHA-256 `57403e1ff9a5a0a91bc678f78acba08a5f28a5c9ec2c7be6bc9713af77782f1b`.
+- Source `nymrel-agent-v0.4.1-source.tar.gz`: 210,397 bytes; SHA-256 `38ed20b3e76e4cc6eb9d1d0729f547d78c1d72f9897b86ce2bc0ca11607b331a`. It is the canonical LF Git archive of that exact source and excludes hosted release artifacts.
+- Manifest `v0.4.1.json`: 571 bytes; SHA-256 `142a5d22a00369f3a9c7e417c8577c3ac6926971d37acce18fed13a550354987`.
+- The v0.4.0 package, source and manifest remain byte-for-byte unchanged and continue to be inventoried as historical release files. No existing tag, artifact or published history is rewritten.
+- Local gates on Node 24.22.1/npm 11.19.1: strict typechecks, 111 tests, release/candidate verification, canonical packed CLI/MCP consumer, audit (zero vulnerabilities), package dry-run and Cloudflare deployment dry-run passed before source-metadata rebinding. Exact-source archive and carrier checks are repeated after rebinding. Hosted CI and independent source/carrier acceptance remain pending.
+- The generated carrier must be separately reviewed at its exact immutable commit. This preparation is not an independent source verdict or a provider/deployment receipt. The authenticated canonical main, staged runtime SHA, uploaded-byte inventory, route/static matrix, browser journeys and rollback target must still pass the existing pre-promotion process.
+- No GitHub Release, tag, npm publication, deployment, promotion, alias, credentials, billing, account, DNS or customer-data change is claimed by this local preparation.
 
 ## v0.4.0 public release and production receipt — 2026-08-28
 

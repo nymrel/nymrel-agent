@@ -31,6 +31,7 @@ const required = [
   "public/downloads/nymrel-agent-0.3.0.tgz", "public/downloads/nymrel-agent-v0.3.0-source.tar.gz", "public/downloads/v0.3.0.json",
   "public/downloads/nymrel-agent-0.3.1.tgz", "public/downloads/nymrel-agent-v0.3.1-source.tar.gz", "public/downloads/v0.3.1.json",
   "public/downloads/nymrel-agent-0.4.0.tgz", "public/downloads/nymrel-agent-v0.4.0-source.tar.gz", "public/downloads/v0.4.0.json",
+  "public/downloads/nymrel-agent-0.4.1.tgz", "public/downloads/nymrel-agent-v0.4.1-source.tar.gz", "public/downloads/v0.4.1.json",
   "public/openapi.json", "public/llms.txt", "examples/route-request.json", "examples/route-request-v2.json", "public/examples/route-request-v2.json", "public/examples/job-48h-game-builder.json", "public/examples/job-48h-game-builder-summary.txt",
   "examples/openai-local-config.example.json", "examples/job-48h-game-builder.json", "docs/ONBOARDING.md", "docs/JOB_MODE.md", "docs/PRODUCTION_LAUNCH_PACKET.md", "docs/FIRST_USER_ACTIVATION.md",
   "docs/PRODUCT_SERVICE_CONTRACT.md", "docs/ARCHITECTURE.md",
@@ -121,10 +122,10 @@ assert.equal(openapi.components?.schemas?.RoutePayloadV2?.additionalProperties, 
 assert.equal(openapi.servers?.[0]?.url, packageJson.homepage);
 
 assert.deepEqual(ACTIVE_RELEASE_FILES, [
-  "public/downloads/nymrel-agent-0.4.0.tgz",
-  "public/downloads/nymrel-agent-v0.4.0-source.tar.gz",
-  "public/downloads/v0.4.0.json",
-], "active release registry must contain the full 0.4.0 artifact set");
+  "public/downloads/nymrel-agent-0.4.1.tgz",
+  "public/downloads/nymrel-agent-v0.4.1-source.tar.gz",
+  "public/downloads/v0.4.1.json",
+], "active release registry must contain the full 0.4.1 artifact set");
 assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/route-request.json"), "Vercel registry omits the v1 example");
 assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/route-request-v2.json"), "Vercel registry omits the v2 example");
 assert.ok(VERCEL_SOURCE_FILES.includes("public/examples/job-48h-game-builder.json"), "Vercel registry omits the Job Mode fixture");
@@ -135,7 +136,7 @@ for (const relative of RELEASE_ARCHIVE_FILES) assert.ok(VERCEL_SOURCE_FILES.incl
 const releaseManifest = json(`public/downloads/v${ACTIVE_RELEASE_VERSION}.json`);
 assert.equal(releaseManifest.schemaVersion, "nymrel.agent.release/v1");
 assert.equal(releaseManifest.version, packageJson.version);
-assert.equal(releaseManifest.releaseSourceCommit, "70ee9e915a2f51e81a713b0b1eb2451b7d236bc1");
+assert.equal(releaseManifest.releaseSourceCommit, "91c105cacf41322ee9a85b49b2f35c1b444c685a");
 assert.equal(releaseManifest.license, packageJson.license);
 for (const [kind, filename] of [
   ["package", `nymrel-agent-${ACTIVE_RELEASE_VERSION}.tgz`],
@@ -148,6 +149,14 @@ for (const [kind, filename] of [
 }
 
 for (const historical of [
+  {
+    version: "0.4.0",
+    sourceCommit: "70ee9e915a2f51e81a713b0b1eb2451b7d236bc1",
+    artifacts: {
+      package: { filename: "nymrel-agent-0.4.0.tgz", bytes: 66813, sha256: "25c3c377986564afefe39ce039a8171401eaef71a0f4965fd5b0c423972bf6ae" },
+      source: { filename: "nymrel-agent-v0.4.0-source.tar.gz", bytes: 201276, sha256: "77a1e034b3c209db79442daaf4ead30adc782358d064e6f635c540fe64110fa4" },
+    },
+  },
   {
     version: "0.3.1",
     sourceCommit: "efcc9482ed0a7add39e2f7946564d5aa1f9d57f0",
@@ -298,12 +307,13 @@ for (const publicDocument of [indexHtml, docsHtml, llmsText]) {
   assert.equal(publicDocument.includes("github.com/JalenBuildsHub/nymrel-agent"), false, "public launch document links to the suspended personal-account mirror");
 }
 const publicLaunchDocuments = `${indexHtml}\n${docsHtml}\n${llmsText}`;
-assert.ok(docsHtml.includes("https://github.com/nymrel/nymrel-agent/releases/tag/v0.4.0"), "public docs must link the public active GitHub Release");
-assert.ok(docsHtml.includes("published assets match those values exactly"), "public docs must retain the active GitHub asset-integrity statement");
-for (const filename of ["nymrel-agent-0.4.0.tgz", "nymrel-agent-v0.4.0-source.tar.gz", "v0.4.0.json"]) {
+assert.ok(docsHtml.includes("https://github.com/nymrel/nymrel-agent/releases/tag/v0.4.1"), "public docs must identify the exact candidate GitHub Release target");
+assert.ok(docsHtml.includes("Verify downloaded assets against the manifest."), "public docs must require exact artifact-integrity checks");
+assert.ok(docsHtml.includes("GitHub Release publication and production promotion remain pending"), "candidate docs must not fabricate release or deployment acceptance");
+for (const filename of ["nymrel-agent-0.4.1.tgz", "nymrel-agent-v0.4.1-source.tar.gz", "v0.4.1.json"]) {
   assert.ok(publicLaunchDocuments.includes(`/downloads/${filename}`), `public launch documents omit active artifact ${filename}`);
 }
-for (const filename of ["nymrel-agent-0.3.1.tgz", "nymrel-agent-v0.3.1-source.tar.gz", "v0.3.1.json"]) {
+for (const filename of ["nymrel-agent-0.4.0.tgz", "nymrel-agent-v0.4.0-source.tar.gz", "v0.4.0.json"]) {
   assert.equal(publicLaunchDocuments.includes(`/downloads/${filename}`), false, `public launch documents still advertise historical artifact ${filename}`);
 }
 const structuredData = indexHtml.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
@@ -457,7 +467,9 @@ for (const requiredLaunchHold of [
   "Do not use `--yes`, `Force Promote`",
   "releaseSourceCommit",
   "deploymentSourceCommit",
-  "version `0.4.0`",
+  "version `0.4.1`",
+  "Local candidate only; independent source/carrier acceptance, GitHub Release publication, staging, and production promotion are pending.",
+  "91c105cacf41322ee9a85b49b2f35c1b444c685a",
   "| GET | `/v1` | 200 JSON; unchanged contract `nymrel.agent.route/v1`",
   "| GET | `/v2` | 200 JSON; contract `nymrel.agent.route/v2`",
   "| GET | `/v2/openapi.json` | 200 JSON; OpenAPI `3.1.0` |",
