@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createServer } from "node:http";
+import { once } from "node:events";
 import type { ModelProfile, ProviderRunEvent } from "../src/contracts.js";
 import { OpenAIResponsesProvider } from "../src/openai-responses-provider.js";
 
@@ -106,4 +108,44 @@ test("OpenAI adapter rejects capabilities it does not execute", () => {
   assert.throws(() => new OpenAIResponsesProvider({ ...profile, capabilities: { ...profile.capabilities, toolUse: true } }, { apiKey: "credential-value" }), /does not execute tools/);
   assert.throws(() => new OpenAIResponsesProvider({ ...profile, capabilities: { ...profile.capabilities, structuredOutput: true } }, { apiKey: "credential-value" }), /does not enforce structured output/);
   assert.throws(() => new OpenAIResponsesProvider({ ...profile, capabilities: { ...profile.capabilities, modalities: ["text", "image"] } }, { apiKey: "credential-value" }), /accepts text only/);
+});
+
+test("OpenAI adapter does not forward task bodies through 307 or 308 redirects", async () => {
+  let forwarded = 0;
+  const destination = createServer((_request, response) => {
+    forwarded++;
+    response.end(JSON.stringify({ status: "completed", output_text: "redirected" }));
+  });
+  destination.listen(0, "127.0.0.1");
+  await once(destination, "listening");
+  const address = destination.address();
+  assert.ok(address && typeof address === "object");
+  try {
+    for (const statusCode of [307, 308]) {
+      const origin = createServer((_request, response) => {
+        response.writeHead(statusCode, { Location: `http://127.0.0.1:${address.port}/responses` });
+        response.end();
+      });
+      origin.listen(0, "127.0.0.1");
+      await once(origin, "listening");
+      const originAddress = origin.address();
+      assert.ok(originAddress && typeof originAddress === "object");
+      try {
+        const provider = new OpenAIResponsesProvider({
+          ...profile, dataBoundaries: ["local_only"],
+        }, {
+          apiKey: "synthetic-test-key",
+          baseUrl: `http://127.0.0.1:${originAddress.port}/v1`,
+        });
+        await assert.rejects(() => collect(provider));
+        assert.equal(forwarded, 0);
+      } finally {
+        origin.closeAllConnections();
+        await new Promise<void>((resolve, reject) => origin.close((error) => error ? reject(error) : resolve()));
+      }
+    }
+  } finally {
+    destination.closeAllConnections();
+    await new Promise<void>((resolve, reject) => destination.close((error) => error ? reject(error) : resolve()));
+  }
 });
