@@ -14,6 +14,11 @@ assert.equal(packageJson.version, "0.4.1");
 assert.equal(packageLock.version, packageJson.version);
 assert.equal(packageLock.packages?.[""]?.version, packageJson.version);
 assert.ok(packageJson.files.includes("docs/JOB_MODE.md"));
+assert.ok(packageJson.files.includes("docs/ROUTER_LIBRARY.md"));
+assert.deepEqual(packageJson.exports?.["./router"], {
+  types: "./dist/src/router-entry.d.ts",
+  import: "./dist/src/router-entry.js",
+});
 const ignored = read(".vercelignore").split(/\r?\n/);
 for (const localOnly of ["src/job.ts", "src/lifecycle.ts", "src/mcp.ts", "src/receipt.ts"]) assert.ok(ignored.includes(localOnly), `${localOnly} must remain outside the Vercel source bundle`);
 const worker = read("src/worker.ts");

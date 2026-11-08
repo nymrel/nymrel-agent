@@ -5,10 +5,13 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { verifyRouterWorkerConsumer } from "./verify-router-browser.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const candidateMode = process.argv.slice(2).includes("--candidate");
-assert.deepEqual(process.argv.slice(2).filter((value) => value !== "--candidate"), [], "unsupported packed-install verifier option");
+const browserMode = process.argv.slice(2).includes("--browser");
+assert.deepEqual(process.argv.slice(2).filter((value) => !["--candidate", "--browser"].includes(value)), [], "unsupported packed-install verifier option");
+assert.ok(!browserMode || candidateMode, "native browser verification requires an explicit source candidate");
 const temporaryRoot = mkdtempSync(path.join(tmpdir(), "nymrel-agent-packed-"));
 const installRoot = path.join(temporaryRoot, "install");
 const installedPackageRoot = path.join(installRoot, "node_modules", "@nymrel", "agent");
@@ -23,7 +26,7 @@ function run(command, args, options = {}) {
     encoding: "utf8",
     env: process.env,
   });
-  assert.equal(result.status, 0, `${command} ${args.join(" ")} failed:\n${result.stderr || result.stdout}`);
+  assert.equal(result.status, options.expectedStatus ?? 0, `${command} ${args.join(" ")} failed:\n${result.stderr || result.stdout}`);
   return result.stdout;
 }
 
@@ -124,10 +127,10 @@ try {
   assert.equal(packed.length, 1);
   const tarball = path.join(temporaryRoot, packed[0].filename);
   const generatedBytes = readFileSync(tarball);
+  const generatedSha256 = createHash("sha256").update(generatedBytes).digest("hex");
   if (!candidateMode) {
     const canonicalBytes = readFileSync(path.join(root, "public", "downloads", "nymrel-agent-0.4.1.tgz"));
     const releaseManifest = JSON.parse(readFileSync(path.join(root, "public", "downloads", "v0.4.1.json"), "utf8"));
-    const generatedSha256 = createHash("sha256").update(generatedBytes).digest("hex");
     assert.equal(generatedBytes.length, releaseManifest.package.bytes, "generated package byte count drifted from the canonical release manifest");
     assert.equal(generatedSha256, releaseManifest.package.sha256, "generated package digest drifted from the canonical release manifest");
     assert.deepEqual(generatedBytes, canonicalBytes, "generated package bytes drifted from the canonical hosted artifact");
@@ -141,6 +144,58 @@ try {
   const installedReadme = readFileSync(path.join(installedPackageRoot, "README.md"), "utf8");
   assert.match(installedReadme, /\(docs\/JOB_MODE\.md\)/, "packed README must link to the packaged Job Mode guide");
   assert.match(readFileSync(path.join(installedPackageRoot, "docs", "JOB_MODE.md"), "utf8"), /Job Mode \(local plan only\)/);
+
+  if (candidateMode) {
+    assert.match(installedReadme, /\(docs\/ROUTER_LIBRARY\.md\)/, "library consumer guide must be packaged");
+    assert.match(readFileSync(path.join(installedPackageRoot, "docs", "ROUTER_LIBRARY.md"), "utf8"), /unreleased source addition/);
+    const nodeConsumer = path.join(installRoot, "router-node-consumer.mjs");
+    writeFileSync(nodeConsumer, readFileSync(path.join(installedPackageRoot, "examples", "router-node-consumer.mjs")));
+    const fixturePath = path.join(installedPackageRoot, "examples", "route-request-v2.json");
+    const fixture = JSON.parse(readFileSync(fixturePath, "utf8"));
+    const selected = JSON.parse(run(process.execPath, [nodeConsumer, fixturePath], { cwd: installRoot }));
+    assert.equal(selected.status, "selected");
+    assert.equal(selected.plan.contractVersion, "nymrel.agent.route/v2");
+    assert.equal(selected.plan.selectedModelId, "provider-b/fast");
+    const reversedPath = path.join(installRoot, "reversed.json");
+    writeFileSync(reversedPath, JSON.stringify({ ...fixture, models: [...fixture.models].reverse() }));
+    assert.deepEqual(JSON.parse(run(process.execPath, [nodeConsumer, reversedPath], { cwd: installRoot })), selected);
+    const blockedPath = path.join(installRoot, "blocked.json");
+    writeFileSync(blockedPath, JSON.stringify({ ...fixture, models: fixture.models.map((model) => ({ ...model, health: "unavailable" })) }));
+    const blocked = JSON.parse(run(process.execPath, [nodeConsumer, blockedPath], { cwd: installRoot, expectedStatus: 2 }));
+    assert.equal(blocked.status, "blocked");
+    assert.equal(blocked.plan.selectedModelId, null);
+    assert.equal(blocked.plan.eligible.length, 0);
+
+    // A downstream worker can consume the public declarations without ambient Node types.
+    writeFileSync(path.join(installRoot, "package.json"), JSON.stringify({ private: true, type: "module" }));
+    writeFileSync(path.join(installRoot, "router-worker.ts"), `
+      import { routeV2, CONTRACT_VERSION_V2, type ModelProfile, type RouteRequestV2,
+        type RoutePlanV2 } from '@nymrel/agent/router';
+      const metadata = ${JSON.stringify(fixture)} as const satisfies {
+        request: RouteRequestV2; models: readonly ModelProfile[];
+      };
+      const plan: RoutePlanV2 = routeV2(metadata.request, metadata.models);
+      const contract: typeof CONTRACT_VERSION_V2 = plan.contractVersion;
+      self.onmessage = (event: MessageEvent<{request: RouteRequestV2; models: ModelProfile[]}>) => {
+        self.postMessage(routeV2(event.data.request, event.data.models));
+      };
+      // @ts-expect-error This worker deliberately has no Node ambient globals.
+      type NoNodeProcess = typeof process;
+      void contract;
+    `);
+    writeFileSync(path.join(installRoot, "tsconfig.json"), JSON.stringify({
+      compilerOptions: { target: "ES2022", module: "NodeNext", moduleResolution: "NodeNext",
+        strict: true, noEmit: true, types: [], lib: ["ES2022", "WebWorker"] },
+      files: ["router-worker.ts"],
+    }));
+    run(process.execPath, [path.join(root, "node_modules", "typescript", "bin", "tsc"), "--project", path.join(installRoot, "tsconfig.json")], { cwd: installRoot });
+    const workerProof = await verifyRouterWorkerConsumer(installRoot, { browser: browserMode });
+    process.stdout.write(JSON.stringify({ kind: "synthetic-installed-router-consumers", sourceRevision: run("git", ["rev-parse", "HEAD"]).trim(),
+      sourceDirty: run("git", ["status", "--porcelain"]).trim() !== "",
+      tarballSha256: generatedSha256, tarballBytes: generatedBytes.length,
+      nodeConsumerChecks: 3, workerTypes: "PASS; WebWorker lib with no Node ambient types", worker: workerProof,
+      providerCalls: 0, externalAdoption: "not measured" }) + "\n");
+  }
 
   const contract = JSON.parse(run(process.execPath, [binEntrypoint("nymrel-agent"), "contract"], { cwd: installRoot }));
   assert.equal(contract.contractVersion, "nymrel.agent.route/v1");
