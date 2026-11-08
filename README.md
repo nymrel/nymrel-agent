@@ -58,7 +58,7 @@ The selected objective changes explicit weights. Explicit cost and latency ceili
 
 The opt-in v2 contract leaves v1 unchanged. Its required `normalization` object uses `basis: "request_budget"` plus positive cost and latency anchors. v2 normalizes cost and latency against those request anchors, returns a sorted `paretoFrontierModelIds` list, and selects only from that frontier. An incumbent can resolve an exact weighted-score tie inside the frontier; it never receives a score bonus.
 
-## Embed routing in your application — unreleased source addition
+## Embed routing in your application
 
 The `@nymrel/agent/router` subpath exposes the existing v1/v2 routing functions
 and their TypeScript contracts without importing the CLI, MCP server, provider
@@ -82,8 +82,10 @@ Node-only APIs and makes no provider/network call. The package still contains
 the other entry points and their declared dependencies; the subpath isolates the
 module graph rather than creating a separate dependency-free distribution.
 
-This capability is not in the immutable v0.4.1 download. Build and install the
-exact reviewed candidate tarball using the [library consumer guide](docs/ROUTER_LIBRARY.md).
+The library entry point first appears in version 0.5.0; immutable 0.4.x downloads
+do not include it. See the [library consumer guide](docs/ROUTER_LIBRARY.md) for
+verified versioned-artifact installation and exact-source builds. npm publication
+remains separate from a GitHub release.
 The existing routing contracts and public endpoints are unchanged.
 
 ## CLI

@@ -2,9 +2,9 @@
 
 All notable product changes are documented here.
 
-## Unreleased
+## 0.5.0 — 2026-11-08
 
-- Expose the existing routing contracts through `@nymrel/agent/router`, with public input/output types and a platform-independent module graph. Installed Node and worker consumers verify the same canonical decisions without adopting the hosted service or execution runtime. This source addition is not in the immutable v0.4.1 downloads.
+- Expose the existing routing contracts through `@nymrel/agent/router`, with public input/output types and a platform-independent module graph. Installed Node and worker consumers verify the same canonical decisions without adopting the hosted service or execution runtime. The existing v1/v2 routing contracts are unchanged; earlier versioned downloads do not include this library entry point.
 
 ## 0.4.1 — 2026-11-08
 
