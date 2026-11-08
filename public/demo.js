@@ -20,7 +20,9 @@ if (demo instanceof HTMLElement) {
     };
 
     let running = false;
+    let hasResult = false;
     const setRunning = (value) => {
+      demo.setAttribute("aria-busy", value ? "true" : "false");
       for (const control of runControls) {
         control.setAttribute("aria-busy", value ? "true" : "false");
         if (control instanceof HTMLButtonElement) control.disabled = value;
@@ -39,9 +41,12 @@ if (demo instanceof HTMLElement) {
       copyButton.hidden = true;
       feedbackLink.hidden = true;
       setState("loading", "Loading the public example and routing it now.");
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15_000);
 
       try {
         const exampleResponse = await fetch("/examples/route-request-v2.json", {
+          signal: controller.signal,
           cache: "no-store",
           headers: { Accept: "application/json" },
         });
@@ -49,6 +54,7 @@ if (demo instanceof HTMLElement) {
 
         const payload = await exampleResponse.json();
         const routeResponse = await fetch("/v2/route", {
+          signal: controller.signal,
           method: "POST",
           headers: {
             Accept: "application/json",
@@ -112,16 +118,23 @@ if (demo instanceof HTMLElement) {
           decisionCodes: result.plan.decisionCodes,
         };
         output.textContent = JSON.stringify(visibleResult, null, 2);
+        hasResult = true;
         copyButton.hidden = false;
         feedbackLink.hidden = false;
         setState("success", `Selected ${result.plan.selectedModelId ?? "no eligible model"} from ${result.plan.eligible.length} eligible models; ${result.plan.rejected.length} rejected. This response came from the live router.`);
       } catch {
-        output.textContent = JSON.stringify({
-          ok: false,
-          error: "The live example could not complete. The API and CLI quickstarts remain available in the docs.",
-        }, null, 2);
-        setState("error", "The live example did not complete. Try again or use the documented curl request.");
+        if (!hasResult) {
+          output.textContent = JSON.stringify({
+            ok: false,
+            error: "The live example could not complete. The API and CLI quickstarts remain available in the docs.",
+          }, null, 2);
+        }
+        copyButton.hidden = !hasResult;
+        feedbackLink.hidden = !hasResult;
+        const failure = controller.signal.aborted ? "The live example timed out." : "The live example did not complete.";
+        setState("error", `${failure}${hasResult ? " Your previous result is still shown." : ""} Try again or use the documented curl request.`);
       } finally {
+        clearTimeout(timeout);
         running = false;
         setRunning(false);
       }
@@ -132,7 +145,7 @@ if (demo instanceof HTMLElement) {
     copyButton.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(output.textContent ?? "");
-        setState("success", "Copied the live routing result.");
+        setState("success", "Copied the displayed routing result.");
       } catch {
         setState("error", "Copy was unavailable. Select the result text instead.");
       }
