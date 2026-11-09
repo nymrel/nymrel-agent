@@ -2,6 +2,10 @@
 
 All notable product changes are documented here.
 
+## Unreleased
+
+- Add an opt-in local routing summary showing canonical selection, scores and rejection reasons with bounded candidate output. A blocked summary exits `2`; existing JSON output and exit behavior remain unchanged. The new CLI option is absent from the committed 0.5.0 candidate archives.
+
 ## 0.5.0 — 2026-11-08
 
 - Expose the existing routing contracts through `@nymrel/agent/router`, with public input/output types and a platform-independent module graph. Installed Node and worker consumers verify the same canonical decisions without adopting the hosted service or execution runtime. The existing v1/v2 routing contracts are unchanged; earlier versioned downloads do not include this library entry point.

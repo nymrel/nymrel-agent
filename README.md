@@ -92,6 +92,7 @@ The existing routing contracts and public endpoints are unchanged.
 
 ```text
 nymrel-agent route --file PAYLOAD.json [--contract-version v2] [--endpoint https://host]
+nymrel-agent route --file PAYLOAD.json --contract-version v2 --format summary
 nymrel-agent job plan --file MANIFEST.json
 nymrel-agent job plan --file MANIFEST.json --format summary
 nymrel-agent job lifecycle init --file MANIFEST.json [--at RFC3339_UTC]
@@ -104,6 +105,17 @@ nymrel-agent demo
 ```
 
 Local routing is the default. `--endpoint` sends the metadata-only payload to a hosted router.
+
+The local `route --format summary` view is an **unreleased source addition** after
+the committed 0.5.0 candidate archives. Build the current reviewed source to try
+it; the existing versioned tarball does not contain this option. It shows the
+selected model, eligibility counts, canonical scores and rejection codes, with
+at most eight eligible and eight rejected candidates. A blocked summary exits
+`2`; a selected summary exits `0`. JSON remains the default (also available as
+`--format json`) and preserves its existing output and exit behavior, including
+exit `0` for a valid blocked plan. Summary mode is local-only and refuses
+`--endpoint` before reading input or making a network call. See the
+[consumer guide](docs/ROUTER_LIBRARY.md#inspect-a-local-plan) for an example.
 
 `job lifecycle` is local-only and reads JSON files only; it prints the next state envelope to stdout rather than writing state. The state has a canonical SHA-256 integrity hash and checkpoint chain. Those hashes support correlation and tamper detection, not confidentiality or freshness; retain the newest state envelope and keep it private.
 

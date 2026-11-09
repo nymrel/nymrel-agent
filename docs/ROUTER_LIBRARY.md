@@ -85,6 +85,47 @@ explanation, and exits `2` for a blocked plan. It invokes no provider. Replace
 the sample catalog with evidence you control before applying the result to a
 real workflow.
 
+## Inspect a local plan
+
+The following CLI view is an **unreleased source addition** after the committed
+0.5.0 candidate tarball. Use a tarball built from the current reviewed source;
+the earlier versioned download does not contain `--format summary`.
+
+From the separate application directory after installing that local tarball:
+
+```text
+node node_modules/@nymrel/agent/dist/src/bin/nymrel-agent.js route --contract-version v2 --file node_modules/@nymrel/agent/examples/route-request-v2.json --format summary
+```
+
+The first lines identify the decision without requiring a JSON viewer:
+
+```text
+Nymrel Agent routing · SELECTED
+Metadata only. No provider call or execution authorization.
+Contract: nymrel.agent.route/v2 · objective: balanced
+Selected: provider-b/fast (provider: provider-b)
+Models: 3 · eligible: 2 · rejected: 1
+Pareto frontier: 2 model(s); selection uses only that frontier.
+```
+
+The remaining lines show canonical eligible scores and rejected reason codes.
+At most eight entries from each group are displayed; omission counts point you
+to `--format json` for every candidate and score component. The summary never
+copies caller health descriptions or input paths into its output. Model facts
+are still caller-supplied, and scores are neither benchmarks nor directly
+comparable across different requests. Changing objectives need not change the
+selected model.
+
+If every model is rejected, the summary reports `BLOCKED`, includes rejection
+codes and exits `2`. Inspect those codes and the catalog evidence against your
+required constraints; do not treat missing eligibility as permission to execute.
+Malformed metadata stays an error (`65`), distinct from a valid blocked plan.
+JSON is still the default; `--format json` preserves its existing output and
+exit behavior, including exit `0` for a valid blocked plan. Scripts that need a
+process-level blocked signal can select summary mode or inspect JSON
+`plan.selectedModelId` explicitly. Summary mode rejects `--endpoint` before
+reading input or calling a network endpoint; use JSON for remote routing.
+
 ## Browser and worker consumer
 
 An ESM bundler can import the same entry point in a module Worker:
