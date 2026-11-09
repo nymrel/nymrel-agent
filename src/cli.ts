@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync, statSync } from "node:fs";
-import { CONTRACT_VERSION, CONTRACT_VERSION_V2, JOB_LIFECYCLE_CONTRACT_VERSION, PRODUCT_VERSION } from "./contracts.js";
+import { CONTRACT_VERSION, CONTRACT_VERSION_V2, JOB_LIFECYCLE_CONTRACT_VERSION, PRODUCT_VERSION, type ModelProfile, type RouteConstraints, type RoutePlan, type RoutePlanV2 } from "./contracts.js";
 import { createDefaultRouteRequest, createDemoRuntime } from "./defaults.js";
 import { NymrelError, publicError } from "./errors.js";
 import { createConfiguredAdapters, parseLocalAgentConfig } from "./local-config.js";
@@ -179,10 +179,46 @@ export function formatJobPlanSummary(value: unknown): string {
   return `${lines.slice(0, 40).join("\n")}\n`;
 }
 
+function formatMicroUsd(value: number): string {
+  return `${value} microUSD (USD ${Math.floor(value / 1_000_000)}.${String(value % 1_000_000).padStart(6, "0")})`;
+}
+
+function formatRouteSummary(plan: RoutePlan | RoutePlanV2, models: readonly ModelProfile[], constraints: RouteConstraints): string {
+  // Only canonical validated plan fields enter this terminal view. Identifiers
+  // are ASCII-validated, scores are finite integers, and reason codes are local.
+  const maximumCandidates = 8;
+  const selected = plan.selectedModelId !== null;
+  const profile = selected ? models.find((model) => model.modelId === plan.selectedModelId) : undefined;
+  const frontier = "paretoFrontierModelIds" in plan ? new Set(plan.paretoFrontierModelIds) : undefined;
+  const lines = [
+    `Nymrel Agent routing · ${selected ? "SELECTED" : "BLOCKED"}`,
+    "Metadata only. No provider call or execution authorization.",
+    `Contract: ${plan.contractVersion} · objective: ${plan.objective}`,
+    selected ? `Selected: ${plan.selectedModelId} (provider: ${plan.selectedProviderId})` : "Selected: none — no model meets the required constraints.",
+    ...(profile === undefined ? [] : [`Caller catalog estimate: ${formatMicroUsd(profile.estimatedCostMicroUsd)} · latency ${profile.estimatedLatencyMs} ms`]),
+    `Requested ceilings: cost ${constraints.maxCostMicroUsd === undefined ? "not set" : formatMicroUsd(constraints.maxCostMicroUsd)} · latency ${constraints.maxLatencyMs === undefined ? "not set" : `${constraints.maxLatencyMs} ms`}`,
+    `Models: ${plan.eligible.length + plan.rejected.length} · eligible: ${plan.eligible.length} · rejected: ${plan.rejected.length}`,
+    ...(frontier === undefined ? [] : [`Pareto frontier: ${frontier.size} model(s); selection uses only that frontier.`]),
+    "Eligible candidates (canonical score order):",
+    ...plan.eligible.slice(0, maximumCandidates).map((candidate, index) =>
+      `  ${index + 1}. ${candidate.modelId} · score: ${candidate.score}${candidate.modelId === plan.selectedModelId ? " · selected" : ""}${frontier?.has(candidate.modelId) ? " · frontier" : ""}`),
+    ...(plan.eligible.length === 0 ? ["  none"] : []),
+    ...(plan.eligible.length > maximumCandidates ? [`  … ${plan.eligible.length - maximumCandidates} more eligible model(s) omitted.`] : []),
+    "Rejected candidates:",
+    ...plan.rejected.slice(0, maximumCandidates).map((candidate) => `  ${candidate.modelId}: ${candidate.reasonCodes.join(", ")}`),
+    ...(plan.rejected.length === 0 ? ["  none"] : []),
+    ...(plan.rejected.length > maximumCandidates ? [`  … ${plan.rejected.length - maximumCandidates} more rejected model(s) omitted.`] : []),
+    ...(selected ? [] : ["Next: inspect the rejection codes and catalog evidence against your required constraints."]),
+    "Model facts are caller-supplied; scores are not benchmarks or cross-request comparisons.",
+    "Use --format json for every candidate, decision code and score component.",
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
 function help(): void {
   process.stdout.write(`Nymrel Agent ${PRODUCT_VERSION}\n\n` +
     "Usage:\n" +
-    "  nymrel-agent route --file PAYLOAD.json [--contract-version v2] [--endpoint https://host]\n" +
+    "  nymrel-agent route --file PAYLOAD.json [--contract-version v2] [--format json|summary] [--endpoint https://host]\n" +
     "  nymrel-agent job plan --file MANIFEST.json [--format summary]\n" +
     "  nymrel-agent job lifecycle init --file MANIFEST.json [--at RFC3339_UTC]\n" +
     "  nymrel-agent job lifecycle checkpoint --state-file STATE.json --file CHECKPOINT.json\n" +
@@ -211,15 +247,22 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
     return result.receipt.status === "completed" ? 0 : 2;
   }
   if (command === "route") {
-    validateOptions(args, 1, ["--file", "--endpoint", "--contract-version"]);
+    validateOptions(args, 1, ["--file", "--endpoint", "--contract-version", "--format"]);
     const contractVersion = routeContractVersion(args);
+    const format = flagValue(args, "--format");
+    if (format !== undefined && format !== "json" && format !== "summary") throw new NymrelError("usage_error", "--format must be json or summary.", 64);
+    const endpoint = flagValue(args, "--endpoint");
+    if (format === "summary" && endpoint !== undefined) throw new NymrelError("usage_error", "Routing summaries are local only. Omit --endpoint, or use --format json.", 64);
     const payloadValue = parseJson(readText(requireFlag(args, "--file")), "The route payload");
     const payload = contractVersion === "v1" ? parsePublicRoutePayload(payloadValue) : parsePublicRoutePayloadV2(payloadValue);
-    const endpoint = flagValue(args, "--endpoint");
     if (endpoint !== undefined) return remoteRoute(endpoint, payload, contractVersion);
     const plan = contractVersion === "v1"
       ? route(payload.request, payload.models)
       : routeV2(payload.request, payload.models);
+    if (format === "summary") {
+      process.stdout.write(formatRouteSummary(plan, payload.models, payload.request.constraints));
+      return plan.selectedModelId === null ? 2 : 0;
+    }
     printJson({ ok: true, requestId: "local", plan });
     return 0;
   }

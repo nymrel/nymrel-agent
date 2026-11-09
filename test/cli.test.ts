@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { boundedResponseBody } from "../src/cli.js";
+import { boundedResponseBody, main } from "../src/cli.js";
 import { isLoopbackHostname } from "../src/url-security.js";
 
 const cli = path.join(process.cwd(), "dist", "src", "bin", "nymrel-agent.js");
@@ -33,6 +33,146 @@ test("CLI defaults to v1 and requires an explicit v2 contract version", () => {
   assert.match(defaultV1.stderr, /invalid_request/);
   const invalidVersion = runCli(["route", "--contract-version", "v3", "--file", "examples/route-request-v2.json"]);
   assert.equal(invalidVersion.status, 64);
+});
+
+test("CLI routing summaries explain canonical v1/v2 plans without changing JSON output", () => {
+  for (const version of ["v1", "v2"]) {
+    const file = version === "v1" ? "examples/route-request.json" : "examples/route-request-v2.json";
+    const args = ["route", "--contract-version", version, "--file", file];
+    const plain = runCli(args);
+    const explicitJson = runCli([...args, "--format", "json"]);
+    assert.equal(explicitJson.status, plain.status);
+    assert.equal(explicitJson.stdout, plain.stdout);
+    const plan = (JSON.parse(plain.stdout) as { plan: { selectedModelId: string; eligible: unknown[]; rejected: unknown[] } }).plan;
+    const summary = runCli([...args, "--format", "summary"]);
+    assert.equal(summary.status, 0, summary.stderr);
+    assert.match(summary.stdout, /routing · SELECTED/);
+    assert.ok(summary.stdout.includes(`Selected: ${plan.selectedModelId}`));
+    assert.ok(summary.stdout.includes(`eligible: ${plan.eligible.length} · rejected: ${plan.rejected.length}`));
+    assert.match(summary.stdout, /No provider call or execution authorization/);
+    assert.match(summary.stdout, /Caller catalog estimate: 12000 microUSD \(USD 0\.012000\) · latency 900 ms/);
+    assert.match(summary.stdout, /Requested ceilings: cost 50000 microUSD \(USD 0\.050000\) · latency 10000 ms/);
+    assert.match(summary.stdout, /context_too_small/);
+    assert.ok(summary.stdout.split(/\r?\n/).filter(Boolean).length <= 32);
+    if (version === "v2") assert.match(summary.stdout, /Pareto frontier: 2 model/);
+    else assert.doesNotMatch(summary.stdout, /Pareto frontier/);
+  }
+});
+
+test("CLI routing summaries keep exact monetary units and distinguish zero from unset ceilings", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "nymrel-route-units-"));
+  try {
+    const fixture = JSON.parse(readFileSync("examples/route-request-v2.json", "utf8")) as {
+      request: { constraints: { maxCostMicroUsd?: number; maxLatencyMs?: number } };
+      models: Array<{ estimatedCostMicroUsd: number; estimatedLatencyMs: number }>;
+    };
+    fixture.models = [fixture.models[0]!];
+    fixture.request.constraints.maxCostMicroUsd = 1_000_000_000;
+    const file = path.join(directory, "units.json");
+    const args = ["route", "--file", file, "--contract-version", "v2", "--format", "summary"];
+    for (const [amount, dollars] of [[0, "0.000000"], [1, "0.000001"], [999_999, "0.999999"], [1_000_000, "1.000000"], [1_000_000_000, "1000.000000"]] as const) {
+      fixture.models[0]!.estimatedCostMicroUsd = amount;
+      fixture.models[0]!.estimatedLatencyMs = 0;
+      writeFileSync(file, JSON.stringify(fixture));
+      const summary = runCli(args);
+      assert.equal(summary.status, 0, summary.stderr);
+      assert.ok(summary.stdout.includes(`Caller catalog estimate: ${amount} microUSD (USD ${dollars}) · latency 0 ms`));
+    }
+    fixture.models[0]!.estimatedCostMicroUsd = 0;
+    fixture.request.constraints.maxCostMicroUsd = 0;
+    writeFileSync(file, JSON.stringify(fixture));
+    const zero = runCli(args);
+    assert.equal(zero.status, 0, zero.stderr);
+    assert.match(zero.stdout, /Requested ceilings: cost 0 microUSD \(USD 0\.000000\)/);
+    delete fixture.request.constraints.maxCostMicroUsd;
+    delete fixture.request.constraints.maxLatencyMs;
+    writeFileSync(file, JSON.stringify(fixture));
+    const unset = runCli(args);
+    assert.equal(unset.status, 0, unset.stderr);
+    assert.match(unset.stdout, /Requested ceilings: cost not set · latency not set/);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("CLI routing summaries signal blocked plans without changing legacy JSON success", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "nymrel-route-blocked-"));
+  try {
+    for (const version of ["v1", "v2"]) {
+      const fixture = JSON.parse(readFileSync(version === "v1" ? "examples/route-request.json" : "examples/route-request-v2.json", "utf8")) as { models: Array<{ health: string }> };
+      for (const model of fixture.models) model.health = "unavailable";
+      const file = path.join(directory, `${version}.json`);
+      writeFileSync(file, JSON.stringify(fixture));
+      const args = ["route", "--contract-version", version, "--file", file];
+      const json = runCli(args);
+      assert.equal(json.status, 0, json.stderr);
+      assert.equal((JSON.parse(json.stdout) as { plan: { selectedModelId: unknown } }).plan.selectedModelId, null);
+      const summary = runCli([...args, "--format", "summary"]);
+      assert.equal(summary.status, 2, summary.stderr);
+      assert.match(summary.stdout, /routing · BLOCKED/);
+      assert.match(summary.stdout, /no model meets the required constraints/);
+      assert.match(summary.stdout, /health_unavailable/);
+      assert.match(summary.stdout, /inspect the rejection codes and catalog evidence/);
+      assert.doesNotMatch(summary.stdout, /relax|ignore|disable/i);
+    }
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("CLI routing summary bounds candidate output and preserves catalog-order invariance", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "nymrel-route-summary-"));
+  try {
+    const fixture = JSON.parse(readFileSync("examples/route-request-v2.json", "utf8")) as { models: Array<Record<string, unknown>> };
+    const profile = fixture.models[0]!;
+    fixture.models = Array.from({ length: 100 }, (_, index) => ({
+      ...profile,
+      modelId: `${index < 50 ? "eligible" : "rejected"}/${String(index).padStart(3, "0")}`,
+      health: index < 50 ? "healthy" : "unavailable",
+      ...(index < 50 ? {} : { healthCode: "PRIVATE_CALLER_HEALTH_DETAIL_\u202e" }),
+    }));
+    const file = path.join(directory, "catalog.json");
+    writeFileSync(file, JSON.stringify(fixture));
+    const args = ["route", "--contract-version", "v2", "--file", file, "--format", "summary"];
+    const first = runCli(args);
+    assert.equal(first.status, 0, first.stderr);
+    assert.match(first.stdout, /Models: 100 · eligible: 50 · rejected: 50/);
+    assert.match(first.stdout, /42 more eligible model\(s\) omitted/);
+    assert.match(first.stdout, /42 more rejected model\(s\) omitted/);
+    assert.ok(first.stdout.split(/\r?\n/).filter(Boolean).length <= 32);
+    assert.doesNotMatch(first.stdout, /PRIVATE_CALLER_HEALTH_DETAIL|\u202e|\u001b/);
+    fixture.models.reverse();
+    writeFileSync(file, JSON.stringify(fixture));
+    const reversed = runCli(args);
+    assert.equal(reversed.status, 0, reversed.stderr);
+    assert.equal(reversed.stdout, first.stdout);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("CLI routing summaries reject invalid options and malformed identifiers", () => {
+  const args = ["route", "--file", "examples/route-request.json"];
+  for (const tail of [["--format", "table"], ["--format"], ["--format", "summary", "--format", "json"]]) {
+    const invalid = runCli([...args, ...tail]);
+    assert.equal(invalid.status, 64);
+    assert.equal(invalid.stdout, "");
+  }
+  const directory = mkdtempSync(path.join(tmpdir(), "nymrel-route-terminal-"));
+  try {
+    const fixture = JSON.parse(readFileSync("examples/route-request.json", "utf8")) as { models: Array<{ modelId: string }> };
+    fixture.models[0]!.modelId = "hidden\u001b[31mterminal";
+    const file = path.join(directory, "invalid.json");
+    writeFileSync(file, JSON.stringify(fixture));
+    const invalid = runCli(["route", "--file", file, "--format", "summary"]);
+    assert.equal(invalid.status, 65);
+    assert.equal(invalid.stdout, "");
+    assert.doesNotMatch(invalid.stderr, /hidden|\u001b/);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("CLI refuses a remote routing summary before input reads or network calls", async () => {
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls += 1; throw new Error("unexpected network call"); };
+  try {
+    await assert.rejects(main(["route", "--file", "absent-private-file.json", "--format", "summary", "--endpoint", "https://router.example"]), { code: "usage_error" });
+    assert.equal(calls, 0);
+  } finally { globalThis.fetch = original; }
 });
 
 test("CLI produces a local-only Job Mode plan", () => {

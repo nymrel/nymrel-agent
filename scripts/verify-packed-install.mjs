@@ -198,6 +198,30 @@ try {
       providerCalls: 0, externalAdoption: "not measured" }) + "\n");
   }
 
+  if (candidateMode) {
+    const fixture = path.join(installedPackageRoot, "examples", "route-request-v2.json");
+    const routeArgs = [binEntrypoint("nymrel-agent"), "route", "--contract-version", "v2", "--file", fixture];
+    const summary = run(process.execPath, [...routeArgs, "--format", "summary"], { cwd: installRoot });
+    assert.match(summary, /routing · SELECTED/);
+    assert.match(summary, /Selected: provider-b\/fast/);
+    assert.match(summary, /No provider call or execution authorization/);
+    assert.match(summary, /Caller catalog estimate: 12000 microUSD \(USD 0\.012000\) · latency 900 ms/);
+    assert.match(summary, /Requested ceilings: cost 50000 microUSD \(USD 0\.050000\) · latency 10000 ms/);
+    assert.ok(summary.split(/\r?\n/).filter(Boolean).length <= 32);
+    const blocked = JSON.parse(readFileSync(fixture, "utf8"));
+    for (const model of blocked.models) model.health = "unavailable";
+    const blockedFile = path.join(installRoot, "blocked-routing-metadata.json");
+    writeFileSync(blockedFile, JSON.stringify(blocked));
+    const blockedArgs = [binEntrypoint("nymrel-agent"), "route", "--contract-version", "v2", "--file", blockedFile];
+    const blockedSummary = run(process.execPath, [...blockedArgs, "--format", "summary"], { cwd: installRoot, expectedStatus: 2 });
+    assert.match(blockedSummary, /routing · BLOCKED/);
+    assert.match(blockedSummary, /health_unavailable/);
+    const legacyBlocked = JSON.parse(run(process.execPath, blockedArgs, { cwd: installRoot }));
+    const explicitJson = JSON.parse(run(process.execPath, [...blockedArgs, "--format", "json"], { cwd: installRoot }));
+    assert.equal(legacyBlocked.plan.selectedModelId, null);
+    assert.deepEqual(explicitJson, legacyBlocked);
+  }
+
   const contract = JSON.parse(run(process.execPath, [binEntrypoint("nymrel-agent"), "contract"], { cwd: installRoot }));
   assert.equal(contract.contractVersion, "nymrel.agent.route/v1");
   const jobPlan = JSON.parse(run(process.execPath, [binEntrypoint("nymrel-agent"),
