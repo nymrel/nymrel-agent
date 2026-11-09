@@ -169,6 +169,79 @@ and catalog have the same shape as the packaged `examples/route-request-v2.json`
 This is a metadata-only worker; task bodies and model calls stay with your
 application.
 
+## Local graphical workbench
+
+The local workbench is an **unreleased source/dev example**, absent from the
+existing 0.5.0 candidate archives. It adds an original Nymrel interface around
+the existing router, not a second selection algorithm or hosted gateway. Run it
+from the current reviewed source checkout after its origin/toolchain checks:
+
+```text
+corepack npm@11.19.1 ci
+corepack npm@11.19.1 run workbench -- --port 0
+```
+
+The runner prints its loopback-only URL and serves four fixed in-memory assets.
+It starts no provider adapter, accepts no routing POST, and reads no user-selected
+file on the server. Close it with Ctrl+C. To choose a fixed port, replace `0`
+with an available local port; restart the runner after editing source. This
+command needs development dependencies and compiled source, so do not assume a
+production-only installed package can run it.
+
+### Try one policy change
+
+1. The packaged synthetic v2 catalog selects `provider-b/fast` with a caller
+   estimate of USD `0.012000` and `900 ms` under USD `0.050000` / `10000 ms`
+   ceilings. These are fixture facts, not current provider pricing or benchmarks.
+2. Set the cost ceiling to USD `0.010000`. The valid result becomes **Blocked**;
+   inspect the rejection codes, then use **Reset example** to recover.
+3. Try another objective. The same example can keep the same winner; an objective
+   changes weights, not a promise that selection changes.
+4. Clear either ceiling to remove that optional constraint. An explicit `0`
+   stays zero; it is never treated as unset. USD inputs keep up to six decimal
+   places exactly, and latency uses whole milliseconds from `0` to `600000`.
+   A seventh decimal or invalid field produces **Invalid input**, distinct from
+   a valid blocked plan.
+5. On a narrow screen, use **View decision** to move directly from the controls
+   to the result. Keyboard controls, focus outlines and text state labels are
+   available without relying on color.
+
+The request's positive normalization anchors stay unchanged when ceilings are
+edited; open **How this choice is made** to inspect them. Candidate costs and
+latencies remain caller estimates. Pareto explanations reflect the canonical
+quality, reliability, health, cost and latency dimensions; no model is called.
+
+### Import and export
+
+Import a complete v2 `{ "request": ..., "models": ... }` envelope as a UTF-8
+JSON file of at most 1 MiB. The entire object passes the existing closed payload
+validator before it is stored or exported. Unknown fields, malformed UTF-8,
+invalid JSON, empty/oversized catalogs and unsupported metadata are rejected.
+Do not include prompts, provider credentials, task bodies or customer data.
+The canonical metadata contract allows at most 100 models.
+
+**Export metadata** downloads the current validated request/catalog; **Export
+plan** downloads the matching canonical v2 plan, including a valid blocked plan.
+Both are explicit local JSON downloads. Loading or invalid state clears the
+active export data and disables those controls, so a previous plan cannot appear
+current. Reset supersedes a pending file read. The app uses no cookies, browser
+storage, URL-based imports, accounts or outbound data connection. A reload starts
+again with the synthetic fixture. Imported metadata may still be sensitive;
+review downloads before sharing them. A plan supplies no execution authority.
+
+The build checks that the browser graph includes only original UI/input helpers,
+the packaged synthetic fixture and the seven existing pure routing modules.
+`connect-src 'none'` prevents runtime transport; the development server serves
+only fixed HTML, CSS, JavaScript and a favicon. The source test suite checks graph,
+numeric boundaries and loopback routes; real browser acceptance is separate from
+those Node checks and from genuinely independent user adoption.
+
+For a non-serving build/graph check:
+
+```text
+corepack npm@11.19.1 run verify:workbench
+```
+
 ## Reproducible acceptance
 
 The `npm run verify` packed-consumer gate installs the exact built
