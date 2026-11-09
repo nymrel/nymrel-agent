@@ -50,11 +50,47 @@ test("CLI routing summaries explain canonical v1/v2 plans without changing JSON 
     assert.ok(summary.stdout.includes(`Selected: ${plan.selectedModelId}`));
     assert.ok(summary.stdout.includes(`eligible: ${plan.eligible.length} · rejected: ${plan.rejected.length}`));
     assert.match(summary.stdout, /No provider call or execution authorization/);
+    assert.match(summary.stdout, /Caller catalog estimate: 12000 microUSD \(USD 0\.012000\) · latency 900 ms/);
+    assert.match(summary.stdout, /Requested ceilings: cost 50000 microUSD \(USD 0\.050000\) · latency 10000 ms/);
     assert.match(summary.stdout, /context_too_small/);
     assert.ok(summary.stdout.split(/\r?\n/).filter(Boolean).length <= 32);
     if (version === "v2") assert.match(summary.stdout, /Pareto frontier: 2 model/);
     else assert.doesNotMatch(summary.stdout, /Pareto frontier/);
   }
+});
+
+test("CLI routing summaries keep exact monetary units and distinguish zero from unset ceilings", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "nymrel-route-units-"));
+  try {
+    const fixture = JSON.parse(readFileSync("examples/route-request-v2.json", "utf8")) as {
+      request: { constraints: { maxCostMicroUsd?: number; maxLatencyMs?: number } };
+      models: Array<{ estimatedCostMicroUsd: number; estimatedLatencyMs: number }>;
+    };
+    fixture.models = [fixture.models[0]!];
+    fixture.request.constraints.maxCostMicroUsd = 1_000_000_000;
+    const file = path.join(directory, "units.json");
+    const args = ["route", "--file", file, "--contract-version", "v2", "--format", "summary"];
+    for (const [amount, dollars] of [[0, "0.000000"], [1, "0.000001"], [999_999, "0.999999"], [1_000_000, "1.000000"], [1_000_000_000, "1000.000000"]] as const) {
+      fixture.models[0]!.estimatedCostMicroUsd = amount;
+      fixture.models[0]!.estimatedLatencyMs = 0;
+      writeFileSync(file, JSON.stringify(fixture));
+      const summary = runCli(args);
+      assert.equal(summary.status, 0, summary.stderr);
+      assert.ok(summary.stdout.includes(`Caller catalog estimate: ${amount} microUSD (USD ${dollars}) · latency 0 ms`));
+    }
+    fixture.models[0]!.estimatedCostMicroUsd = 0;
+    fixture.request.constraints.maxCostMicroUsd = 0;
+    writeFileSync(file, JSON.stringify(fixture));
+    const zero = runCli(args);
+    assert.equal(zero.status, 0, zero.stderr);
+    assert.match(zero.stdout, /Requested ceilings: cost 0 microUSD \(USD 0\.000000\)/);
+    delete fixture.request.constraints.maxCostMicroUsd;
+    delete fixture.request.constraints.maxLatencyMs;
+    writeFileSync(file, JSON.stringify(fixture));
+    const unset = runCli(args);
+    assert.equal(unset.status, 0, unset.stderr);
+    assert.match(unset.stdout, /Requested ceilings: cost not set · latency not set/);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
 test("CLI routing summaries signal blocked plans without changing legacy JSON success", () => {

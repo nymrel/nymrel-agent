@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync, statSync } from "node:fs";
-import { CONTRACT_VERSION, CONTRACT_VERSION_V2, JOB_LIFECYCLE_CONTRACT_VERSION, PRODUCT_VERSION, type RoutePlan, type RoutePlanV2 } from "./contracts.js";
+import { CONTRACT_VERSION, CONTRACT_VERSION_V2, JOB_LIFECYCLE_CONTRACT_VERSION, PRODUCT_VERSION, type ModelProfile, type RouteConstraints, type RoutePlan, type RoutePlanV2 } from "./contracts.js";
 import { createDefaultRouteRequest, createDemoRuntime } from "./defaults.js";
 import { NymrelError, publicError } from "./errors.js";
 import { createConfiguredAdapters, parseLocalAgentConfig } from "./local-config.js";
@@ -179,17 +179,24 @@ export function formatJobPlanSummary(value: unknown): string {
   return `${lines.slice(0, 40).join("\n")}\n`;
 }
 
-function formatRouteSummary(plan: RoutePlan | RoutePlanV2): string {
+function formatMicroUsd(value: number): string {
+  return `${value} microUSD (USD ${Math.floor(value / 1_000_000)}.${String(value % 1_000_000).padStart(6, "0")})`;
+}
+
+function formatRouteSummary(plan: RoutePlan | RoutePlanV2, models: readonly ModelProfile[], constraints: RouteConstraints): string {
   // Only canonical validated plan fields enter this terminal view. Identifiers
   // are ASCII-validated, scores are finite integers, and reason codes are local.
   const maximumCandidates = 8;
   const selected = plan.selectedModelId !== null;
+  const profile = selected ? models.find((model) => model.modelId === plan.selectedModelId) : undefined;
   const frontier = "paretoFrontierModelIds" in plan ? new Set(plan.paretoFrontierModelIds) : undefined;
   const lines = [
     `Nymrel Agent routing · ${selected ? "SELECTED" : "BLOCKED"}`,
     "Metadata only. No provider call or execution authorization.",
     `Contract: ${plan.contractVersion} · objective: ${plan.objective}`,
     selected ? `Selected: ${plan.selectedModelId} (provider: ${plan.selectedProviderId})` : "Selected: none — no model meets the required constraints.",
+    ...(profile === undefined ? [] : [`Caller catalog estimate: ${formatMicroUsd(profile.estimatedCostMicroUsd)} · latency ${profile.estimatedLatencyMs} ms`]),
+    `Requested ceilings: cost ${constraints.maxCostMicroUsd === undefined ? "not set" : formatMicroUsd(constraints.maxCostMicroUsd)} · latency ${constraints.maxLatencyMs === undefined ? "not set" : `${constraints.maxLatencyMs} ms`}`,
     `Models: ${plan.eligible.length + plan.rejected.length} · eligible: ${plan.eligible.length} · rejected: ${plan.rejected.length}`,
     ...(frontier === undefined ? [] : [`Pareto frontier: ${frontier.size} model(s); selection uses only that frontier.`]),
     "Eligible candidates (canonical score order):",
@@ -253,7 +260,7 @@ export async function main(args: readonly string[] = process.argv.slice(2)): Pro
       ? route(payload.request, payload.models)
       : routeV2(payload.request, payload.models);
     if (format === "summary") {
-      process.stdout.write(formatRouteSummary(plan));
+      process.stdout.write(formatRouteSummary(plan, payload.models, payload.request.constraints));
       return plan.selectedModelId === null ? 2 : 0;
     }
     printJson({ ok: true, requestId: "local", plan });

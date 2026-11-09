@@ -4,7 +4,7 @@ All notable product changes are documented here.
 
 ## Unreleased
 
-- Add an opt-in local routing summary showing canonical selection, scores and rejection reasons with bounded candidate output. A blocked summary exits `2`; existing JSON output and exit behavior remain unchanged. The new CLI option is absent from the committed 0.5.0 candidate archives.
+- Add an opt-in local routing summary showing canonical selection, caller catalog cost/latency estimates, requested ceilings, scores and rejection reasons with bounded candidate output. A blocked summary exits `2`; existing JSON output and exit behavior remain unchanged. The new CLI option is absent from the committed 0.5.0 candidate archives.
 
 ## 0.5.0 — 2026-11-08
 

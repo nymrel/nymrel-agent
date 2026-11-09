@@ -109,7 +109,8 @@ Local routing is the default. `--endpoint` sends the metadata-only payload to a 
 The local `route --format summary` view is an **unreleased source addition** after
 the committed 0.5.0 candidate archives. Build the current reviewed source to try
 it; the existing versioned tarball does not contain this option. It shows the
-selected model, eligibility counts, canonical scores and rejection codes, with
+selected model, caller catalog cost/latency estimates, requested ceilings,
+eligibility counts, canonical scores and rejection codes, with
 at most eight eligible and eight rejected candidates. A blocked summary exits
 `2`; a selected summary exits `0`. JSON remains the default (also available as
 `--format json`) and preserves its existing output and exit behavior, including

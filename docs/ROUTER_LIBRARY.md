@@ -104,6 +104,8 @@ Nymrel Agent routing · SELECTED
 Metadata only. No provider call or execution authorization.
 Contract: nymrel.agent.route/v2 · objective: balanced
 Selected: provider-b/fast (provider: provider-b)
+Caller catalog estimate: 12000 microUSD (USD 0.012000) · latency 900 ms
+Requested ceilings: cost 50000 microUSD (USD 0.050000) · latency 10000 ms
 Models: 3 · eligible: 2 · rejected: 1
 Pareto frontier: 2 model(s); selection uses only that frontier.
 ```
@@ -113,8 +115,11 @@ At most eight entries from each group are displayed; omission counts point you
 to `--format json` for every candidate and score component. The summary never
 copies caller health descriptions or input paths into its output. Model facts
 are still caller-supplied, and scores are neither benchmarks nor directly
-comparable across different requests. Changing objectives need not change the
-selected model.
+comparable across different requests. Cost amounts are caller catalog estimates
+and requested ceilings: 1 USD equals 1,000,000 microUSD. Latency is in milliseconds.
+Zero cost differs from an unset ceiling; an unset ceiling is shown as `not set`.
+Validate the catalog evidence before execution; these are not measured charges
+or latency guarantees. Changing objectives need not change the selected model.
 
 If every model is rejected, the summary reports `BLOCKED`, includes rejection
 codes and exits `2`. Inspect those codes and the catalog evidence against your

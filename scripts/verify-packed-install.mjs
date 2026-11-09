@@ -205,6 +205,8 @@ try {
     assert.match(summary, /routing · SELECTED/);
     assert.match(summary, /Selected: provider-b\/fast/);
     assert.match(summary, /No provider call or execution authorization/);
+    assert.match(summary, /Caller catalog estimate: 12000 microUSD \(USD 0\.012000\) · latency 900 ms/);
+    assert.match(summary, /Requested ceilings: cost 50000 microUSD \(USD 0\.050000\) · latency 10000 ms/);
     assert.ok(summary.split(/\r?\n/).filter(Boolean).length <= 32);
     const blocked = JSON.parse(readFileSync(fixture, "utf8"));
     for (const model of blocked.models) model.health = "unavailable";
