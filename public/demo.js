@@ -6,6 +6,8 @@ if (demo instanceof HTMLElement) {
   const feedbackLink = demo.querySelector("[data-demo-feedback]");
   const status = demo.querySelector("[data-demo-status]");
   const output = demo.querySelector("[data-demo-output]");
+  const objective = demo.querySelector("[data-demo-objective]");
+  const summary = demo.querySelector("[data-demo-summary]");
 
   if (
     runControls.length > 0
@@ -13,6 +15,8 @@ if (demo instanceof HTMLElement) {
     && feedbackLink instanceof HTMLAnchorElement
     && status instanceof HTMLElement
     && output instanceof HTMLElement
+    && objective instanceof HTMLSelectElement
+    && summary instanceof HTMLElement
   ) {
     const setState = (state, message) => {
       demo.dataset.state = state;
@@ -23,6 +27,7 @@ if (demo instanceof HTMLElement) {
     let hasResult = false;
     const setRunning = (value) => {
       demo.setAttribute("aria-busy", value ? "true" : "false");
+      objective.disabled = value;
       for (const control of runControls) {
         control.setAttribute("aria-busy", value ? "true" : "false");
         if (control instanceof HTMLButtonElement) control.disabled = value;
@@ -32,6 +37,12 @@ if (demo instanceof HTMLElement) {
     const runDemo = async (event) => {
       event.preventDefault();
       if (running) return;
+      const chosenObjective = objective.value;
+      const priorities = { balanced: "a balanced tradeoff", quality: "catalog quality", cost: "lower estimated cost", latency: "lower estimated latency" };
+      if (!Object.hasOwn(priorities, chosenObjective)) {
+        setState("error", "Choose one of the listed priorities, then try again.");
+        return;
+      }
       running = true;
       demo.scrollIntoView({
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
@@ -53,6 +64,7 @@ if (demo instanceof HTMLElement) {
         if (!exampleResponse.ok) throw new Error("example_unavailable");
 
         const payload = await exampleResponse.json();
+        payload.request.objective = chosenObjective;
         const routeResponse = await fetch("/v2/route", {
           signal: controller.signal,
           method: "POST",
@@ -118,6 +130,9 @@ if (demo instanceof HTMLElement) {
           decisionCodes: result.plan.decisionCodes,
         };
         output.textContent = JSON.stringify(visibleResult, null, 2);
+        summary.textContent = winner
+          ? `For ${priorities[chosenObjective]}, the router selected ${winner.modelId}. The router found ${result.plan.eligible.length} eligible models and excluded ${result.plan.rejected.length}. This is a routing decision using the example catalog, not a model run.`
+          : `No model meets the example's requirements. Review the rejection reasons in the routing details before changing constraints. No model was run.`;
         hasResult = true;
         copyButton.hidden = false;
         feedbackLink.hidden = false;
