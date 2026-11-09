@@ -99,7 +99,7 @@
   "devDependencies": {
     "@types/node": "24.13.3",
     "typescript": "7.0.2",
-    "wrangler": "4.157.0"
+    "wrangler": "4.158.0"
   },
   "publishConfig": {
     "access": "public",
