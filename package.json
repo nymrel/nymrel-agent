@@ -92,7 +92,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.4.0",
-    "@vercel/firewall": "1.2.5",
+    "@vercel/firewall": "1.2.6",
     "hono": "4.13.16",
     "zod": "4.6.7"
   },
