@@ -120,6 +120,29 @@ exit `0` for a valid blocked plan. Summary mode is local-only and refuses
 
 `job lifecycle` is local-only and reads JSON files only; it prints the next state envelope to stdout rather than writing state. The state has a canonical SHA-256 integrity hash and checkpoint chain. Those hashes support correlation and tamper detection, not confidentiality or freshness; retain the newest state envelope and keep it private.
 
+## Local graphical workbench — unreleased source example
+
+Inspect the same canonical router in a local browser without editing JSON for
+each policy change. From a current reviewed source checkout with the supported
+Node toolchain:
+
+```text
+corepack npm@11.19.1 ci
+corepack npm@11.19.1 run workbench -- --port 0
+```
+
+Open the printed `http://127.0.0.1:PORT/` URL. Edit objective and USD/ms ceilings,
+inspect selected, blocked or invalid states and rejection/Pareto explanations,
+reset the synthetic example, or explicitly export validated metadata and its
+canonical plan. Imports are closed-schema v2 metadata, limited to 1 MiB of UTF-8
+JSON; edits stay in browser memory. No provider call, account, storage or hosted
+service is involved. Exports may contain your imported catalog: review it before
+sharing. See the [workbench guide](docs/ROUTER_LIBRARY.md#local-graphical-workbench).
+
+This is a source/dev-tool example after the committed 0.5.0 candidate archives.
+It requires the source's development tooling and compiled router; a production-
+only package installation is not its runner. No historical download is changed.
+
 ## MCP
 
 The stdio MCP server exposes five read-only tools:
