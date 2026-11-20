@@ -66,7 +66,7 @@ assert.equal(packageJson.engines?.node, ">=22 <25");
 assert.equal(packageJson.packageManager, "npm@11.19.1");
 assert.deepEqual(packageJson.devEngines?.runtime, { name: "node", version: ">=22 <25", onFail: "error" });
 assert.deepEqual(packageJson.devEngines?.packageManager, { name: "npm", version: "11.19.1", onFail: "error" });
-assert.deepEqual(packageJson.allowScripts, { "esbuild@0.28.2": true, "workerd@1.20261103.1": true });
+assert.deepEqual(packageJson.allowScripts, { "esbuild@0.28.2": true, "workerd@1.20261104.1": true });
 assert.equal(read(".node-version").trim(), "24.20.0");
 assert.deepEqual(read(".npmrc").trim().split(/\r?\n/), ["engine-strict=true", "strict-allow-scripts=true", "strict-peer-deps=true"]);
 assert.equal(packageJson.bin?.["nymrel-agent"], "dist/src/bin/nymrel-agent.js");
@@ -85,7 +85,7 @@ assert.equal(packageJson.dependencies?.hono, "4.13.18");
 assert.equal(packageJson.dependencies?.zod, "4.6.7");
 assert.equal(packageJson.devDependencies?.["@types/node"], "24.13.3");
 assert.equal(packageJson.devDependencies?.typescript, "7.0.2");
-assert.equal(packageJson.devDependencies?.wrangler, "4.157.0");
+assert.equal(packageJson.devDependencies?.wrangler, "4.158.0");
 
 const contracts = read("src/contracts.ts");
 assert.ok(contracts.includes(`PRODUCT_VERSION = "${packageJson.version}"`), "source product version must match package version");
