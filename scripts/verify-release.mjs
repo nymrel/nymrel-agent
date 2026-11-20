@@ -83,7 +83,8 @@ assert.equal(packageJson.dependencies?.["@modelcontextprotocol/server"], "2.4.0"
 assert.equal(packageJson.dependencies?.["@vercel/firewall"], "1.2.6");
 assert.equal(packageJson.dependencies?.hono, "4.13.18");
 assert.equal(packageJson.dependencies?.zod, "4.6.7");
-assert.equal(packageJson.devDependencies?.["@types/node"], "24.13.3");
+assert.equal(packageJson.devDependencies?.["@types/node"], "24.19.2");
+assert.match(packageJson.devDependencies?.["@types/node"], /^24\./, "Node types must remain within the supported runtime major");
 assert.equal(packageJson.devDependencies?.typescript, "7.0.2");
 assert.equal(packageJson.devDependencies?.wrangler, "4.158.0");
 
