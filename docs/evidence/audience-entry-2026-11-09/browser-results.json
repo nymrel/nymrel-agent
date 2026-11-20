@@ -1,0 +1,38 @@
+{
+  "environment": "Local Chromium; reduced motion; synthetic source fixtures; no external providers",
+  "viewports": [
+    320,
+    390,
+    1440
+  ],
+  "checks": [
+    {
+      "product": "nymrel-agent",
+      "width": 320,
+      "priority": "cost",
+      "summary": "For lower estimated cost, the router selected provider-b/fast. The router found 2 eligible models and excluded 1. This is a routing decision using the example catalog, not a model run.",
+      "retryPreservesResult": true,
+      "overflow": false,
+      "pageErrors": []
+    },
+    {
+      "product": "nymrel-agent",
+      "width": 390,
+      "priority": "cost",
+      "summary": "For lower estimated cost, the router selected provider-b/fast. The router found 2 eligible models and excluded 1. This is a routing decision using the example catalog, not a model run.",
+      "retryPreservesResult": true,
+      "overflow": false,
+      "pageErrors": []
+    },
+    {
+      "product": "nymrel-agent",
+      "width": 1440,
+      "priority": "cost",
+      "summary": "For lower estimated cost, the router selected provider-b/fast. The router found 2 eligible models and excluded 1. This is a routing decision using the example catalog, not a model run.",
+      "retryPreservesResult": true,
+      "overflow": false,
+      "pageErrors": []
+    }
+  ],
+  "limitations": "Local UI and fixture/API validation only; no production deployment or independent user acceptance."
+}

@@ -2,6 +2,20 @@
 
 All notable product changes are documented here.
 
+## Unreleased
+
+- Add a source-only local graphical routing workbench with editable objective and exact USD/ms ceilings, selected/blocked/invalid states, canonical Pareto/rejection details, bounded metadata import, reset and explicit local JSON exports. It uses the existing router and development tooling with no new dependency, provider call, account or storage.
+- Add an opt-in local routing summary showing canonical selection, caller catalog cost/latency estimates, requested ceilings, scores and rejection reasons with bounded candidate output. A blocked summary exits `2`; existing JSON output and exit behavior remain unchanged. The new CLI option is absent from the committed 0.5.0 candidate archives.
+
+## 0.5.0 — 2026-11-08
+
+- Expose the existing routing contracts through `@nymrel/agent/router`, with public input/output types and a platform-independent module graph. Installed Node and worker consumers verify the same canonical decisions without adopting the hosted service or execution runtime. The existing v1/v2 routing contracts are unchanged; earlier versioned downloads do not include this library entry point.
+
+## 0.4.1 — 2026-11-08
+
+- Reject Responses-provider redirects so task bodies stay bound to the explicitly configured endpoint, including loopback-only runs. Configure the final provider URL directly; redirected endpoints now fail closed.
+- Bound the public routing example to a 15-second deadline across its fixture request, route request, and response-body reads; reset busy controls after failure and retain clearly labeled previous successful results for copying and explicit retry.
+
 ## 0.4.0 — 2026-08-28
 
 - Added a local-only Job Lifecycle contract: callers retain the latest envelope while deterministic init, checkpoint, and terminal transitions validate bounded body-free inputs, replay idempotent requests, and verify a SHA-256 integrity chain. It neither runs work nor persists data.

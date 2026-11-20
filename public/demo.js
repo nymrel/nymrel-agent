@@ -6,6 +6,8 @@ if (demo instanceof HTMLElement) {
   const feedbackLink = demo.querySelector("[data-demo-feedback]");
   const status = demo.querySelector("[data-demo-status]");
   const output = demo.querySelector("[data-demo-output]");
+  const objective = demo.querySelector("[data-demo-objective]");
+  const summary = demo.querySelector("[data-demo-summary]");
 
   if (
     runControls.length > 0
@@ -13,6 +15,8 @@ if (demo instanceof HTMLElement) {
     && feedbackLink instanceof HTMLAnchorElement
     && status instanceof HTMLElement
     && output instanceof HTMLElement
+    && objective instanceof HTMLSelectElement
+    && summary instanceof HTMLElement
   ) {
     const setState = (state, message) => {
       demo.dataset.state = state;
@@ -20,7 +24,10 @@ if (demo instanceof HTMLElement) {
     };
 
     let running = false;
+    let hasResult = false;
     const setRunning = (value) => {
+      demo.setAttribute("aria-busy", value ? "true" : "false");
+      objective.disabled = value;
       for (const control of runControls) {
         control.setAttribute("aria-busy", value ? "true" : "false");
         if (control instanceof HTMLButtonElement) control.disabled = value;
@@ -30,6 +37,12 @@ if (demo instanceof HTMLElement) {
     const runDemo = async (event) => {
       event.preventDefault();
       if (running) return;
+      const chosenObjective = objective.value;
+      const priorities = { balanced: "a balanced tradeoff", quality: "catalog quality", cost: "lower estimated cost", latency: "lower estimated latency" };
+      if (!Object.hasOwn(priorities, chosenObjective)) {
+        setState("error", "Choose one of the listed priorities, then try again.");
+        return;
+      }
       running = true;
       demo.scrollIntoView({
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
@@ -39,16 +52,21 @@ if (demo instanceof HTMLElement) {
       copyButton.hidden = true;
       feedbackLink.hidden = true;
       setState("loading", "Loading the public example and routing it now.");
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15_000);
 
       try {
         const exampleResponse = await fetch("/examples/route-request-v2.json", {
+          signal: controller.signal,
           cache: "no-store",
           headers: { Accept: "application/json" },
         });
         if (!exampleResponse.ok) throw new Error("example_unavailable");
 
         const payload = await exampleResponse.json();
+        payload.request.objective = chosenObjective;
         const routeResponse = await fetch("/v2/route", {
+          signal: controller.signal,
           method: "POST",
           headers: {
             Accept: "application/json",
@@ -112,16 +130,26 @@ if (demo instanceof HTMLElement) {
           decisionCodes: result.plan.decisionCodes,
         };
         output.textContent = JSON.stringify(visibleResult, null, 2);
+        summary.textContent = winner
+          ? `For ${priorities[chosenObjective]}, the router selected ${winner.modelId}. The router found ${result.plan.eligible.length} eligible models and excluded ${result.plan.rejected.length}. This is a routing decision using the example catalog, not a model run.`
+          : `No model meets the example's requirements. Review the rejection reasons in the routing details before changing constraints. No model was run.`;
+        hasResult = true;
         copyButton.hidden = false;
         feedbackLink.hidden = false;
         setState("success", `Selected ${result.plan.selectedModelId ?? "no eligible model"} from ${result.plan.eligible.length} eligible models; ${result.plan.rejected.length} rejected. This response came from the live router.`);
       } catch {
-        output.textContent = JSON.stringify({
-          ok: false,
-          error: "The live example could not complete. The API and CLI quickstarts remain available in the docs.",
-        }, null, 2);
-        setState("error", "The live example did not complete. Try again or use the documented curl request.");
+        if (!hasResult) {
+          output.textContent = JSON.stringify({
+            ok: false,
+            error: "The live example could not complete. The API and CLI quickstarts remain available in the docs.",
+          }, null, 2);
+        }
+        copyButton.hidden = !hasResult;
+        feedbackLink.hidden = !hasResult;
+        const failure = controller.signal.aborted ? "The live example timed out." : "The live example did not complete.";
+        setState("error", `${failure}${hasResult ? " Your previous result is still shown." : ""} Try again or use the documented curl request.`);
       } finally {
+        clearTimeout(timeout);
         running = false;
         setRunning(false);
       }
@@ -132,7 +160,7 @@ if (demo instanceof HTMLElement) {
     copyButton.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(output.textContent ?? "");
-        setState("success", "Copied the live routing result.");
+        setState("success", "Copied the displayed routing result.");
       } catch {
         setState("error", "Copy was unavailable. Select the result text instead.");
       }

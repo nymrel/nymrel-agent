@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local routing workbench · Nymrel Agent</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/workbench.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#policy">Skip to routing policy</a>
+  <header class="masthead shell">
+    <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">N</span>Nymrel Agent</a>
+    <span class="source-label">Local source example</span>
+  </header>
+  <main id="top" class="shell">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">Routing workbench</p>
+      <h1 id="page-title">Make the decision visible.</h1>
+      <p class="lede">Adjust your policy. See which models qualify before your application calls a provider.</p>
+      <p class="boundary">Edits stay in this tab’s memory. This example makes no provider calls and grants no execution authority.</p>
+    </section>
+    <div class="workspace">
+      <section id="policy" class="panel policy-panel" aria-labelledby="policy-title" tabindex="-1">
+        <div class="panel-top"><h2 id="policy-title">Routing policy</h2><button id="reset" type="button" class="button quiet">Reset example</button></div>
+        <p id="catalog-source" class="catalog-source">Packaged synthetic catalog</p>
+        <form id="policy-form" novalidate>
+          <div class="field">
+            <label for="objective">Objective</label>
+            <select id="objective" name="objective" aria-describedby="objective-help">
+              <option value="balanced">Balanced</option><option value="quality">Quality</option>
+              <option value="cost">Cost</option><option value="latency">Latency</option>
+            </select>
+            <p id="objective-help" class="help">Changes the scoring weights. A different objective need not change the winner.</p>
+          </div>
+          <div class="field">
+            <label for="cost-ceiling">Cost ceiling <span class="unit">USD</span></label>
+            <input id="cost-ceiling" name="cost-ceiling" type="text" inputmode="decimal" maxlength="24" autocomplete="off" spellcheck="false" placeholder="Not set" aria-describedby="cost-help cost-error">
+            <p id="cost-help" class="help">Up to 6 decimal places. Blank means no ceiling; 0 is an explicit zero. Maximum USD 1000.</p>
+            <p id="cost-error" class="field-error" hidden></p>
+          </div>
+          <div class="field">
+            <label for="latency-ceiling">Latency ceiling <span class="unit">ms</span></label>
+            <input id="latency-ceiling" name="latency-ceiling" type="text" inputmode="numeric" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Not set" aria-describedby="latency-help latency-error">
+            <p id="latency-help" class="help">Whole milliseconds from 0 to 600000. Blank means no ceiling; 0 stays explicit.</p>
+            <p id="latency-error" class="field-error" hidden></p>
+          </div>
+          <p class="live-note">The preview updates as you edit.</p>
+          <a class="view-decision" href="#decision">View decision <span aria-hidden="true">↓</span></a>
+        </form>
+        <div class="import-area">
+          <label for="metadata-file">Import your metadata</label>
+          <input id="metadata-file" type="file" accept=".json,application/json" aria-describedby="import-help">
+          <p id="import-help" class="help">A v2 request + model catalog, UTF-8 JSON, at most 1 MiB and 100 models. Unknown fields are rejected; do not include prompts or credentials.</p>
+        </div>
+        <div class="export-actions"><button id="export-metadata" type="button" class="button secondary" disabled>Export metadata</button><button id="export-plan" type="button" class="button secondary" disabled>Export plan</button></div>
+        <p class="help">Downloads contain the metadata or plan currently shown. Review your imported catalog before sharing it.</p>
+      </section>
+      <section id="decision" class="panel decision-panel" aria-labelledby="decision-title" tabindex="-1">
+        <h2 id="decision-title">Route decision</h2>
+        <div id="decision-status" class="decision-status" role="status" aria-live="polite" aria-atomic="true">
+          <p id="state-label" class="state-label">Loading</p>
+          <p id="winner" class="winner">Preparing the local example</p>
+          <p id="state-message" class="help">No provider is called.</p>
+        </div>
+        <dl class="metrics">
+          <div><dt>Caller cost estimate</dt><dd id="metric-cost">—</dd></div>
+          <div><dt>Caller latency estimate</dt><dd id="metric-latency">—</dd></div>
+          <div><dt>Eligible models</dt><dd id="metric-eligible">—</dd></div>
+          <div><dt>Pareto frontier</dt><dd id="metric-frontier">—</dd></div>
+        </dl>
+        <p id="effective-ceilings" class="effective-ceilings"></p>
+        <details class="explanation"><summary>How this choice is made</summary><p>Required constraints filter the catalog first. The canonical v2 router then ranks eligible models using your objective and selects only from its Pareto frontier.</p><p>A model is outside that frontier when another eligible model is no worse in quality, reliability, health, cost and latency, and strictly better in at least one of them.</p><p id="anchors"></p><p>All model facts are caller-supplied estimates, not measured performance, current provider quotes or permission to execute.</p></details>
+      </section>
+    </div>
+    <section class="catalog-section" aria-labelledby="catalog-title">
+      <div class="section-heading"><div><p class="eyebrow">Decision details</p><h2 id="catalog-title">See the whole catalog.</h2></div><p>Canonical scores and reason codes, without a second routing algorithm.</p></div>
+      <div class="catalog-columns">
+        <section aria-labelledby="eligible-title"><h3 id="eligible-title">Eligible models</h3><p id="eligible-note" class="help"></p><ul id="eligible-models" class="model-list"></ul></section>
+        <section aria-labelledby="rejected-title"><h3 id="rejected-title">Rejected models</h3><p id="rejected-note" class="help"></p><ul id="rejected-models" class="model-list"></ul></section>
+      </div>
+    </section>
+    <footer class="footer"><strong>Build on the same router.</strong><span>This local source example uses <code>@nymrel/agent/router</code>’s canonical core. It adds no account, storage or hosted service.</span></footer>
+  </main>
+  <noscript><p class="shell">JavaScript is required for the local routing preview. The source repository also provides a CLI summary.</p></noscript>
+</body>
+</html>

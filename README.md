@@ -58,10 +58,41 @@ The selected objective changes explicit weights. Explicit cost and latency ceili
 
 The opt-in v2 contract leaves v1 unchanged. Its required `normalization` object uses `basis: "request_budget"` plus positive cost and latency anchors. v2 normalizes cost and latency against those request anchors, returns a sorted `paretoFrontierModelIds` list, and selects only from that frontier. An incumbent can resolve an exact weighted-score tie inside the frontier; it never receives a score bonus.
 
+## Embed routing in your application
+
+The `@nymrel/agent/router` subpath exposes the existing v1/v2 routing functions
+and their TypeScript contracts without importing the CLI, MCP server, provider
+adapters, or local execution runtime. It can sit between an application's
+orchestration code and its chosen provider SDK:
+
+```typescript
+import { routeV2, type ModelProfile, type RouteRequestV2 } from '@nymrel/agent/router';
+
+const plan = routeV2(requestMetadata as RouteRequestV2, modelCatalog as ModelProfile[]);
+if (plan.selectedModelId === null) {
+  // Stop or ask for changed constraints; no model satisfied the supplied policy.
+} else {
+  // Hand the selected identifiers to your application's existing provider code.
+}
+```
+
+This entry point makes a routing decision only. Model facts remain caller-supplied;
+the result does not authenticate those facts or authorize execution. It uses no
+Node-only APIs and makes no provider/network call. The package still contains
+the other entry points and their declared dependencies; the subpath isolates the
+module graph rather than creating a separate dependency-free distribution.
+
+The library entry point first appears in version 0.5.0; immutable 0.4.x downloads
+do not include it. See the [library consumer guide](docs/ROUTER_LIBRARY.md) for
+verified versioned-artifact installation and exact-source builds. npm publication
+remains separate from a GitHub release.
+The existing routing contracts and public endpoints are unchanged.
+
 ## CLI
 
 ```text
 nymrel-agent route --file PAYLOAD.json [--contract-version v2] [--endpoint https://host]
+nymrel-agent route --file PAYLOAD.json --contract-version v2 --format summary
 nymrel-agent job plan --file MANIFEST.json
 nymrel-agent job plan --file MANIFEST.json --format summary
 nymrel-agent job lifecycle init --file MANIFEST.json [--at RFC3339_UTC]
@@ -75,7 +106,42 @@ nymrel-agent demo
 
 Local routing is the default. `--endpoint` sends the metadata-only payload to a hosted router.
 
+The local `route --format summary` view is an **unreleased source addition** after
+the committed 0.5.0 candidate archives. Build the current reviewed source to try
+it; the existing versioned tarball does not contain this option. It shows the
+selected model, caller catalog cost/latency estimates, requested ceilings,
+eligibility counts, canonical scores and rejection codes, with
+at most eight eligible and eight rejected candidates. A blocked summary exits
+`2`; a selected summary exits `0`. JSON remains the default (also available as
+`--format json`) and preserves its existing output and exit behavior, including
+exit `0` for a valid blocked plan. Summary mode is local-only and refuses
+`--endpoint` before reading input or making a network call. See the
+[consumer guide](docs/ROUTER_LIBRARY.md#inspect-a-local-plan) for an example.
+
 `job lifecycle` is local-only and reads JSON files only; it prints the next state envelope to stdout rather than writing state. The state has a canonical SHA-256 integrity hash and checkpoint chain. Those hashes support correlation and tamper detection, not confidentiality or freshness; retain the newest state envelope and keep it private.
+
+## Local graphical workbench — unreleased source example
+
+Inspect the same canonical router in a local browser without editing JSON for
+each policy change. From a current reviewed source checkout with the supported
+Node toolchain:
+
+```text
+corepack npm@11.19.1 ci
+corepack npm@11.19.1 run workbench -- --port 0
+```
+
+Open the printed `http://127.0.0.1:PORT/` URL. Edit objective and USD/ms ceilings,
+inspect selected, blocked or invalid states and rejection/Pareto explanations,
+reset the synthetic example, or explicitly export validated metadata and its
+canonical plan. Imports are closed-schema v2 metadata, limited to 1 MiB of UTF-8
+JSON; edits stay in browser memory. No provider call, account, storage or hosted
+service is involved. Exports may contain your imported catalog: review it before
+sharing. See the [workbench guide](docs/ROUTER_LIBRARY.md#local-graphical-workbench).
+
+This is a source/dev-tool example after the committed 0.5.0 candidate archives.
+It requires the source's development tooling and compiled router; a production-
+only package installation is not its runner. No historical download is changed.
 
 ## MCP
 

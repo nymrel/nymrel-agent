@@ -275,6 +275,54 @@ button:focus-visible {
   flex: 0 0 auto;
 }
 
+.demo-preference,
+.demo-summary,
+.demo-details > summary {
+  padding: 14px 22px;
+  color: #e8e5da;
+  font-size: 14px;
+}
+
+.demo-preference label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.demo-preference select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #8d8b82;
+  border-radius: 6px;
+  background: #f5f2e9;
+  color: #25251f;
+  font: inherit;
+}
+
+.demo-preference p {
+  margin: 8px 0 0;
+  color: #c8c5bb;
+  font-size: 13px;
+}
+
+.demo-summary {
+  margin: 0;
+  border-block: 1px solid #3a3934;
+  line-height: 1.6;
+}
+
+.demo-details > summary {
+  min-height: 44px;
+  cursor: pointer;
+}
+
+select:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--lime);
+  outline-offset: 3px;
+}
+
 .demo-run:disabled {
   cursor: wait;
   opacity: 0.65;

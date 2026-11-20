@@ -146,6 +146,7 @@ export class OpenAIResponsesProvider implements ProviderAdapter {
       if (this.#project) headers.set("OpenAI-Project", this.#project);
       const response = await this.#fetcher(`${this.#baseUrl}/responses`, {
         method: "POST",
+        redirect: "error",
         headers,
         body: JSON.stringify({
           model: this.#providerModelId,
