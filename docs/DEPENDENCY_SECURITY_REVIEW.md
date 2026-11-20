@@ -32,3 +32,16 @@ Reviewed tarball SHA-256 digests:
 Historical versioned source/package archives, manifests, tags, and release
 receipts are retained byte-for-byte. This is a source candidate and grants no
 registry-publication, deployment, promotion, or runtime-activation authority.
+
+## Wrangler 4.158.0 follow-up
+
+PR #4 updates Wrangler from 4.157.0 to 4.158.0 and changes the exact
+`workerd` install-script approval from 1.20261103.1 to 1.20261104.1.
+Both workerd tarballs were fetched from the npm registry without running their
+scripts and matched their locked SHA-512 integrity values. Comparing their
+`install.js` files found changes only to the version and date literals. The
+new tarball's SHA-256 is
+`965439de7680922b1b5bea9ba5b18d0c50eed99a347ee996145ec7902559bf4d`.
+The allowlist remains limited to the exact reviewed versions. The frozen
+install, full verification and dependency audit passed on Node 24 with npm
+11.19.1.
